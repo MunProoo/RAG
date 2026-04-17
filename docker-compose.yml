@@ -24,6 +24,8 @@ services:
       # Open WebUI는 OpenAI-compatible endpoint로 Pipelines를 호출합니다.
       - OPENAI_API_BASE_URL=http://pipelines:9099
       - OPENAI_API_KEY=0p3n-w3bu!
+      # 후속 질문(답변 아래 칩) 자동 생성 — 이미 DB에 설정이 박혀 있으면 env만으로는 안 바뀔 수 있음(아래 UI 권장)
+      - ENABLE_FOLLOW_UP_GENERATION=false
     restart: unless-stopped
     volumes:
       # Open WebUI의 로컬 데이터 영속화
@@ -67,9 +69,9 @@ services:
     ports:
       - "9099:9099"
     volumes:
-      - ./pipelines:/app/pipelines
-      - ./chroma_db:/app/chroma_db
-      - ./requirements.txt:/app/requirements.txt:ro
+      - ./rag/pipelines:/app/pipelines
+      - ./rag/data/chroma_db:/app/chroma_db
+      - ./rag/requirements.txt:/app/requirements.txt:ro
     environment:
       - PIPELINES_DIR=/app/pipelines
       # pipelines 컨테이너 내부에 requirements 설치 (chromadb/임베딩 등 버전 정합성)
@@ -87,19 +89,32 @@ services:
     networks:
       - webui
 
-  # 5. 문서 인덱싱 전용 컨테이너 (ChromaDB 생성/갱신)
+  # 5. 정적 이미지 서버 (Open WebUI/Pipelines에서 URL로 참조)
+  # - 호스트: http://localhost:8090/<파일명>
+  # - 컨테이너 간: http://imageserver/<파일명>
+  imageserver:
+    image: nginx:alpine
+    ports:
+      - "8090:80"
+    volumes:
+      - ./rag/data/assets:/usr/share/nginx/html:ro
+    restart: unless-stopped
+    networks:
+      - webui
+
+  # 6. 문서 인덱싱 전용 컨테이너 (ChromaDB 생성/갱신)
   # 사용 예:
   #   docker compose run --rm indexer
   #   docker compose run --rm indexer python /app/scripts/index_documents.py /app/docs --reset
   #   docker compose run --rm indexer python /app/scripts/index_documents.py /app/docs --status
   indexer:
     build:
-      context: .
+      context: ./rag
       dockerfile: Dockerfile.indexer
     volumes:
-      - ./scripts:/app/scripts
-      - ./docs:/app/docs
-      - ./chroma_db:/app/chroma_db
+      - ./rag/scripts:/app/scripts
+      - ./rag/data/docs:/app/docs
+      - ./rag/data/chroma_db:/app/chroma_db
     environment:
       - CHROMA_PATH=/app/chroma_db
       - CHROMA_COLLECTION=rag_documents

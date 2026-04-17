@@ -3,7 +3,7 @@
 ==========================
 Open WebUI 없이 파이프라인의 각 단계를 직접 테스트합니다.
 
-사용법:
+사용법(권장: `rag/` 디렉터리에서 실행):
   python scripts/test_pipeline.py
   python scripts/test_pipeline.py --query "원하는 질문"
 """
@@ -11,8 +11,11 @@ Open WebUI 없이 파이프라인의 각 단계를 직접 테스트합니다.
 import sys
 import time
 import argparse
-sys.path.insert(0, ".")
-sys.path.insert(0, "./pipelines")
+from pathlib import Path
+
+RAG_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(RAG_ROOT))
+sys.path.insert(0, str(RAG_ROOT / "pipelines"))
 
 from pipelines.rag_pipeline import (
     rewrite_query,

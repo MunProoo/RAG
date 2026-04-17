@@ -3,9 +3,9 @@
 ====================
 PDF, TXT, Markdown 파일을 청크로 분할하여 ChromaDB에 저장합니다.
 
-사용법:
-  python scripts/index_documents.py ./my_docs/
-  python scripts/index_documents.py ./my_docs/ --chunk-size 500 --overlap 50
+사용법(권장: `rag/` 디렉터리에서 실행):
+  python scripts/index_documents.py ./data/docs/
+  python scripts/index_documents.py ./data/docs/ --chunk-size 500 --overlap 50
   python scripts/index_documents.py --reset   # DB 초기화
 """
 
@@ -23,7 +23,7 @@ from chromadb.utils import embedding_functions
 # ─────────────────────────────────────────
 # 설정
 # ─────────────────────────────────────────
-CHROMA_PATH = os.getenv("CHROMA_PATH", "./chroma_db")
+CHROMA_PATH = os.getenv("CHROMA_PATH", "./data/chroma_db")
 COLLECTION_NAME = os.getenv("CHROMA_COLLECTION", "rag_documents")
 # 한국어 사내 문서 기준 기본 임베딩 모델
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "jhgan/ko-sroberta-multitask")
@@ -283,8 +283,8 @@ def index_directory(
 # ─────────────────────────────────────────
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="문서를 ChromaDB에 인덱싱합니다.")
-    parser.add_argument("directory", nargs="?", default="./docs",
-                        help="인덱싱할 문서 디렉토리 (기본값: ./docs)")
+    parser.add_argument("directory", nargs="?", default="./data/docs",
+                        help="인덱싱할 문서 디렉토리 (기본값: ./data/docs)")
     parser.add_argument("--chunk-size", type=int, default=DEFAULT_CHUNK_SIZE,
                         help=f"청크 크기 (기본값: {DEFAULT_CHUNK_SIZE}자)")
     parser.add_argument("--overlap", type=int, default=DEFAULT_OVERLAP,
