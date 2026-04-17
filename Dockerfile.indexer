@@ -1,0 +1,10 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+COPY requirements.txt /app/requirements.txt
+RUN pip install --no-cache-dir -r /app/requirements.txt
+
+# 스크립트/문서/DB는 compose에서 bind mount로 주입
+CMD ["python", "/app/scripts/index_documents.py", "/app/docs"]
+

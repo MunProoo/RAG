@@ -1,0 +1,116 @@
+services:
+  # 1. Open WebUI 메인 컨테이너
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:latest
+    ports:
+      - "8080:8080"
+    environment:
+      # 데이터베이스 설정
+      - DB_DRIVER=postgres
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=open-webui
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_SSL_MODE=disable
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/open-webui
+      # 캐시 설정
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      # Ollama API 설정 (로컬 모델을 사용 시)
+      - OLLAMA_URL=http://host.docker.internal:11434
+      - OLLAMA_API_URL=http://host.docker.internal:11434
+      # Open WebUI Pipelines (RAG 파이프라인) 연동
+      # Open WebUI는 OpenAI-compatible endpoint로 Pipelines를 호출합니다.
+      - OPENAI_API_BASE_URL=http://pipelines:9099
+      - OPENAI_API_KEY=0p3n-w3bu!
+    restart: unless-stopped
+    volumes:
+      # Open WebUI의 로컬 데이터 영속화
+      - openwebui_data:/app/backend/data
+    depends_on:
+      - postgres
+      - redis
+      - pipelines
+    networks:
+      - webui
+
+  # 2. PostgreSQL 데이터베이스
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_DB=open-webui
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+      - webui
+
+  # 3. Redis 캐시
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    restart: unless-stopped
+    networks:
+      - webui
+
+  # 4. Open WebUI Pipelines 서버 (RAG 파이프라인 로더)
+  pipelines:
+    image: ghcr.io/open-webui/pipelines:main
+    ports:
+      - "9099:9099"
+    volumes:
+      - ./pipelines:/app/pipelines
+      - ./chroma_db:/app/chroma_db
+      - ./requirements.txt:/app/requirements.txt:ro
+    environment:
+      - PIPELINES_DIR=/app/pipelines
+      # pipelines 컨테이너 내부에 requirements 설치 (chromadb/임베딩 등 버전 정합성)
+      - PIPELINES_REQUIREMENTS_PATH=/app/requirements.txt
+      # Windows host에서 실행 중인 Ollama 접근
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+      # ChromaDB 경로 (컨테이너 내부)
+      - CHROMA_PATH=/app/chroma_db
+      - CHROMA_COLLECTION=rag_documents
+      # 한국어 임베딩 모델
+      - EMBEDDING_MODEL=jhgan/ko-sroberta-multitask
+      - REWRITE_MODEL=qwen3.5:4b
+      - ANSWER_MODEL=qwen3.5:4b
+    restart: unless-stopped
+    networks:
+      - webui
+
+  # 5. 문서 인덱싱 전용 컨테이너 (ChromaDB 생성/갱신)
+  # 사용 예:
+  #   docker compose run --rm indexer
+  #   docker compose run --rm indexer python /app/scripts/index_documents.py /app/docs --reset
+  #   docker compose run --rm indexer python /app/scripts/index_documents.py /app/docs --status
+  indexer:
+    build:
+      context: .
+      dockerfile: Dockerfile.indexer
+    volumes:
+      - ./scripts:/app/scripts
+      - ./docs:/app/docs
+      - ./chroma_db:/app/chroma_db
+    environment:
+      - CHROMA_PATH=/app/chroma_db
+      - CHROMA_COLLECTION=rag_documents
+      - EMBEDDING_MODEL=jhgan/ko-sroberta-multitask
+    restart: "no"
+
+networks:
+  webui:
+    driver: bridge
+
+volumes:
+  pgdata:
+  redisdata:
+  openwebui_data:

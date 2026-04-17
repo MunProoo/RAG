@@ -1,0 +1,20 @@
+# LLM → RAG → LLM Pipeline 의존성
+
+# 벡터 데이터베이스
+# NOTE:
+# - `pipelines` 컨테이너와 `indexer` 컨테이너가 동일한 persist 디렉토리(`./chroma_db`)를 공유합니다.
+# - chromadb 버전이 서로 다르면(예: 1.0.x vs 1.5.x) 퍼시스턴트 DB 로딩에서 Rust panic 등 치명적 오류가 날 수 있습니다.
+# - 따라서 chromadb는 반드시 고정(pin)합니다.
+chromadb==1.5.7
+
+# 임베딩 모델 (SentenceTransformers 기반, 모델은 `EMBEDDING_MODEL`로 지정)
+sentence-transformers>=2.7.0
+
+# HTTP 요청 (Ollama API)
+requests>=2.31.0
+
+# 데이터 검증 (Open WebUI Pipeline 필수)
+pydantic>=2.0.0
+
+# PDF 파싱 (선택, index_documents.py에서 사용)
+pypdf>=4.0.0
