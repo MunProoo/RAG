@@ -353,7 +353,7 @@ def build_context_prompt(
     context_parts = []
     for i, doc in enumerate(documents, 1):
         context_parts.append(
-            f"[문서 {i}] (출처: {doc['source']}, 관련도: {doc['score']})\n{doc['content']}"
+            f"[참고 {i}] 출처 파일: `{doc['source']}` · 관련도: {doc['score']}\n{doc['content']}"
         )
 
     context_str = "\n\n".join(context_parts)
@@ -385,7 +385,6 @@ def build_context_prompt(
 {scope_block}
 === 답변 지침 ===
 - 참고 문서의 내용을 기반으로 답변하세요
-- 출처를 인용할 때는 [문서 N] 형식을 사용하세요
 - 명확하고 구조적으로 답변하세요
 - **금지(매우 중요)**: "제공된 참고 문서에는 … 포함되어 있지 않습니다/명시되어 있지 않습니다", "문서에는 … 에 대한 정보가 없습니다" 같은 **장황한 면책·부정 문단**을 쓰지 마세요. 문서에 없는 세부는 **굳이 나열하지 말고 생략**하거나, 꼭 필요할 때만 한 문장으로 짧게 처리하세요.
 - 질문에 답하는 데 필요한 사실만 말하세요. 없는 내용을 억지로 채우지 마세요.
