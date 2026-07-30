@@ -82,9 +82,24 @@ services:
       - CHROMA_PATH=/app/chroma_db
       - CHROMA_COLLECTION=rag_documents
       # 한국어 임베딩 모델
-      - EMBEDDING_MODEL=jhgan/ko-sroberta-multitask
+      - EMBEDDING_MODEL=BAAI/bge-m3
+      - BM25_INDEX_PATH=/app/chroma_db/bm25_index.json
+      - TOP_K=4
+      - MAX_CHUNKS_PER_SOURCE=2
+      - MAX_CONTEXT_CHARS=12000
+      - OLLAMA_NUM_CTX=8192
+      - OLLAMA_NUM_PREDICT=2048
+      - OLLAMA_READ_TIMEOUT=600
       - REWRITE_MODEL=qwen3.5:4b
       - ANSWER_MODEL=qwen3.5:4b
+      # 크로스 인코더 리랭커 (로드 실패 시 자동으로 RRF 순위 폴백)
+      - RERANK_ENABLED=true
+      - RERANK_MODEL=BAAI/bge-reranker-v2-m3
+      - RERANK_CANDIDATES=20
+      # false로 두면 LLM 질문 재작성을 생략해 응답 지연이 줄어듭니다.
+      - USE_QUERY_REWRITE=true
+      # 후속 질문("그거 자세히")을 이전 대화 기반 독립형 질문으로 바꿔 검색
+      - CONTEXTUALIZE_FOLLOW_UP=true
     restart: unless-stopped
     networks:
       - webui
@@ -113,12 +128,21 @@ services:
       dockerfile: Dockerfile.indexer
     volumes:
       - ./rag/scripts:/app/scripts
+      # Regression tests import the same retrieval code used by the pipeline.
+      - ./rag/pipelines:/app/pipelines:ro
       - ./rag/data/docs:/app/docs
       - ./rag/data/chroma_db:/app/chroma_db
+      # Golden-set retrieval evaluation (scripts/eval_retrieval.py)
+      - ./rag/data/eval:/app/data/eval
     environment:
       - CHROMA_PATH=/app/chroma_db
       - CHROMA_COLLECTION=rag_documents
-      - EMBEDDING_MODEL=jhgan/ko-sroberta-multitask
+      - EMBEDDING_MODEL=BAAI/bge-m3
+      - BM25_INDEX_PATH=/app/chroma_db/bm25_index.json
+      - CHUNK_SIZE=480
+      - CHUNK_OVERLAP=80
+      - VECTOR_CANDIDATES=20
+      - BM25_CANDIDATES=20
     restart: "no"
 
 networks:

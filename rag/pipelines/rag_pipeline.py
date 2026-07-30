@@ -18,6 +18,7 @@ from pydantic import BaseModel
 
 import chromadb
 from chromadb.utils import embedding_functions
+from rank_bm25 import BM25Okapi
 
 
 # ─────────────────────────────────────────
@@ -27,7 +28,8 @@ DEFAULT_OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 DEFAULT_REWRITE_MODEL = os.getenv("REWRITE_MODEL", "qwen3:1.7b")
 DEFAULT_ANSWER_MODEL = os.getenv("ANSWER_MODEL", "qwen3:1.7b")
 
-_DEFAULT_CHROMA_PATH = str(Path(__file__).resolve().parents[2] / "data" / "chroma_db")
+# Local default is rag/data/chroma_db; Docker overrides this with /app/chroma_db.
+_DEFAULT_CHROMA_PATH = str(Path(__file__).resolve().parents[1] / "data" / "chroma_db")
 DEFAULT_CHROMA_PATH = os.getenv("CHROMA_PATH", _DEFAULT_CHROMA_PATH)
 DEFAULT_COLLECTION_NAME = os.getenv("CHROMA_COLLECTION", "rag_documents")
 
@@ -35,7 +37,46 @@ DEFAULT_TOP_K = int(os.getenv("TOP_K", "5"))
 DEFAULT_MIN_RELEVANCE_SCORE = float(os.getenv("MIN_SCORE", "0.3"))
 
 # 한국어 사내 문서 기준 기본 임베딩 모델
-DEFAULT_EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "jhgan/ko-sroberta-multitask")
+DEFAULT_EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "BAAI/bge-m3")
+DEFAULT_BM25_INDEX_PATH = os.getenv("BM25_INDEX_PATH", str(Path(DEFAULT_CHROMA_PATH) / "bm25_index.json"))
+DEFAULT_VECTOR_CANDIDATES = int(os.getenv("VECTOR_CANDIDATES", "20"))
+DEFAULT_BM25_CANDIDATES = int(os.getenv("BM25_CANDIDATES", "20"))
+DEFAULT_MAX_CONTEXT_CHARS = int(os.getenv("MAX_CONTEXT_CHARS", "12000"))
+DEFAULT_NUM_CTX = int(os.getenv("OLLAMA_NUM_CTX", "8192"))
+DEFAULT_NUM_PREDICT = int(os.getenv("OLLAMA_NUM_PREDICT", "2048"))
+DEFAULT_OLLAMA_READ_TIMEOUT = int(os.getenv("OLLAMA_READ_TIMEOUT", "600"))
+DEFAULT_MAX_CHUNKS_PER_SOURCE = int(os.getenv("MAX_CHUNKS_PER_SOURCE", "2"))
+
+# 리랭커(크로스 인코더): RRF 후보를 질문-본문 쌍으로 다시 채점해 정밀도를 올립니다.
+# 모델 로드 실패(오프라인 등) 시 자동으로 RRF 순위를 그대로 사용합니다.
+DEFAULT_RERANK_ENABLED = os.getenv("RERANK_ENABLED", "true").lower() == "true"
+DEFAULT_RERANK_MODEL = os.getenv("RERANK_MODEL", "BAAI/bge-reranker-v2-m3")
+DEFAULT_RERANK_CANDIDATES = int(os.getenv("RERANK_CANDIDATES", "20"))
+
+# false면 LLM 재작성을 생략하고 원본 질문 + 규칙 기반 확장만 사용합니다(지연 감소).
+DEFAULT_USE_QUERY_REWRITE = os.getenv("USE_QUERY_REWRITE", "true").lower() == "true"
+
+# 후속 질문("그거 자세히", "해당 API 수정은?")을 감지하면 이전 대화를 반영해
+# 독립형 질문으로 바꾼 뒤 검색합니다. 감지될 때만 LLM을 추가 호출합니다.
+DEFAULT_CONTEXTUALIZE_FOLLOW_UP = os.getenv("CONTEXTUALIZE_FOLLOW_UP", "true").lower() == "true"
+
+FOLLOW_UP_MARKERS = (
+    "그거", "그것", "이거", "그건", "이건", "저거", "그중", "그 중",
+    "해당", "위에", "위의", "방금", "아까", "앞서", "그럼", "그러면",
+    "그 api", "이 api", "그 방법", "이 방법", "더 자세히", "자세히 좀",
+    "예시", "예제", "다른 것도", "나머지",
+)
+
+DOCUMENT_TYPE_TERMS = {
+    "protocol": ("protocol", "프로토콜", "패킷", "packet", "명령 구분", "param3"),
+    "install": ("설치", "install", "nsis", "빌드", "package"),
+    "user_guide": ("user guide", "사용자 가이드", "사용법", "매뉴얼"),
+}
+PRODUCT_TERMS = {
+    "alpeta": ("alpeta", "알페타"),
+}
+CURRENT_PROTOCOL_TERMS = ("신규", "최신", "새 프로토콜", "new protocol", "v4", "4.0")
+LEGACY_PROTOCOL_TERMS = ("구형", "기존 프로토콜", "legacy", "v1", "1.0")
 
 
 # ─────────────────────────────────────────
@@ -93,6 +134,57 @@ def filter_documents_by_focus(
     return filtered[:top_k]
 
 
+def detect_retrieval_scope(query: str) -> Dict[str, str]:
+    """Infer only deterministic document constraints from a user question.
+
+    Document type must be applied before retrieval.  Filtering only after global
+    top-k search is too late because a common product keyword can crowd out the
+    desired document type completely.
+    """
+    normalized = (query or "").casefold()
+    scope: Dict[str, str] = {}
+    for document_type, terms in DOCUMENT_TYPE_TERMS.items():
+        if any(term.casefold() in normalized for term in terms):
+            scope["document_type"] = document_type
+            break
+    for product, terms in PRODUCT_TERMS.items():
+        if any(term.casefold() in normalized for term in terms):
+            scope["product"] = product
+            break
+    if scope.get("document_type") == "protocol":
+        if any(term.casefold() in normalized for term in CURRENT_PROTOCOL_TERMS):
+            scope["protocol_generation"] = "current"
+        elif any(term.casefold() in normalized for term in LEGACY_PROTOCOL_TERMS):
+            scope["protocol_generation"] = "legacy"
+    return scope
+
+
+def expand_retrieval_query(original_query: str, rewritten_query: str) -> str:
+    """Add deterministic domain synonyms that the rewrite LLM may miss."""
+    original = (original_query or "").casefold()
+    expansions = []
+    if "내려" in original or "내리" in original:
+        expansions.append("설정 전송 Server Terminal 서버 단말기 배포 적용 Request")
+    if "출입그룹" in original or "출입 그룹" in original:
+        expansions.append("출입그룹 출입 그룹 access group Door 설정 전송")
+    if any(term.casefold() in original for term in CURRENT_PROTOCOL_TERMS):
+        expansions.append("신규 프로토콜 v4.0 current Communication protocol for Terminal")
+    lines = [line.strip() for line in (rewritten_query or "").splitlines() if line.strip()]
+    lines.extend(expansions)
+    return "\n".join(dict.fromkeys(lines))
+
+
+def _chroma_where(scope: Optional[Dict[str, str]]) -> Optional[dict]:
+    if not scope:
+        return None
+    conditions = [{key: value} for key, value in scope.items()]
+    return conditions[0] if len(conditions) == 1 else {"$and": conditions}
+
+
+def _metadata_matches_scope(metadata: Optional[dict], scope: Optional[Dict[str, str]]) -> bool:
+    return not scope or all((metadata or {}).get(key) == value for key, value in scope.items())
+
+
 # ─────────────────────────────────────────
 # ChromaDB 유틸
 # ─────────────────────────────────────────
@@ -122,13 +214,17 @@ def ollama_chat(
     model: str,
     messages: list,
     stream: bool = False,
+    options: Optional[dict] = None,
+    read_timeout: int = DEFAULT_OLLAMA_READ_TIMEOUT,
 ) -> str:
     """Ollama chat API를 호출합니다."""
     url = f"{base_url}/api/chat"
     # 일부 Ollama 모델은 think/thinking 옵션을 지원합니다.
     # Open WebUI/RAG 응답에서 사고과정 노출을 피하기 위해 기본적으로 think=false를 전달합니다.
     payload = {"model": model, "messages": messages, "stream": stream, "think": False}
-    response = requests.post(url, json=payload, timeout=120)
+    if options:
+        payload["options"] = options
+    response = requests.post(url, json=payload, timeout=(10, read_timeout))
     response.raise_for_status()
     data = response.json()
     return data["message"]["content"]
@@ -138,17 +234,29 @@ def ollama_chat_stream(
     base_url: str,
     model: str,
     messages: list,
+    options: Optional[dict] = None,
+    read_timeout: int = DEFAULT_OLLAMA_READ_TIMEOUT,
 ) -> Generator[str, None, None]:
     """Ollama chat API 스트리밍 버전."""
     url = f"{base_url}/api/chat"
     payload = {"model": model, "messages": messages, "stream": True, "think": False}
-    with requests.post(url, json=payload, stream=True, timeout=120) as resp:
+    if options:
+        payload["options"] = options
+    with requests.post(url, json=payload, stream=True, timeout=(10, read_timeout)) as resp:
         resp.raise_for_status()
         for line in resp.iter_lines():
             if not line:
                 continue
             data = json.loads(line)
-            if not data.get("done", False):
+            if data.get("done", False):
+                print(
+                    "[RAG] Ollama stream completed: "
+                    f"reason={data.get('done_reason', 'unknown')}, "
+                    f"prompt_tokens={data.get('prompt_eval_count', 'unknown')}, "
+                    f"generated_tokens={data.get('eval_count', 'unknown')}"
+                )
+                break
+            else:
                 content = data.get("message", {}).get("content", "")
                 if content:
                     yield content
@@ -204,15 +312,102 @@ def rewrite_query(
 
 
 # ─────────────────────────────────────────
+# Step 0: 후속 질문 문맥화 (Question Condensing)
+# ─────────────────────────────────────────
+def is_follow_up_question(query: str, chat_history: list) -> bool:
+    """이전 대화 없이는 이해하기 어려운 후속 질문인지 감지합니다.
+
+    검색은 현재 질문 문자열만 사용하므로, 지시어("그거", "해당")나 아주 짧은
+    질문("왜?", "예시는?")은 문맥을 되살려 주지 않으면 검색이 실패합니다.
+    """
+    if not chat_history:
+        return False
+    q = (query or "").strip()
+    if not q:
+        return False
+    normalized = q.casefold()
+    if any(marker in normalized for marker in FOLLOW_UP_MARKERS):
+        return True
+    return len(q) <= 12
+
+
+def _compact_history(chat_history: list, max_turns: int = 4, max_chars: int = 500) -> str:
+    """문맥화 프롬프트용으로 최근 대화를 압축합니다(이미지 마크다운 제거)."""
+    lines = []
+    for message in chat_history[-max_turns:]:
+        role = message.get("role", "")
+        if role not in ("user", "assistant"):
+            continue
+        content = re.sub(r"!\[[^\]]*\]\([^)\s]+\)", "", str(message.get("content", ""))).strip()
+        if not content:
+            continue
+        if len(content) > max_chars:
+            content = content[:max_chars] + "…"
+        lines.append(f"{'사용자' if role == 'user' else '어시스턴트'}: {content}")
+    return "\n".join(lines)
+
+
+def condense_question(
+    base_url: str,
+    model: str,
+    question: str,
+    chat_history: list,
+) -> str:
+    """최근 대화를 반영해 혼자 봐도 이해되는 독립형 질문으로 다시 씁니다.
+
+    실패하거나 결과가 이상하면(빈 값·과도한 길이) 원본 질문으로 폴백합니다.
+    """
+    history_text = _compact_history(chat_history)
+    if not history_text:
+        return question
+
+    system_prompt = """당신은 대화 문맥을 반영해 질문을 완성하는 전문가입니다.
+최근 대화를 참고해, 마지막 질문을 혼자 봐도 이해되는 완전한 질문 한 문장으로 다시 쓰세요.
+
+규칙(매우 중요):
+- 출력은 완성된 질문 한 줄만. 설명/머리말/따옴표/마크다운 금지.
+- 지시어("그거", "해당", "위에서" 등)를 대화에 나온 실제 대상으로 바꾸세요.
+- 고유명사(제품명/API명/스키마명/파일명)는 원문 표기를 그대로 보존하고, 대화에 없는 정보를 지어내지 마세요.
+- 마지막 질문이 이전 대화와 무관하면 마지막 질문을 그대로 출력하세요."""
+
+    user_message = f"""최근 대화:
+{history_text}
+
+마지막 질문: {question}
+
+완성된 질문:"""
+
+    try:
+        condensed = ollama_chat(
+            base_url,
+            model,
+            [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_message},
+            ],
+            stream=False,
+        )
+    except Exception as exc:
+        print(f"[RAG] 질문 문맥화 실패, 원본 질문 사용: {exc}")
+        return question
+
+    condensed = next((line.strip() for line in condensed.splitlines() if line.strip()), "")
+    if not condensed or len(condensed) > 300:
+        return question
+    return condensed
+
+
+# ─────────────────────────────────────────
 # Step 2: 벡터 검색 (RAG)
 # ─────────────────────────────────────────
-def retrieve_documents(
+def retrieve_vector_documents(
     chroma_path: str,
     collection_name: str,
     embedding_model: str,
     query: str,
     top_k: int,
     min_relevance_score: float,
+    scope: Optional[Dict[str, str]] = None,
 ) -> list:
     """
     ChromaDB에서 쿼리와 관련된 문서 청크를 검색합니다.
@@ -235,11 +430,15 @@ def retrieve_documents(
 
         # 쿼리별로 top_k씩 뽑아 병합(중복 제거 + 최고 점수 유지)
         actual_k = min(top_k, doc_count)
-        results = collection.query(
-            query_texts=queries,
-            n_results=actual_k,
-            include=["documents", "metadatas", "distances"],
-        )
+        query_args = {
+            "query_texts": queries,
+            "n_results": actual_k,
+            "include": ["documents", "metadatas", "distances"],
+        }
+        where = _chroma_where(scope)
+        if where:
+            query_args["where"] = where
+        results = collection.query(**query_args)
 
         merged: Dict[Tuple[str, str], Dict] = {}
         docs_by_query = results.get("documents") or []
@@ -259,6 +458,7 @@ def retrieve_documents(
                         "content": doc,
                         "source": source,
                         "score": round(score, 3),
+                        "metadata": meta or {},
                     }
 
         # 점수 높은 순으로 정렬 후 top_k로 절단
@@ -413,13 +613,30 @@ class Pipeline:
 
         TOP_K: int = DEFAULT_TOP_K
         MIN_RELEVANCE_SCORE: float = DEFAULT_MIN_RELEVANCE_SCORE
+        BM25_INDEX_PATH: str = DEFAULT_BM25_INDEX_PATH
+        VECTOR_CANDIDATES: int = DEFAULT_VECTOR_CANDIDATES
+        BM25_CANDIDATES: int = DEFAULT_BM25_CANDIDATES
+        MAX_CONTEXT_CHARS: int = DEFAULT_MAX_CONTEXT_CHARS
+        NUM_CTX: int = DEFAULT_NUM_CTX
+        NUM_PREDICT: int = DEFAULT_NUM_PREDICT
+        OLLAMA_READ_TIMEOUT: int = DEFAULT_OLLAMA_READ_TIMEOUT
+        MAX_CHUNKS_PER_SOURCE: int = DEFAULT_MAX_CHUNKS_PER_SOURCE
+
+        RERANK_ENABLED: bool = DEFAULT_RERANK_ENABLED
+        RERANK_MODEL: str = DEFAULT_RERANK_MODEL
+        RERANK_CANDIDATES: int = DEFAULT_RERANK_CANDIDATES
+        USE_QUERY_REWRITE: bool = DEFAULT_USE_QUERY_REWRITE
+        CONTEXTUALIZE_FOLLOW_UP: bool = DEFAULT_CONTEXTUALIZE_FOLLOW_UP
 
         SHOW_SOURCES: bool = True
         SHOW_REWRITTEN_QUERY: bool = False
 
     def __init__(self):
-        self.name = "Pipeline"
+        self.name = "도우미"
         self.valves = self.Valves()
+
+    def answer_options(self) -> dict:
+        return {"num_ctx": self.valves.NUM_CTX, "num_predict": self.valves.NUM_PREDICT}
 
     async def on_startup(self):
         print(f"[Pipeline] 시작: {self.name}")
@@ -467,6 +684,8 @@ class Pipeline:
                         base_url=self.valves.OLLAMA_BASE_URL,
                         model=self.valves.ANSWER_MODEL,
                         messages=messages,
+                        options=self.answer_options(),
+                        read_timeout=self.valves.OLLAMA_READ_TIMEOUT,
                     )
                 else:
                     yield ollama_chat(
@@ -474,20 +693,40 @@ class Pipeline:
                         model=self.valves.ANSWER_MODEL,
                         messages=messages,
                         stream=False,
+                        options=self.answer_options(),
+                        read_timeout=self.valves.OLLAMA_READ_TIMEOUT,
                     )
 
             return generate_internal()
 
-        # 성능 목적: 질문 재작성 시 대화 컨텍스트를 반영하지 않음
-        rewritten_query = rewrite_query(
-            base_url=self.valves.OLLAMA_BASE_URL,
-            model=self.valves.REWRITE_MODEL,
-            original_query=user_message,
-            chat_history=[],
-        )
+        # Step 0: 후속 질문이면 이전 대화를 반영해 독립형 질문으로 변환.
+        # 검색·범위 필터·초점 추출은 전부 이 질문 기준으로 동작합니다.
+        retrieval_question = user_message
+        if self.valves.CONTEXTUALIZE_FOLLOW_UP and is_follow_up_question(user_message, chat_history):
+            retrieval_question = condense_question(
+                base_url=self.valves.OLLAMA_BASE_URL,
+                model=self.valves.REWRITE_MODEL,
+                question=user_message,
+                chat_history=chat_history,
+            )
+            if retrieval_question != user_message:
+                print(f"[Step 0] 후속 질문 감지 → 문맥 반영 질문: {retrieval_question}")
+
+        # 성능 목적: 질문 재작성 시 대화 컨텍스트를 반영하지 않음(문맥은 Step 0에서 반영됨)
+        if self.valves.USE_QUERY_REWRITE:
+            rewritten_query = rewrite_query(
+                base_url=self.valves.OLLAMA_BASE_URL,
+                model=self.valves.REWRITE_MODEL,
+                original_query=retrieval_question,
+                chat_history=[],
+            )
+        else:
+            rewritten_query = retrieval_question
+        rewritten_query = expand_retrieval_query(retrieval_question, rewritten_query)
         print(f"[Step 1] 재작성된 쿼리: {rewritten_query}")
 
-        print(f"[Step 2] 벡터 검색 중... (top_k={self.valves.TOP_K})")
+        scope = detect_retrieval_scope(retrieval_question)
+        print(f"[Step 2] 검색 중... (top_k={self.valves.TOP_K}, scope={scope or 'none'})")
         documents = retrieve_documents(
             chroma_path=self.valves.CHROMA_PATH,
             collection_name=self.valves.CHROMA_COLLECTION,
@@ -495,10 +734,20 @@ class Pipeline:
             query=rewritten_query,
             top_k=self.valves.TOP_K,
             min_relevance_score=self.valves.MIN_RELEVANCE_SCORE,
+            bm25_index_path=self.valves.BM25_INDEX_PATH,
+            vector_candidates=self.valves.VECTOR_CANDIDATES,
+            bm25_candidates=self.valves.BM25_CANDIDATES,
+            scope=scope,
+            max_chunks_per_source=self.valves.MAX_CHUNKS_PER_SOURCE,
+            rerank_enabled=self.valves.RERANK_ENABLED,
+            rerank_model=self.valves.RERANK_MODEL,
+            rerank_candidates=self.valves.RERANK_CANDIDATES,
+            # 리랭커는 재작성 변형이 아닌 (문맥 반영된) 질문과의 적합도를 봐야 합니다.
+            rerank_query=retrieval_question,
         )
         print(f"[Step 2] 검색된 문서: {len(documents)}개")
 
-        focus = extract_query_focus(user_message)
+        focus = extract_query_focus(retrieval_question)
         if focus:
             before = len(documents)
             documents = filter_documents_by_focus(
@@ -509,7 +758,12 @@ class Pipeline:
                 f"({before} → {len(documents)}개)"
             )
 
-        context_prompt = build_context_prompt(user_message, documents, focus=focus)
+        documents = limit_documents_for_context(documents, self.valves.MAX_CONTEXT_CHARS)
+        print(f"[Step 2c] 답변 컨텍스트: {len(documents)}개 청크, 최대 {self.valves.MAX_CONTEXT_CHARS}자")
+
+        # 답변 프롬프트에도 문맥 반영 질문을 사용합니다. ("그거 자세히"보다 명확)
+        # 이전 대화는 answer_messages의 chat_history로 별도 전달됩니다.
+        context_prompt = build_context_prompt(retrieval_question, documents, focus=focus)
 
         prefix = ""
         if self.valves.SHOW_REWRITTEN_QUERY:
@@ -538,7 +792,177 @@ class Pipeline:
                 base_url=self.valves.OLLAMA_BASE_URL,
                 model=self.valves.ANSWER_MODEL,
                 messages=answer_messages,
+                options=self.answer_options(),
+                read_timeout=self.valves.OLLAMA_READ_TIMEOUT,
             )
 
         return generate()
+
+
+# Hybrid retrieval is intentionally kept here because the pipeline container only
+# mounts this directory. The indexer writes bm25_index.json beside ChromaDB.
+def _bm25_tokens(text: str) -> list:
+    """Language-neutral tokenization: Korean syllable runs, words, numbers and codes."""
+    return re.findall(r"[\uac00-\ud7a3]+|[A-Za-z0-9][A-Za-z0-9_./:-]*", (text or "").lower())
+
+
+def _load_bm25_records(index_path: str) -> list:
+    try:
+        with open(index_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return data if isinstance(data, list) else []
+    except (OSError, ValueError) as exc:
+        print(f"[RAG] BM25 index unavailable ({index_path}): {exc}")
+        return []
+
+
+# 질문마다 JSON 파싱 + BM25 재구축을 반복하면 문서가 늘수록 응답이 느려집니다.
+# 인덱스 파일 mtime이 같으면 프로세스 내 캐시를 재사용합니다(재인덱싱 시 자동 갱신).
+_BM25_CACHE: dict = {"path": None, "mtime": None, "records": [], "bm25": None}
+
+
+def _get_bm25_index(index_path: str) -> Tuple[list, Optional[object]]:
+    try:
+        mtime = os.path.getmtime(index_path)
+    except OSError:
+        return [], None
+    if _BM25_CACHE["path"] == index_path and _BM25_CACHE["mtime"] == mtime:
+        return _BM25_CACHE["records"], _BM25_CACHE["bm25"]
+    records = _load_bm25_records(index_path)
+    corpus = [_bm25_tokens(record.get("document", "")) for record in records]
+    bm25 = BM25Okapi(corpus) if records and any(corpus) else None
+    _BM25_CACHE.update({"path": index_path, "mtime": mtime, "records": records, "bm25": bm25})
+    if records:
+        print(f"[RAG] BM25 index loaded and cached: {len(records)} chunks")
+    return records, bm25
+
+
+_RERANKER_CACHE: dict = {"model_name": None, "model": None}
+
+
+def _get_reranker(model_name: str):
+    if _RERANKER_CACHE["model_name"] == model_name:
+        return _RERANKER_CACHE["model"]
+    model = None
+    try:
+        from sentence_transformers import CrossEncoder
+        model = CrossEncoder(model_name)
+        print(f"[RAG] Reranker loaded: {model_name}")
+    except Exception as exc:
+        print(f"[RAG] Reranker unavailable ({model_name}), falling back to RRF order: {exc}")
+    _RERANKER_CACHE.update({"model_name": model_name, "model": model})
+    return model
+
+
+def rerank_documents(query: str, documents: list, model_name: str, top_k: int) -> list:
+    """크로스 인코더로 (질문, 청크) 쌍을 재채점합니다. 모델이 없으면 입력 순서 유지."""
+    if len(documents) <= 1:
+        return documents[:top_k]
+    model = _get_reranker(model_name)
+    if model is None:
+        return documents[:top_k]
+    question = next((line.strip() for line in (query or "").splitlines() if line.strip()), query)
+    try:
+        scores = model.predict([(question, doc.get("content", "")) for doc in documents])
+    except Exception as exc:
+        print(f"[RAG] Rerank failed, falling back to RRF order: {exc}")
+        return documents[:top_k]
+    ranked = sorted(zip(documents, scores), key=lambda pair: float(pair[1]), reverse=True)
+    return [{**doc, "rerank_score": round(float(score), 4)} for doc, score in ranked[:top_k]]
+
+
+def _rrf_merge(vector_docs: list, bm25_docs: list, top_k: int, k: int = 60) -> list:
+    merged = {}
+    for rank, doc in enumerate(vector_docs, 1):
+        key = (doc.get("source", "unknown"), doc.get("content", ""))
+        item = merged.setdefault(key, {**doc, "score": 0.0})
+        item["score"] += 1 / (k + rank)
+    for rank, doc in enumerate(bm25_docs, 1):
+        key = (doc.get("source", "unknown"), doc.get("content", ""))
+        item = merged.setdefault(key, {**doc, "score": 0.0})
+        item["score"] += 1 / (k + rank)
+    return [{**doc, "score": round(doc["score"], 4)}
+            for doc in sorted(merged.values(), key=lambda item: item["score"], reverse=True)[:top_k]]
+
+
+def limit_documents_per_source(documents: list, top_k: int, max_chunks_per_source: int) -> list:
+    """Avoid letting many adjacent chunks from one broad document crowd out others."""
+    counts: Dict[str, int] = {}
+    selected = []
+    for document in documents:
+        source = document.get("source", "unknown")
+        if counts.get(source, 0) >= max_chunks_per_source:
+            continue
+        counts[source] = counts.get(source, 0) + 1
+        selected.append(document)
+        if len(selected) >= top_k:
+            break
+    return selected
+
+
+def limit_documents_for_context(documents: list, max_context_chars: int) -> list:
+    """Keep only complete chunks that fit the answer model's input budget."""
+    selected, used = [], 0
+    for document in documents:
+        size = len(document.get("content", ""))
+        if selected and used + size > max_context_chars:
+            continue
+        if size > max_context_chars:
+            continue
+        selected.append(document)
+        used += size
+    return selected
+
+
+def retrieve_documents(
+    chroma_path: str,
+    collection_name: str,
+    embedding_model: str,
+    query: str,
+    top_k: int,
+    min_relevance_score: float,
+    bm25_index_path: str = DEFAULT_BM25_INDEX_PATH,
+    vector_candidates: int = DEFAULT_VECTOR_CANDIDATES,
+    bm25_candidates: int = DEFAULT_BM25_CANDIDATES,
+    scope: Optional[Dict[str, str]] = None,
+    max_chunks_per_source: int = DEFAULT_MAX_CHUNKS_PER_SOURCE,
+    rerank_enabled: bool = False,
+    rerank_model: str = DEFAULT_RERANK_MODEL,
+    rerank_candidates: int = DEFAULT_RERANK_CANDIDATES,
+    rerank_query: Optional[str] = None,
+) -> list:
+    """Fuse dense BGE-M3 and exact-keyword BM25 rankings with RRF, then rerank."""
+    candidate_count = max(top_k, vector_candidates, rerank_candidates if rerank_enabled else 0)
+
+    def _finalize(candidates: list) -> list:
+        if rerank_enabled:
+            candidates = rerank_documents(rerank_query or query, candidates, rerank_model, candidate_count)
+        return limit_documents_per_source(candidates, top_k, max_chunks_per_source)
+
+    vector_docs = retrieve_vector_documents(
+        chroma_path, collection_name, embedding_model, query,
+        candidate_count, min_relevance_score, scope,
+    )
+    records, bm25 = _get_bm25_index(bm25_index_path)
+    if not records or bm25 is None:
+        return _finalize(vector_docs)
+    allowed = [index for index, record in enumerate(records)
+               if _metadata_matches_scope(record.get("metadata"), scope)]
+    if not allowed:
+        print(f"[RAG] No documents matched required scope: {scope}")
+        return []
+    scores = [0.0] * len(records)
+    for query_variant in [q for q in query.splitlines() if q.strip()]:
+        for index, score in enumerate(bm25.get_scores(_bm25_tokens(query_variant))):
+            scores[index] = max(scores[index], float(score))
+    ranked = sorted(allowed, key=lambda index: scores[index], reverse=True)
+    bm25_docs = []
+    for index in ranked[:bm25_candidates]:
+        if scores[index] <= 0:
+            continue
+        record = records[index]
+        metadata = record.get("metadata") or {}
+        bm25_docs.append({"content": record.get("document", ""), "source": metadata.get("source", "unknown"), "score": scores[index], "metadata": metadata})
+    merged = _rrf_merge(vector_docs, bm25_docs, candidate_count)
+    return _finalize(merged)
 

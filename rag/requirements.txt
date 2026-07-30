@@ -10,6 +10,12 @@ chromadb==1.5.7
 # 임베딩 모델 (SentenceTransformers 기반, 모델은 `EMBEDDING_MODEL`로 지정)
 sentence-transformers>=2.7.0
 
+# BGE-M3 tokenizer-based chunking
+transformers>=4.44.0
+
+# Hybrid keyword retrieval
+rank-bm25>=0.2.2
+
 # HTTP 요청 (Ollama API)
 requests>=2.31.0
 
@@ -17,4 +23,7 @@ requests>=2.31.0
 pydantic>=2.0.0
 
 # PDF 파싱 (선택, index_documents.py에서 사용)
-pypdf>=4.0.0
+# Layout-aware PDF extraction; OCR is used only when explicitly enabled.
+pymupdf>=1.24.0
+pillow>=10.0.0
+pytesseract>=0.3.10

@@ -1,94 +1,132 @@
-"""
-문서 인덱싱 스크립트
-====================
-PDF, TXT, Markdown 파일을 청크로 분할하여 ChromaDB에 저장합니다.
+"""Index local documents into ChromaDB with BGE-M3 token-aware chunks.
 
-사용법(권장: `rag/` 디렉터리에서 실행):
-  python scripts/index_documents.py ./data/docs/
-  python scripts/index_documents.py ./data/docs/ --chunk-size 500 --overlap 50
-  python scripts/index_documents.py --reset   # DB 초기화
+The companion BM25 index is stored beside ChromaDB so the RAG pipeline can
+perform hybrid (dense + keyword) retrieval.
 """
 
+import argparse
+import hashlib
+import json
 import os
 import re
 import sys
-import argparse
-import hashlib
 from pathlib import Path
 
 import chromadb
 from chromadb.utils import embedding_functions
+from transformers import AutoTokenizer
 
-
-# ─────────────────────────────────────────
-# 설정
-# ─────────────────────────────────────────
 CHROMA_PATH = os.getenv("CHROMA_PATH", "./data/chroma_db")
 COLLECTION_NAME = os.getenv("CHROMA_COLLECTION", "rag_documents")
-# 한국어 사내 문서 기준 기본 임베딩 모델
-EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "jhgan/ko-sroberta-multitask")
-DEFAULT_CHUNK_SIZE = 400    # 토큰 기준 (대략 글자 수)
-DEFAULT_OVERLAP = 50        # 청크 간 겹치는 글자 수
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "BAAI/bge-m3")
+# Keep chunks small enough that the answer model can use several of them without
+# exhausting its context window.  These are embedding-model tokens, not LLM tokens.
+DEFAULT_CHUNK_SIZE = int(os.getenv("CHUNK_SIZE", "480"))
+DEFAULT_OVERLAP = int(os.getenv("CHUNK_OVERLAP", "80"))
+BM25_INDEX_PATH = Path(os.getenv("BM25_INDEX_PATH", str(Path(CHROMA_PATH) / "bm25_index.json")))
+
+DOCUMENT_TYPE_RULES = {
+    "protocol": ("protocol", "프로토콜", "주장치"),
+    "install": ("설치", "install", "nsis", "빌드", "package"),
+    "user_guide": ("user guide", "사용자 가이드", "사용자매뉴얼", "매뉴얼"),
+}
+PRODUCT_RULES = {
+    # "주장치_Protocol" is the Alpeta protocol document even though its
+    # filename does not repeat the product name.
+    "alpeta": (
+        "alpeta",
+        "알페타",
+        "주장치_protocol",
+        "communication protocol for terminal",
+    ),
+}
 
 
-# ─────────────────────────────────────────
-# ChromaDB 초기화
-# ─────────────────────────────────────────
+def get_tokenizer():
+    """Load the embedding model tokenizer once; chunk limits are token counts."""
+    print(f"Loading tokenizer: {EMBEDDING_MODEL}")
+    return AutoTokenizer.from_pretrained(EMBEDDING_MODEL)
+
+
+def token_len(tokenizer, text: str) -> int:
+    return len(tokenizer.encode(text, add_special_tokens=False))
+
+
 def get_collection(reset: bool = False):
     client = chromadb.PersistentClient(path=CHROMA_PATH)
-    embed_fn = embedding_functions.SentenceTransformerEmbeddingFunction(
-        model_name=EMBEDDING_MODEL
-    )
-
+    embed_fn = embedding_functions.SentenceTransformerEmbeddingFunction(model_name=EMBEDDING_MODEL)
     if reset:
         try:
             client.delete_collection(COLLECTION_NAME)
-            print(f"[초기화] 컬렉션 '{COLLECTION_NAME}' 삭제 완료")
         except Exception:
             pass
-
-    collection = client.get_or_create_collection(
+        BM25_INDEX_PATH.unlink(missing_ok=True)
+    return client.get_or_create_collection(
         name=COLLECTION_NAME,
         embedding_function=embed_fn,
-        metadata={"hnsw:space": "cosine"}
+        metadata={"hnsw:space": "cosine"},
     )
-    return collection
 
 
-# ─────────────────────────────────────────
-# 텍스트 추출
-# ─────────────────────────────────────────
-def extract_text_from_file(file_path: Path) -> str:
-    """파일에서 텍스트를 추출합니다."""
-    suffix = file_path.suffix.lower()
+def clean_text(text: str) -> str:
+    """Keep paragraph breaks but turn PDF layout line-wraps into spaces."""
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
+    text = re.sub(r"(?<![.!?。！？])\n(?!\n)", " ", text)
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    text = re.sub(r"[ \t]+", " ", text)
+    text = re.sub(r" *\n *", "\n", text)
+    return text.strip()
 
-    if suffix == ".pdf":
-        return _extract_pdf(file_path)
-    elif suffix in (".txt", ".md", ".markdown", ".rst"):
-        return _extract_text(file_path)
-    elif suffix in (".html", ".htm"):
-        return _extract_html(file_path)
-    else:
-        print(f"  [경고] 지원하지 않는 파일 형식: {suffix}")
+
+def _table_to_markdown(table) -> str:
+    rows = [[str(cell or "").replace("\n", " ").strip() for cell in row] for row in table.extract()]
+    rows = [row for row in rows if any(row)]
+    if len(rows) < 2:
         return ""
+    width = max(len(row) for row in rows)
+    rows = [row + [""] * (width - len(row)) for row in rows]
+    return "\n".join([
+        "| " + " | ".join(rows[0]) + " |",
+        "| " + " | ".join(["---"] * width) + " |",
+        *["| " + " | ".join(row) + " |" for row in rows[1:]],
+    ])
 
 
-def _extract_pdf(file_path: Path) -> str:
+def _extract_pdf_pages(file_path: Path) -> list[tuple[int, str]]:
+    """Extract PDF text one page at a time so page metadata survives chunking."""
     try:
-        import pypdf
-        text_parts = []
-        with open(file_path, "rb") as f:
-            reader = pypdf.PdfReader(f)
-            for page in reader.pages:
-                text_parts.append(page.extract_text() or "")
-        return "\n".join(text_parts)
+        import fitz
     except ImportError:
-        print("  [오류] pypdf 미설치. pip install pypdf")
-        return ""
+        print("  [error] PyMuPDF is not installed. Run the indexer image rebuild.")
+        return []
+
+    ocr_enabled = os.getenv("PDF_OCR_FALLBACK", "false").lower() == "true"
+    pages = []
+    with fitz.open(file_path) as pdf:
+        for page_no, page in enumerate(pdf, 1):
+            page_text = page.get_text("text", sort=True).strip()
+            tables = []
+            try:
+                tables = [_table_to_markdown(t) for t in page.find_tables().tables]
+            except Exception:
+                pass
+            if not page_text and ocr_enabled:
+                try:
+                    import pytesseract
+                    from PIL import Image
+                    pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))
+                    image = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+                    page_text = pytesseract.image_to_string(image, lang=os.getenv("OCR_LANG", "kor+eng"))
+                except Exception as exc:
+                    print(f"  [warning] OCR skipped on page {page_no}: {exc}")
+            page_content = "\n\n".join(part for part in [page_text, *tables] if part)
+            if page_content.strip():
+                pages.append((page_no, page_content))
+    return pages
 
 
 def _extract_text(file_path: Path) -> str:
-    for encoding in ["utf-8", "cp949", "euc-kr"]:
+    for encoding in ("utf-8", "cp949", "euc-kr"):
         try:
             return file_path.read_text(encoding=encoding)
         except UnicodeDecodeError:
@@ -97,220 +135,257 @@ def _extract_text(file_path: Path) -> str:
 
 
 def _extract_html(file_path: Path) -> str:
-    try:
-        from html.parser import HTMLParser
+    from html.parser import HTMLParser
 
-        class TextExtractor(HTMLParser):
-            def __init__(self):
-                super().__init__()
-                self.text = []
+    class Extractor(HTMLParser):
+        def __init__(self):
+            super().__init__()
+            self.text, self.skip = [], False
+        def handle_starttag(self, tag, attrs):
+            self.skip = self.skip or tag in ("script", "style")
+        def handle_endtag(self, tag):
+            if tag in ("script", "style"):
                 self.skip = False
+        def handle_data(self, data):
+            if not self.skip:
+                self.text.append(data)
 
-            def handle_starttag(self, tag, attrs):
-                if tag in ("script", "style"):
-                    self.skip = True
+    extractor = Extractor()
+    extractor.feed(_extract_text(file_path))
+    return " ".join(extractor.text)
 
-            def handle_endtag(self, tag):
-                if tag in ("script", "style"):
-                    self.skip = False
 
-            def handle_data(self, data):
-                if not self.skip:
-                    self.text.append(data)
-
-        extractor = TextExtractor()
-        extractor.feed(_extract_text(file_path))
-        return " ".join(extractor.text)
-    except Exception:
+def extract_text_from_file(file_path: Path) -> str:
+    suffix = file_path.suffix.lower()
+    if suffix == ".pdf":
+        return "\n\n".join(text for _, text in _extract_pdf_pages(file_path))
+    if suffix in (".txt", ".md", ".markdown", ".rst"):
         return _extract_text(file_path)
+    if suffix in (".html", ".htm"):
+        return _extract_html(file_path)
+    return ""
 
 
-# ─────────────────────────────────────────
-# 텍스트 청킹
-# ─────────────────────────────────────────
-def clean_text(text: str) -> str:
-    """불필요한 공백/특수문자 제거"""
-    text = re.sub(r'\n{3,}', '\n\n', text)
-    text = re.sub(r'[ \t]+', ' ', text)
-    return text.strip()
+def classify_document(file_path: Path) -> dict[str, str]:
+    """Derive stable, queryable metadata from the filename.
 
-
-def split_into_chunks(text: str, chunk_size: int, overlap: int) -> list:
+    Keep this rule-based and explicit: it is predictable and can be extended as
+    new internal document categories are added.
     """
-    텍스트를 문장 경계를 고려하여 청크로 분할합니다.
+    name = file_path.stem.casefold()
+    document_type = "other"
+    for candidate, terms in DOCUMENT_TYPE_RULES.items():
+        if any(term.casefold() in name for term in terms):
+            document_type = candidate
+            break
+    product = ""
+    for candidate, terms in PRODUCT_RULES.items():
+        if any(term.casefold() in name for term in terms):
+            product = candidate
+            break
+    protocol_version = ""
+    protocol_generation = ""
+    if document_type == "protocol":
+        version_match = re.search(r"(?:^|[_\s-])v?(\d+(?:\.\d+)*)", name)
+        if version_match:
+            protocol_version = version_match.group(1)
+            try:
+                protocol_generation = "current" if int(protocol_version.split(".")[0]) >= 4 else "legacy"
+            except ValueError:
+                pass
+        if "communication protocol for terminal" in name:
+            protocol_generation = "current"
+            protocol_version = protocol_version or "4.0"
+        elif "주장치_protocol" in name:
+            protocol_generation = "legacy"
+            protocol_version = protocol_version or "1.0"
+
+    return {
+        "document_type": document_type,
+        "product": product,
+        "protocol_generation": protocol_generation,
+        "protocol_version": protocol_version,
+    }
+
+
+def _section_title(text: str) -> str:
+    """Return a nearby heading for display/retrieval metadata, when present."""
+    for line in text.splitlines()[:12]:
+        line = line.strip()
+        if re.match(r"^(?:#{1,6}\s+|\d+(?:\.\d+)*\.?\s+)", line):
+            return re.sub(r"^#{1,6}\s+", "", line)[:160]
+    return ""
+
+
+# Only multi-level numbered lines (e.g. "3.1 출입그룹 설정") are treated as section
+# starts; single "1." lines are usually list items and would over-fragment pages.
+_PDF_SECTION_HEADING = re.compile(r"^\d+(?:\.\d+)+\.?\s+\S.*$")
+
+
+def split_pdf_page_sections(page_text: str) -> list[tuple[str, str]]:
+    """Split one PDF page into (section_title, text) blocks at numbered headings.
+
+    Page-only chunking cuts a section body away from its title, so queries that
+    match the title terms miss the chunk that holds the actual details.
     """
-    text = clean_text(text)
-    if not text:
-        return []
-
-    # 문장 분리 (한국어/영어 모두 지원)
-    sentences = re.split(r'(?<=[.!?。\n])\s+', text)
-    sentences = [s.strip() for s in sentences if s.strip()]
-
-    chunks = []
-    current_chunk = []
-    current_len = 0
-
-    for sentence in sentences:
-        s_len = len(sentence)
-
-        if current_len + s_len > chunk_size and current_chunk:
-            chunk_text = " ".join(current_chunk)
-            chunks.append(chunk_text)
-
-            # 오버랩: 마지막 몇 문장 재사용
-            overlap_text = ""
-            overlap_chunks = []
-            for prev_s in reversed(current_chunk):
-                if len(overlap_text) + len(prev_s) <= overlap:
-                    overlap_chunks.insert(0, prev_s)
-                    overlap_text += prev_s
-                else:
-                    break
-            current_chunk = overlap_chunks
-            current_len = len(overlap_text)
-
-        current_chunk.append(sentence)
-        current_len += s_len
-
-    if current_chunk:
-        chunks.append(" ".join(current_chunk))
-
-    return [c for c in chunks if len(c.strip()) > 20]
+    sections: list[tuple[str, str]] = []
+    title, lines = "", []
+    for line in page_text.splitlines():
+        if _PDF_SECTION_HEADING.match(line.strip()):
+            if lines and "\n".join(lines).strip():
+                sections.append((title, "\n".join(lines)))
+            title, lines = line.strip()[:160], []
+        lines.append(line)
+    if lines and "\n".join(lines).strip():
+        sections.append((title, "\n".join(lines)))
+    return sections or [("", page_text)]
 
 
-# ─────────────────────────────────────────
-# 인덱싱
-# ─────────────────────────────────────────
-def index_file(collection, file_path: Path, chunk_size: int, overlap: int) -> int:
-    """단일 파일을 청크로 분할하여 ChromaDB에 저장합니다."""
-    print(f"  처리 중: {file_path.name}")
+def extract_document_units(file_path: Path) -> list[dict]:
+    """Return independently chunkable units with page and heading information."""
+    if file_path.suffix.lower() == ".pdf":
+        return [
+            {"text": text, "page": page_no, "section": section or _section_title(text)}
+            for page_no, page_text in _extract_pdf_pages(file_path)
+            for section, text in split_pdf_page_sections(page_text)
+        ]
 
     text = extract_text_from_file(file_path)
     if not text:
-        print(f"  [건너뜀] 텍스트 추출 실패: {file_path.name}")
-        return 0
+        return []
+    # Preserve Markdown heading boundaries; a section title is repeated in every
+    # descendant chunk so the title never gets separated from its details.
+    if file_path.suffix.lower() in (".md", ".markdown", ".rst"):
+        units, current_heading, current_lines = [], "", []
+        for line in text.splitlines():
+            heading = re.match(r"^#{1,6}\s+(.+)$", line.strip())
+            if heading and current_lines:
+                units.append({"text": "\n".join(current_lines), "page": 0, "section": current_heading})
+                current_lines = []
+            if heading:
+                current_heading = heading.group(1).strip()[:160]
+            current_lines.append(line)
+        if current_lines:
+            units.append({"text": "\n".join(current_lines), "page": 0, "section": current_heading})
+        return units
+    return [{"text": text, "page": 0, "section": _section_title(text)}]
 
-    chunks = split_into_chunks(text, chunk_size, overlap)
+
+def _split_oversized_sentence(tokenizer, sentence: str, chunk_size: int) -> list[str]:
+    ids = tokenizer.encode(sentence, add_special_tokens=False)
+    return [tokenizer.decode(ids[i:i + chunk_size], skip_special_tokens=True).strip()
+            for i in range(0, len(ids), chunk_size)]
+
+
+def split_into_chunks(text: str, tokenizer, chunk_size: int, overlap: int) -> list[str]:
+    text = clean_text(text)
+    if not text:
+        return []
+    # Newlines have been normalized: only punctuation or true paragraph breaks split sentences.
+    sentences = [s.strip() for s in re.split(r"(?<=[.!?。！？])\s+|\n{2,}", text) if s.strip()]
+    normalized = []
+    for sentence in sentences:
+        normalized.extend(_split_oversized_sentence(tokenizer, sentence, chunk_size)
+                          if token_len(tokenizer, sentence) > chunk_size else [sentence])
+
+    chunks, current, current_tokens = [], [], 0
+    for sentence in normalized:
+        sentence_tokens = token_len(tokenizer, sentence)
+        if current and current_tokens + sentence_tokens > chunk_size:
+            chunks.append(" ".join(current))
+            overlap_sentences, overlap_tokens = [], 0
+            for previous in reversed(current):
+                previous_tokens = token_len(tokenizer, previous)
+                if overlap_tokens + previous_tokens > overlap:
+                    break
+                overlap_sentences.insert(0, previous)
+                overlap_tokens += previous_tokens
+            current, current_tokens = overlap_sentences, overlap_tokens
+        current.append(sentence)
+        current_tokens += sentence_tokens
+    if current:
+        chunks.append(" ".join(current))
+    return [chunk for chunk in chunks if token_len(tokenizer, chunk) >= 8]
+
+
+def _document_context(file_path: Path, chunk: str, metadata: dict) -> str:
+    """Repeat retrieval-critical identity in every embedded chunk."""
+    identity = [f"Document: {file_path.stem}", f"Type: {metadata['document_type']}"]
+    if metadata.get("product"):
+        identity.append(f"Product: {metadata['product']}")
+    if metadata.get("page"):
+        identity.append(f"Page: {metadata['page']}")
+    if metadata.get("section"):
+        identity.append(f"Section: {metadata['section']}")
+    return f"[{' | '.join(identity)}]\n{chunk}"
+
+
+def index_file(collection, tokenizer, file_path: Path, chunk_size: int, overlap: int) -> int:
+    print(f"  indexing: {file_path.name}")
+    units = extract_document_units(file_path)
+    chunks = []
+    document_metadata = classify_document(file_path)
+    for unit in units:
+        for chunk in split_into_chunks(unit["text"], tokenizer, chunk_size, overlap):
+            metadata = {**document_metadata, "page": unit["page"], "section": unit["section"]}
+            chunks.append((chunk, metadata))
     if not chunks:
-        print(f"  [건너뜀] 청크 없음: {file_path.name}")
+        print("  [skip] no extractable chunk")
         return 0
-
-    # 문서 ID 생성 (파일명 + 청크 인덱스 기반)
-    file_hash = hashlib.md5(str(file_path).encode()).hexdigest()[:8]
-
-    ids = []
-    documents = []
-    metadatas = []
-
-    for i, chunk in enumerate(chunks):
-        doc_id = f"{file_hash}_{i:04d}"
-        ids.append(doc_id)
-        documents.append(chunk)
-        metadatas.append({
+    file_hash = hashlib.sha256(str(file_path.resolve()).encode()).hexdigest()[:12]
+    existing = collection.get(where={"path": str(file_path)})
+    if existing["ids"]:
+        collection.delete(ids=existing["ids"])
+    collection.add(
+        ids=[f"{file_hash}_{i:04d}" for i in range(len(chunks))],
+        documents=[_document_context(file_path, chunk, metadata) for chunk, metadata in chunks],
+        metadatas=[{
             "source": file_path.name,
             "path": str(file_path),
             "chunk_index": i,
-            "total_chunks": len(chunks)
-        })
-
-    # 기존 문서 삭제 후 재삽입 (업데이트)
-    try:
-        existing = collection.get(where={"path": str(file_path)})
-        if existing["ids"]:
-            collection.delete(ids=existing["ids"])
-    except Exception:
-        pass
-
-    # 배치 삽입 (100개씩)
-    batch_size = 100
-    for start in range(0, len(ids), batch_size):
-        end = start + batch_size
-        collection.add(
-            ids=ids[start:end],
-            documents=documents[start:end],
-            metadatas=metadatas[start:end]
-        )
-
-    print(f"  ✓ {len(chunks)}개 청크 저장 완료")
+            "total_chunks": len(chunks),
+            "title": file_path.stem,
+            **metadata,
+        } for i, (_, metadata) in enumerate(chunks)],
+    )
+    print(f"  {len(chunks)} chunks indexed")
     return len(chunks)
 
 
-def index_directory(
-    directory: str,
-    chunk_size: int = DEFAULT_CHUNK_SIZE,
-    overlap: int = DEFAULT_OVERLAP,
-    reset: bool = False
-):
-    """디렉토리 내 모든 지원 파일을 인덱싱합니다."""
-    dir_path = Path(directory)
-    if not dir_path.exists():
-        print(f"[오류] 디렉토리가 존재하지 않습니다: {directory}")
-        sys.exit(1)
-
-    supported_ext = {".pdf", ".txt", ".md", ".markdown", ".rst", ".html", ".htm"}
-
-    files = [
-        f for f in dir_path.rglob("*")
-        if f.is_file() and f.suffix.lower() in supported_ext
-    ]
-
-    if not files:
-        print(f"[경고] 지원되는 파일이 없습니다: {directory}")
-        return
-
-    print(f"\n=== 문서 인덱싱 시작 ===")
-    print(f"디렉토리: {dir_path.absolute()}")
-    print(f"파일 수: {len(files)}개")
-    print(f"청크 크기: {chunk_size}자, 오버랩: {overlap}자\n")
-
-    collection = get_collection(reset=reset)
-    before_count = collection.count()
-
-    total_chunks = 0
-    for file_path in sorted(files):
-        total_chunks += index_file(collection, file_path, chunk_size, overlap)
-
-    after_count = collection.count()
-    print(f"\n=== 완료 ===")
-    print(f"추가된 청크: {after_count - before_count}개")
-    print(f"전체 저장된 청크: {after_count}개")
-    print(f"ChromaDB 경로: {Path(CHROMA_PATH).absolute()}")
+def write_bm25_index(collection) -> None:
+    """Persist corpus data used by rank_bm25 in the serving pipeline."""
+    data = collection.get(include=["documents", "metadatas"])
+    records = [{"id": doc_id, "document": doc, "metadata": metadata}
+               for doc_id, doc, metadata in zip(data["ids"], data["documents"], data["metadatas"])]
+    BM25_INDEX_PATH.parent.mkdir(parents=True, exist_ok=True)
+    BM25_INDEX_PATH.write_text(json.dumps(records, ensure_ascii=False), encoding="utf-8")
+    print(f"  BM25 index written: {BM25_INDEX_PATH} ({len(records)} chunks)")
 
 
-# ─────────────────────────────────────────
-# CLI
-# ─────────────────────────────────────────
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="문서를 ChromaDB에 인덱싱합니다.")
-    parser.add_argument("directory", nargs="?", default="./data/docs",
-                        help="인덱싱할 문서 디렉토리 (기본값: ./data/docs)")
-    parser.add_argument("--chunk-size", type=int, default=DEFAULT_CHUNK_SIZE,
-                        help=f"청크 크기 (기본값: {DEFAULT_CHUNK_SIZE}자)")
-    parser.add_argument("--overlap", type=int, default=DEFAULT_OVERLAP,
-                        help=f"청크 오버랩 크기 (기본값: {DEFAULT_OVERLAP}자)")
-    parser.add_argument("--reset", action="store_true",
-                        help="인덱싱 전 기존 DB 초기화")
-    parser.add_argument("--status", action="store_true",
-                        help="현재 DB 상태 확인")
-
+def main():
+    parser = argparse.ArgumentParser(description="Index documents with BGE-M3 token-aware chunking.")
+    parser.add_argument("directory", nargs="?", default="./data/docs")
+    parser.add_argument("--chunk-size", type=int, default=DEFAULT_CHUNK_SIZE, help="Maximum embedding tokens per chunk")
+    parser.add_argument("--overlap", type=int, default=DEFAULT_OVERLAP, help="Token overlap between chunks")
+    parser.add_argument("--reset", action="store_true")
+    parser.add_argument("--status", action="store_true")
     args = parser.parse_args()
-
+    collection = get_collection(reset=args.reset)
     if args.status:
-        collection = get_collection()
-        count = collection.count()
-        print(f"ChromaDB 경로: {Path(CHROMA_PATH).absolute()}")
-        print(f"컬렉션: {COLLECTION_NAME}")
-        print(f"임베딩 모델: {EMBEDDING_MODEL}")
-        print(f"저장된 청크 수: {count}개")
-        if count > 0:
-            sample = collection.get(limit=3, include=["metadatas"])
-            sources = list(set(m["source"] for m in sample["metadatas"]))
-            print(f"샘플 출처: {sources}")
-    else:
-        index_directory(
-            directory=args.directory,
-            chunk_size=args.chunk_size,
-            overlap=args.overlap,
-            reset=args.reset
-        )
+        print(f"Collection: {COLLECTION_NAME}\nEmbedding model: {EMBEDDING_MODEL}\nChunks: {collection.count()}\nBM25 index: {BM25_INDEX_PATH}")
+        return
+    directory = Path(args.directory)
+    if not directory.exists():
+        sys.exit(f"Directory does not exist: {directory}")
+    files = [p for p in directory.rglob("*") if p.is_file() and p.suffix.lower() in {".pdf", ".txt", ".md", ".markdown", ".rst", ".html", ".htm"}]
+    if not files:
+        sys.exit(f"No supported documents in: {directory}")
+    tokenizer = get_tokenizer()
+    for file_path in sorted(files):
+        index_file(collection, tokenizer, file_path, args.chunk_size, args.overlap)
+    write_bm25_index(collection)
+    print(f"Completed. ChromaDB chunks: {collection.count()}")
+
+
+if __name__ == "__main__":
+    main()

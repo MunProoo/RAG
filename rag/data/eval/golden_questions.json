@@ -1,0 +1,37 @@
+[
+  {
+    "question": "방인재에 대해 알려줘",
+    "expected_source": "Test.md",
+    "expected_keywords": ["1996"]
+  },
+  {
+    "question": "박준언은 누구야?",
+    "expected_source": "Test.md",
+    "expected_keywords": ["1994"]
+  },
+  {
+    "question": "카메라 50대 운영에 필요한 미디어서버 권장 스펙 알려줘",
+    "expected_source": "MediaServer_Specs_New.md",
+    "expected_keywords": ["48GB"]
+  },
+  {
+    "question": "카메라 1대 하루 녹화 용량은 얼마야?",
+    "expected_source": "MediaServer_Specs_New.md",
+    "expected_keywords": ["15GB"]
+  },
+  {
+    "question": "미디어서버에 스트림 추가하는 API 알려줘",
+    "expected_source": "api.md",
+    "expected_keywords": ["stream"]
+  },
+  {
+    "question": "UserFaceWT 관련 API 알려줘",
+    "expected_source": "swagger_kr.md",
+    "expected_keywords": ["UserFaceWT", "TemplateData"]
+  },
+  {
+    "question": "얼굴 정보 조회 API의 응답 스키마 구조 알려줘",
+    "expected_source": "swagger_kr.md",
+    "expected_keywords": ["TemplateType"]
+  }
+]

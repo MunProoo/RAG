@@ -21,6 +21,7 @@ from pipelines.rag_pipeline import (
     rewrite_query,
     retrieve_documents,
     build_context_prompt,
+    detect_retrieval_scope,
     ollama_chat,
     DEFAULT_OLLAMA_BASE_URL,
     DEFAULT_REWRITE_MODEL,
@@ -28,6 +29,8 @@ from pipelines.rag_pipeline import (
     DEFAULT_CHROMA_PATH,
     DEFAULT_COLLECTION_NAME,
     DEFAULT_EMBEDDING_MODEL,
+    DEFAULT_NUM_CTX,
+    DEFAULT_NUM_PREDICT,
 )
 
 
@@ -64,6 +67,7 @@ def run_test(query: str, verbose: bool = True):
         query=rewritten,
         top_k=5,
         min_relevance_score=0.0,
+        scope=detect_retrieval_scope(query),
     )
     t3 = time.time()
     print(f"  검색된 문서: {len(docs)}개")
@@ -95,6 +99,7 @@ def run_test(query: str, verbose: bool = True):
         model=DEFAULT_ANSWER_MODEL,
         messages=messages,
         stream=False,
+        options={"num_ctx": DEFAULT_NUM_CTX, "num_predict": DEFAULT_NUM_PREDICT},
     )
     t5 = time.time()
 
