@@ -1,0 +1,527 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RAG Pipeline 구조와 동작 가이드</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f7f8fa;
+      --surface: #ffffff;
+      --surface-soft: #f0f4f8;
+      --text: #18212f;
+      --muted: #5f6b7a;
+      --line: #dbe2ea;
+      --accent: #2563eb;
+      --accent-soft: #e8f0ff;
+      --code: #eef2f6;
+      --success: #0f766e;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Pretendard", "Noto Sans KR", "Malgun Gothic", sans-serif;
+      line-height: 1.7;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 250px minmax(0, 900px);
+      gap: 36px;
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 32px 24px 72px;
+    }
+
+    nav {
+      position: sticky;
+      top: 24px;
+      align-self: start;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--surface);
+    }
+
+    nav strong {
+      display: block;
+      margin-bottom: 10px;
+    }
+
+    nav a {
+      display: block;
+      padding: 5px 0;
+      color: var(--muted);
+      font-size: 14px;
+      text-decoration: none;
+    }
+
+    nav a:hover {
+      color: var(--accent);
+    }
+
+    main {
+      min-width: 0;
+    }
+
+    h1 {
+      margin: 0 0 12px;
+      font-size: 34px;
+      line-height: 1.25;
+    }
+
+    h2 {
+      margin: 48px 0 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--line);
+      font-size: 24px;
+    }
+
+    h3 {
+      margin: 30px 0 10px;
+      font-size: 18px;
+    }
+
+    p, li {
+      color: var(--text);
+    }
+
+    .lead {
+      margin: 0 0 24px;
+      color: var(--muted);
+      font-size: 18px;
+    }
+
+    .summary {
+      padding: 18px 20px;
+      border-left: 4px solid var(--accent);
+      border-radius: 8px;
+      background: var(--accent-soft);
+      font-size: 17px;
+      font-weight: 600;
+    }
+
+    .flow {
+      display: flex;
+      align-items: stretch;
+      gap: 8px;
+      margin: 22px 0;
+      overflow-x: auto;
+    }
+
+    .flow-item {
+      min-width: 132px;
+      padding: 14px 12px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--surface);
+      text-align: center;
+    }
+
+    .flow-item strong {
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .flow-item small {
+      color: var(--muted);
+    }
+
+    .arrow {
+      display: grid;
+      place-items: center;
+      color: var(--accent);
+      font-weight: 700;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .card {
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--surface);
+    }
+
+    .card h3 {
+      margin-top: 0;
+    }
+
+    .card p:last-child {
+      margin-bottom: 0;
+    }
+
+    .step {
+      display: grid;
+      grid-template-columns: 42px 1fr;
+      gap: 14px;
+      padding: 18px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .step-number {
+      width: 36px;
+      height: 36px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: var(--accent);
+      color: white;
+      font-weight: 700;
+    }
+
+    .step h3 {
+      margin: 2px 0 6px;
+    }
+
+    .step p {
+      margin: 0 0 8px;
+    }
+
+    code {
+      padding: 2px 6px;
+      border-radius: 5px;
+      background: var(--code);
+      color: var(--text);
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 0.92em;
+    }
+
+    pre {
+      overflow-x: auto;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--code);
+      line-height: 1.55;
+    }
+
+    pre code {
+      padding: 0;
+      background: transparent;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .non-llm {
+      background: var(--surface-soft);
+      color: var(--success);
+    }
+
+    .memory {
+      margin-top: 38px;
+      padding: 22px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--surface);
+      text-align: center;
+      font-size: 19px;
+      font-weight: 700;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #14171c;
+        --surface: #1c2128;
+        --surface-soft: #242b35;
+        --text: #e6edf3;
+        --muted: #9da7b3;
+        --line: #343d48;
+        --accent: #70a5ff;
+        --accent-soft: #1d2c46;
+        --code: #222933;
+        --success: #5eead4;
+      }
+    }
+
+    @media (max-width: 840px) {
+      .layout {
+        display: block;
+        padding: 20px 16px 52px;
+      }
+
+      nav {
+        position: static;
+        margin-bottom: 28px;
+      }
+
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      h1 {
+        font-size: 28px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <nav aria-label="문서 목차">
+      <strong>목차</strong>
+      <a href="#overview">전체 구성</a>
+      <a href="#files">주요 파일</a>
+      <a href="#indexing">문서 인덱싱</a>
+      <a href="#query">질문 처리</a>
+      <a href="#llm">LLM의 역할</a>
+      <a href="#operations">운영 시 주의사항</a>
+    </nav>
+
+    <main>
+      <header>
+        <h1>RAG Pipeline 구조와 동작 가이드</h1>
+        <p class="lead">Open WebUI, ChromaDB, BM25, 리랭커와 Ollama가 어떻게 연결되는지 쉽게 설명한다.</p>
+        <div class="summary">
+          사용자 질문과 의미가 비슷한 문서 조각을 찾은 다음, 그 조각을 LLM에 참고자료로 제공해 답변하게 하는 시스템이다.
+        </div>
+      </header>
+
+      <section id="overview">
+        <h2>전체 구성</h2>
+        <div class="flow" aria-label="전체 서비스 흐름">
+          <div class="flow-item"><strong>사용자</strong><small>질문 입력</small></div>
+          <div class="arrow">→</div>
+          <div class="flow-item"><strong>Open WebUI</strong><small>채팅 화면 :8080</small></div>
+          <div class="arrow">→</div>
+          <div class="flow-item"><strong>Pipelines</strong><small>RAG 제어 :9099</small></div>
+          <div class="arrow">→</div>
+          <div class="flow-item"><strong>검색</strong><small>ChromaDB + BM25</small></div>
+          <div class="arrow">→</div>
+          <div class="flow-item"><strong>Ollama</strong><small>답변 생성 :11434</small></div>
+        </div>
+
+        <div class="grid">
+          <article class="card">
+            <h3>Open WebUI</h3>
+            <p>사용자가 질문하고 답변을 확인하는 채팅 화면이다. 대화와 설정은 PostgreSQL에 저장하고 Redis를 캐시로 사용한다.</p>
+          </article>
+          <article class="card">
+            <h3>Pipelines</h3>
+            <p>질문 처리, 문서 검색, 참고 문맥 구성, Ollama 호출을 담당하는 핵심 백엔드다.</p>
+          </article>
+          <article class="card">
+            <h3>Indexer</h3>
+            <p>원본 문서를 작은 청크로 나누고 ChromaDB와 BM25 인덱스를 만드는 배치 작업이다.</p>
+          </article>
+          <article class="card">
+            <h3>Ollama</h3>
+            <p>Docker 외부 Windows 호스트에서 LLM을 실행한다. 컨테이너에서는 <code>host.docker.internal:11434</code>로 접근한다.</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="files">
+        <h2>주요 파일</h2>
+        <pre><code>RAG_PipeLine/
+├── docker-compose.yml
+├── rag/
+│   ├── pipelines/rag_pipeline.py
+│   ├── scripts/index_documents.py
+│   ├── scripts/eval_retrieval.py
+│   ├── scripts/test_rag_regression.py
+│   └── data/
+│       ├── docs/
+│       ├── eval/golden_questions.json
+│       ├── chroma_db/
+│       └── assets/
+└── ImageServer/</code></pre>
+        <ul>
+          <li><code>rag_pipeline.py</code>: 질문을 받아 검색하고 답변을 생성한다.</li>
+          <li><code>index_documents.py</code>: 문서를 ChromaDB와 BM25에 저장한다.</li>
+          <li><code>eval_retrieval.py</code>: 골든 질문셋으로 검색 품질을 평가한다.</li>
+          <li><code>test_rag_regression.py</code>: 검색과 스트림 회귀를 검사한다.</li>
+        </ul>
+      </section>
+
+      <section id="indexing">
+        <h2>1. 문서를 검색 가능하게 준비하는 과정</h2>
+        <p>담당 파일은 <code>rag/scripts/index_documents.py</code>다.</p>
+
+        <div class="flow" aria-label="인덱싱 흐름">
+          <div class="flow-item"><strong>원본 문서</strong><small>PDF·MD·TXT</small></div>
+          <div class="arrow">→</div>
+          <div class="flow-item"><strong>내용 추출</strong><small>페이지·섹션</small></div>
+          <div class="arrow">→</div>
+          <div class="flow-item"><strong>청킹</strong><small>480 / 중첩 80토큰</small></div>
+          <div class="arrow">→</div>
+          <div class="flow-item"><strong>임베딩</strong><small>BAAI/bge-m3</small></div>
+          <div class="arrow">→</div>
+          <div class="flow-item"><strong>저장</strong><small>ChromaDB + BM25</small></div>
+        </div>
+
+        <h3>ChromaDB 저장</h3>
+        <p>
+          각 문서 청크는 <code>BAAI/bge-m3</code> 모델을 통해 숫자 벡터로 변환된다.
+          의미가 비슷한 문장은 벡터 공간에서도 가까워지기 때문에 단어가 완전히 같지 않아도 검색할 수 있다.
+        </p>
+        <p>본문과 함께 파일명, 페이지, 섹션, 문서 종류, 제품, 프로토콜 세대와 버전도 메타데이터로 저장한다.</p>
+
+        <h3>BM25 인덱스</h3>
+        <p>
+          동일한 청크를 <code>bm25_index.json</code>으로 저장한다.
+          BM25는 API명, 파라미터, 명령어, 버전처럼 정확한 문자열 검색을 보완한다.
+        </p>
+
+        <pre><code>docker compose run --rm indexer \
+  python /app/scripts/index_documents.py /app/docs --reset</code></pre>
+      </section>
+
+      <section id="query">
+        <h2>2. 질문 한 건이 처리되는 과정</h2>
+        <p>핵심 진입점은 <code>rag/pipelines/rag_pipeline.py</code>의 <code>Pipeline.pipe()</code>다.</p>
+
+        <article class="step">
+          <div class="step-number">1</div>
+          <div>
+            <h3>후속 질문 문맥화 <span class="badge">LLM</span></h3>
+            <p>“그거 자세히 설명해줘”처럼 대상이 생략된 질문을 이전 대화를 반영한 독립적인 질문으로 바꾼다.</p>
+            <pre><code>그거 자세히 설명해줘
+→ Alpeta 프로토콜의 Param3을 자세히 설명해줘</code></pre>
+          </div>
+        </article>
+
+        <article class="step">
+          <div class="step-number">2</div>
+          <div>
+            <h3>검색 질문 재작성 <span class="badge">LLM</span></h3>
+            <p>질문을 검색에 유리한 2~4개의 표현으로 재작성하고 도메인 동의어나 버전 표현을 추가한다.</p>
+          </div>
+        </article>
+
+        <article class="step">
+          <div class="step-number">3</div>
+          <div>
+            <h3>검색 범위 결정 <span class="badge non-llm">규칙 기반</span></h3>
+            <p>질문에 있는 “Alpeta”, “프로토콜”, “신규” 같은 단어로 검색 범위를 제한한다.</p>
+            <pre><code>product = alpeta
+document_type = protocol
+protocol_generation = current</code></pre>
+          </div>
+        </article>
+
+        <article class="step">
+          <div class="step-number">4</div>
+          <div>
+            <h3>ChromaDB 벡터 검색 <span class="badge non-llm">LLM 아님</span></h3>
+            <p>질문을 BGE-M3로 벡터화한 뒤 문서 벡터와 코사인 유사도를 비교해 의미가 가까운 청크를 찾는다.</p>
+          </div>
+        </article>
+
+        <article class="step">
+          <div class="step-number">5</div>
+          <div>
+            <h3>BM25 키워드 검색 <span class="badge non-llm">LLM 아님</span></h3>
+            <p><code>Param3</code>, API 이름, 버전처럼 정확한 문자열이 중요한 결과를 찾는다.</p>
+          </div>
+        </article>
+
+        <article class="step">
+          <div class="step-number">6</div>
+          <div>
+            <h3>RRF 병합과 리랭킹 <span class="badge non-llm">LLM 아님</span></h3>
+            <p>
+              벡터 검색과 BM25 순위를 RRF로 합친다. 그다음
+              <code>BAAI/bge-reranker-v2-m3</code> CrossEncoder가 질문과 후보를 다시 비교해 정렬한다.
+            </p>
+          </div>
+        </article>
+
+        <article class="step">
+          <div class="step-number">7</div>
+          <div>
+            <h3>참고 문맥 구성 <span class="badge non-llm">코드 처리</span></h3>
+            <p>출처별 청크 수와 전체 글자 수를 제한하고 질문 초점에 맞는 청크를 참고 문서 블록으로 조립한다.</p>
+          </div>
+        </article>
+
+        <article class="step">
+          <div class="step-number">8</div>
+          <div>
+            <h3>최종 답변 생성 <span class="badge">LLM</span></h3>
+            <p>Ollama가 검색된 참고 문서, 질문, 최근 대화를 받아 최종 답변을 스트리밍한다.</p>
+          </div>
+        </article>
+      </section>
+
+      <section id="llm">
+        <h2>LLM의 역할</h2>
+        <div class="grid">
+          <article class="card">
+            <h3>LLM이 하는 일</h3>
+            <ol>
+              <li>후속 질문의 생략된 문맥 보완</li>
+              <li>검색용 질문 재작성</li>
+              <li>검색 문서를 읽고 최종 답변 작성</li>
+            </ol>
+            <p>독립적인 일반 질문은 문맥화가 생략되므로 보통 두 번 호출된다.</p>
+          </article>
+          <article class="card">
+            <h3>LLM이 하지 않는 일</h3>
+            <ul>
+              <li>임베딩: BGE-M3</li>
+              <li>벡터 검색: ChromaDB</li>
+              <li>키워드 검색: BM25</li>
+              <li>순위 병합: RRF</li>
+              <li>재정렬: BGE CrossEncoder</li>
+            </ul>
+          </article>
+        </div>
+
+        <h3>현재 Docker Compose 기준 모델</h3>
+        <ul>
+          <li>질문 재작성 및 문맥화: <code>qwen3.5:4b</code></li>
+          <li>최종 답변 생성: <code>qwen3.5:4b</code></li>
+          <li>임베딩: <code>BAAI/bge-m3</code></li>
+          <li>리랭커: <code>BAAI/bge-reranker-v2-m3</code></li>
+        </ul>
+      </section>
+
+      <section id="operations">
+        <h2>운영 시 기억할 사항</h2>
+        <ol>
+          <li>문서를 추가하거나 수정하면 인덱서를 다시 실행한다.</li>
+          <li>임베딩 모델 변경 시 <code>--reset</code>으로 전체 재인덱싱한다.</li>
+          <li>청킹이나 메타데이터 분류 규칙 변경 시에도 재인덱싱한다.</li>
+          <li>검색 로직 변경 후 회귀 테스트와 골든 질문셋 평가를 실행한다.</li>
+          <li>pipelines와 indexer의 <code>chromadb</code> 버전을 동일하게 유지한다.</li>
+        </ol>
+
+        <pre><code># 검색 회귀 테스트
+docker compose run --rm --no-deps --entrypoint python \
+  indexer /app/scripts/test_rag_regression.py
+
+# 골든 질문셋 검색 평가
+docker compose run --rm --no-deps --entrypoint python \
+  indexer /app/scripts/eval_retrieval.py</code></pre>
+      </section>
+
+      <div class="memory">
+        Indexer는 문서를 검색 DB로 만들고, Pipeline은 관련 문서를 찾으며, Ollama는 찾은 내용을 읽고 답변한다.
+      </div>
+    </main>
+  </div>
+</body>
+</html>
