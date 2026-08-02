@@ -1,5 +1,27 @@
 # LLM → RAG → LLM Pipeline (Open WebUI + Ollama)
 
+## 문서 가이드
+
+| 문서 | 대상 |
+|------|------|
+| [RAG_PIPELINE_GUIDE.md](RAG_PIPELINE_GUIDE.md) | 구조·검색 품질·인덱싱·평가·트러블슈팅 (상세) |
+| [RAG_PIPELINE_GUIDE.html](RAG_PIPELINE_GUIDE.html) | 위 가이드 HTML (브라우저용, md와 동기화) |
+| [RAG_PIPELINE_GUIDE_EASY.md](RAG_PIPELINE_GUIDE_EASY.md) | 비전공자용 — 질문이 답으로 나오기까지·FAQ |
+| [CHANGELOG.md](CHANGELOG.md) | 변경 이력 (Unreleased 포함) |
+| [PL_FAILURE_LOG.md](PL_FAILURE_LOG.md) | PL 루프 실패·활성 예방 체크리스트 |
+
+## 최근 핵심 개선 (2026-08 요약)
+
+- **파일 역할 구분**: NSIS `.bat`(자동화) / `.nsi`(스크립트) / `.exe`(산출물). 설치 확인 폴더는 `D:\nsis\install`, device setup은 `D:\nsis\Alpeta\setup` 등으로 구분.
+- **API/Swagger**: `document_type=api`, FaceWT 등 CamelCase 보존, product 필터 완화. swagger md 재생성 후 `--reset` 재인덱싱.
+- **v4 프로토콜 전체 리스트**: TOC/카탈로그 큰 청크 + 목록 완결성 규칙.
+- **User Guide 절차**: 단말기 추가·자동동기화의 **두 방법 분리**, `[단말기리스트]` 등 UI 표기 보존.
+- **자동화 버전 빌드**: `build_install.bat` 하위 작업 포함 1~7단계 완결, 수동(MakeNSISW) 혼입 금지.
+- **평가**: 회귀 약 **60개** (`test_rag_regression.py`) + 골든 질문셋. 성공 = 출처 + 필수 키워드 전부. 이상적 답변은 `rag/data/eval/artifacts/ideal_answer_*.md`.
+- **연동**: pipelines `http://pipelines:9099`, DB 복구 시 chat 스키마(`pinned`/`meta`/`folder_id`, chat JSON)·config 확인. qwen은 `think:false`, 첫 토큰 전 긴 동기 작업 시 UI 무응답처럼 보일 수 있음.
+
+상세·운영 주의는 위 가이드와 `PL_FAILURE_LOG.md`를 보세요. 비밀값·전체 로그는 문서에 넣지 않습니다.
+
 ## Retrieval and indexing defaults
 
 - Default embeddings use `BAAI/bge-m3`. Because vector spaces differ, run a full reset and re-index after changing the embedding model.
@@ -74,20 +96,46 @@ docker compose run --rm indexer python /app/scripts/index_documents.py /app/docs
 
 ### 검색 정확도 변경 후 필수 적용 절차
 
-이번 인덱서는 파일명에서 `document_type`(`protocol`, `user_guide`, `install`)과 `product`(현재 `alpeta`)를 저장합니다. 질문에 “Alpeta 프로토콜”처럼 문서 종류가 있으면 **검색 전에** 이 메타데이터로 범위를 제한하므로, 반드시 기존 DB를 초기화하여 재인덱싱해야 합니다.
+이번 인덱서는 파일명에서 `document_type`(`protocol`, `user_guide`, `install`, **`api`**)과 `product`(현재 `alpeta`)를 저장합니다. 질문에 “Alpeta 프로토콜”처럼 문서 종류가 있으면 **검색 전에** 이 메타데이터로 범위를 제한하므로, 관련 규칙을 바꿨다면 기존 DB를 초기화하여 재인덱싱해야 합니다.  
+파일명에 swagger/openapi/api가 있으면 `document_type=api`입니다. API 의도 검색에서는 product 미태그 문서가 배제되지 않도록 필터가 완화됩니다.
 
 ```bash
 docker compose build indexer
 docker compose up -d --force-recreate pipelines
 docker compose run --rm indexer python /app/scripts/index_documents.py /app/docs --reset
 
-# 모델 없이 실행 가능한 검색/스트림 회귀 테스트
+# 모델 없이 실행 가능한 검색/스트림 회귀 테스트 (약 60개)
 docker compose run --rm --no-deps --entrypoint python indexer /app/scripts/test_rag_regression.py
 ```
+
+#### Swagger Markdown 재생성 후 재인덱싱
+
+```bash
+docker compose run --rm --no-deps --entrypoint python indexer \
+  /app/scripts/swagger_yaml_to_md.py \
+  --input /app/docs/swagger_kr.yaml \
+  --output /app/docs/swagger_kr.md
+docker compose run --rm indexer python /app/scripts/index_documents.py /app/docs --reset
+docker compose up -d --force-recreate pipelines
+```
+
+#### 파이프라인 코드만 변경한 경우
+
+재인덱싱 없이 recreate만 하면 됩니다.
+
+```bash
+docker compose up -d --force-recreate pipelines
+```
+
+품질 변경 후 권장 검증 순서: recreate → Ollama `/api/chat` readiness → pipe 원문 assertion → eval(basic/`--rerank`) → regression. 근거는 `PL_FAILURE_LOG.md` [PLF-20260802-002].
 
 ### 검색 품질 평가 (골든 질문셋)
 
 `rag/data/eval/golden_questions.json`에 실제 질문과 기대 출처/키워드를 적어 두면, 아래 명령으로 검색 적중률을 측정할 수 있습니다. 검색·인덱싱 로직을 바꿀 때마다 실행해 회귀를 조기에 잡고, **운영 중 실패한 질문을 계속 추가**하세요.
+
+**평가 성공 조건**: 기대 출처 적중 **그리고** 해당 질문의 필수 키워드가 **모두** 검색 결과에 포함되어야 합니다. 출처만 맞고 키워드가 빠지면 실패입니다. [PLF-20260801-002]
+
+이상적 답변 기준(대조용): `rag/data/eval/artifacts/ideal_answer_facewt_swagger_kr.md`, `ideal_answer_nsis_auto_build.md`, `ideal_answer_terminal_user_sync.md`
 
 ```bash
 # 인덱싱이 끝난 상태에서 실행
@@ -139,18 +187,27 @@ docker compose run --rm indexer python -c "import chromadb; print(chromadb.__ver
 Open WebUI 버전에 따라 “관리자→Pipelines” 메뉴가 없을 수 있습니다.  
 이 경우 **OpenAI 호환(Provider) 연결**로 `pipelines`를 등록해야 합니다.
 
-- **Base URL**: `http://localhost:9099`
-- **API Key**: 임의 값(예: `0p3n-w3bu!`)
+- **컨테이너 간(권장, compose env와 동일)**: Base URL `http://pipelines:9099`, API Key `0p3n-w3bu!`
+- **호스트 브라우저에서 직접 넣을 때**: Base URL `http://localhost:9099`, API Key 동일
 
-그 후 모델/프로바이더 선택 화면에서 **파이프라인 모델(예: `LLM → RAG → LLM Pipeline`)**을 선택하여 대화하면,
+그 후 모델/프로바이더 선택 화면에서 **도우미(`rag_pipeline`)**를 선택하여 대화하면,
 인덱싱된 `rag/data/docs/` 기반으로 RAG 응답이 생성됩니다.
+
+**Postgres/config 복구 후** [PLF-20260802-001]: `config`가 비거나 alembic만 stamp된 경우 OpenAI 연결·`chat` 스키마(`pinned`/`meta`/`folder_id`, `chat` JSON 타입)가 빠질 수 있습니다.  
+볼륨 wipe 없이 `config.openai.api_base_urls`=`http://pipelines:9099`를 다시 넣고, `chat` 테이블 컬럼/타입을 현재 Open WebUI 모델에 맞춘 뒤 open-webui를 재시작하세요. env만으로는 DB에 박힌 빈 설정을 덮지 못할 수 있습니다. 복구 후 `chats/new` + chat completions와 pipelines inlet/completions 로그로 연동을 확인하세요.
+
+`PIPELINES_DIR`에 빈 `__init__.py`를 두지 마세요. pipelines 런타임이 모듈로 로드해 실패 부산물을 만듭니다. [PLF-20260801-001]
 
 ## RAG 파이프라인(`rag/pipelines/rag_pipeline.py`) 요약
 
 - **후속 질문 문맥화**: "그거", "해당" 같은 지시어나 아주 짧은 질문이 감지되면, 최근 대화(2턴)를 반영해 혼자 봐도 이해되는 독립형 질문으로 변환한 뒤 검색·범위 필터·초점 추출·리랭킹에 사용합니다. 감지될 때만 LLM을 추가 호출하며, 실패 시 원본 질문으로 폴백합니다.
+- **기술 토큰·역할**: `.bat`/`.nsi`/`.exe`와 경로 역할(`D:\nsis\install` vs `D:\nsis\Alpeta\setup`)을 구분해 검색·답변에 반영합니다.
+- **API 스코프**: Swagger/FaceWT 등 API 질문은 `document_type=api` 중심으로 검색하고, User Guide·Protocol로 API를 대체하지 않습니다.
+- **목록·자동화 절차**: v4 전부 리스트 완결성, NSIS 자동화 버전 1~7단계 완결(수동 혼입 금지), User Guide 단말기 이중 방법·UI 표기 보존.
 - **질문 초점**: `…에 대해 설명`, `…를 소개` 등 패턴이 맞으면, 검색된 청크 중 **그 이름(또는 구)**이 본문에 포함된 것만 남겨 다른 인물·문서가 섞이는 것을 줄입니다.
 - **이미지**: 참고 청크에서 `![대체텍스트](URL)` 형태를 **실제로 찾았을 때만** 별도 블록을 붙이고, 답변 본문 **맨 위**에 두도록 유도합니다. 없을 때는 URL을 지어내지 않습니다.
 - **답변 톤**: "제공된 참고 문서에는 … 포함되어 있지 않습니다" 같은 **긴 면책·부정 문단**을 피하도록 지시합니다.
+- **qwen thinking**: Ollama 호출에 `think: false`를 유지합니다. 없으면 content가 비어 UI에 점만 보일 수 있습니다.
 
 ## 이미지(ImageServer) 사용
 
@@ -212,36 +269,45 @@ Open WebUI는 설정을 DB에 저장하는 경우가 많아, **예전에 켜 둔
 ## 파일 구조
 
 ```
-RAG_PipeLine/
+RAG_MJY/
 ├── docker-compose.yml           # Open WebUI 스택 + pipelines + indexer + imageserver
+├── README.md
+├── RAG_PIPELINE_GUIDE.md        # 상세 가이드
+├── RAG_PIPELINE_GUIDE.html
+├── RAG_PIPELINE_GUIDE_EASY.md   # 비전공자용
+├── CHANGELOG.md
+├── PL_FAILURE_LOG.md
 ├── rag/
 │   ├── Dockerfile.indexer
 │   ├── requirements.txt
 │   ├── pipelines/
-│   │   ├── __init__.py
 │   │   └── rag_pipeline.py      # Open WebUI Pipelines 서버가 로드
 │   ├── scripts/
 │   │   ├── index_documents.py   # 문서 인덱싱(ChromaDB + BM25)
+│   │   ├── swagger_yaml_to_md.py
 │   │   ├── eval_retrieval.py    # 골든 질문셋 검색 평가
-│   │   ├── test_rag_regression.py # 검색/스트림 회귀 테스트
+│   │   ├── test_rag_regression.py # 검색/스트림 회귀(~60)
 │   │   └── test_pipeline.py     # 로컬 테스트 스크립트(선택)
 │   └── data/
 │       ├── docs/                # 인덱싱할 문서
-│       ├── eval/                # 골든 질문셋(golden_questions.json)
+│       ├── eval/                # 골든 + artifacts/ideal_answer_*.md
 │       ├── chroma_db/           # ChromaDB 저장소(자동 생성)
 │       └── assets/              # ImageServer 정적 파일
-├── ImageServer/
-│   └── README.txt               # ImageServer 사용 안내
-└── README.md
+└── ImageServer/
+    └── README.txt
 ```
 
 ## 운영 팁
 
 - **문서를 바꿨다면**: 인덱싱을 다시 실행해야 검색 결과에 반영됩니다.
 - **파일명/경로가 바뀌면**(예: `Test.txt` 삭제 후 `Test.md`만 둔 경우): Chroma에 예전 출처 청크가 남을 수 있으므로, 필요하면 **`--reset` 후 재인덱싱**이 가장 확실합니다.
+- **청킹·메타데이터·swagger md·임베딩 모델**을 바꾸면 `--reset` 재인덱싱이 필요합니다. TOC 큰 청크·`document_type=api` 반영도 동일합니다.
 - **한국어 검색 품질**: `EMBEDDING_MODEL`을 바꾸면 **반드시 `--reset` 후 재인덱싱**하세요. (임베딩이 달라지면 기존 벡터가 무의미해짐)
 - **첫 질문이 유난히 느릴 때**: 임베딩(BGE-M3)과 리랭커 모델의 최초 다운로드/로딩 때문입니다. 이후에는 프로세스 캐시로 빨라집니다. 다운로드가 불가능한 환경이면 `RERANK_ENABLED=false`로 두세요.
-- **응답이 전반적으로 느릴 때**: `REWRITE_MODEL`과 `ANSWER_MODEL`을 같은 모델로 두면 Ollama의 모델 스왑이 없어집니다. 그래도 느리면 `USE_QUERY_REWRITE=false`로 재작성 LLM 호출 자체를 생략할 수 있습니다.
+- **응답이 전반적으로 느릴 때 / 첫 토큰이 안 올 때**: `REWRITE_MODEL`과 `ANSWER_MODEL`을 같은 모델로 두면 Ollama의 모델 스왑이 없어집니다. 그래도 느리면 `USE_QUERY_REWRITE=false`로 재작성 LLM 호출을 생략할 수 있습니다. 재작성·검색·리랭크가 첫 yield 전에 길게 돌면 UI가 무응답처럼 보일 수 있습니다. [PLF-20260801-001]
+- **답이 점만 보이거나 비어 보일 때**: qwen3.5는 `think:false` 없이 호출하면 content가 비는 경우가 있습니다.
+- **도우미가 목록에 없을 때**: OpenAI Base URL·DB `config`·chat 스키마를 확인하세요. [PLF-20260802-001]
 - **답변이 끊길 때**: pipelines 로그의 `[RAG] Ollama stream completed`에서 `reason=length`인지 확인하세요. `length`면 `OLLAMA_NUM_PREDICT` 또는 `OLLAMA_NUM_CTX`를 올리되, VRAM 사용량도 함께 확인하세요.
 - **Ollama 접근이 안 될 때**: 컨테이너에서 호스트로 접근하는 주소는 일반적으로 `host.docker.internal`입니다(Windows Docker Desktop 기준).
 - **로컬로 파이프라인만 테스트**: `rag/` 디렉터리에서 `python scripts/test_pipeline.py` (Ollama가 로컬에서 떠 있어야 함).
+- **PL 개발**: 작업 전 `PL_FAILURE_LOG.md` 예방 체크리스트를 수용 기준에 포함하고, 비밀값·토큰·전체 로그 덤프는 남기지 않습니다.

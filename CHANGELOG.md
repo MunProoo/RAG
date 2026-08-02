@@ -5,6 +5,99 @@
 
 ## [Unreleased]
 
+### 알페타 자동화 버전 빌드 절 완결성·사용자 단말기 이중 방법 분리 (2026-08-02)
+
+- **이슈 1: "알페타 설치 패키지 빌드(자동화 버전)" 전체가 안 나옴**
+  - `rag/pipelines/rag_pipeline.py`: `is_automated_build_intent(query)`를 추가해 "자동화 버전", "자동빌드", "자동 빌드", "automated build" 등 일반 마커로 자동 빌드 의도를 감지합니다.
+  - `expand_retrieval_query()`에 이 의도일 때 `git pull`/`gitpull.bat`/`define.go`/`eXbuilder`/`build_install.bat`/`proto_compile`/`D:\nsis\install` 등 문서 실제 표현으로 검색을 확장합니다.
+  - `complete_automated_build_context()`를 신설해 "자동화 버전" 섹션의 앵커 표현으로 같은 출처 내 `chunk_index` 최소~최대 구간을 계산하고, 그 구간의 모든 청크(앵커가 없는 중간 청크 포함)를 강제로 포함하며 구간 밖 수동 절차 청크는 제거합니다.
+  - `build_context_prompt()`에 자동화 버전 전용 안내 블록을 추가해 1~7단계(특히 5번의 하위 6개 작업, 6번 결과 경로, 7번 대체 안내)를 문서 순서대로 빠짐없이 답하고 수동 절차(`MakeNSISW` 등)를 섞지 않도록 지시합니다.
+  - 이 의도에서 `effective_top_k`/`effective_max_chunks_per_source`/후보 수를 상향해 섹션 전체가 후보에서 잘리지 않게 했습니다.
+- **이슈 2: "alpeta 사용자를 단말기에 추가 + 자동동기화" 답변 불완전**
+  - `build_context_prompt()`의 사용자·단말기 절차 안내(`procedure_block`)를 보강해, 문서에 "단말기리스트" 경로와 "단말기 사용자 리스트 추가" 경로가 **두 가지 독립된 방법**으로 있으면 반드시 각각 별도 방법으로 구분해 설명하도록 지시합니다.
+  - 문서에 `출입그룹 단말기 리스트`/`등록된 단말기`/`추가가능한 단말기` 화면 구성 3가지가 있으면 요약하거나 합치지 말고 원문 표기 그대로 3가지 모두 나열하도록, `[주의사항]` 문단이 있으면 그 안의 사실을 하나도 빠짐없이 나열하도록, 특정 동작이 "필수로 연결"되어 있어야 한다는 조건이 있으면 생략하지 말도록 조건부(문서에 실제로 있을 때만) 지시를 추가했습니다.
+  - 답변 지침의 기존 병합된 화살표 절차 문장(`[단말기리스트] → [단말기 사용자 리스트] → …`)을 제거해 두 방법이 하나로 뭉개지지 않게 했습니다.
+  - `enforce_document_term_pairs()`가 `[단말기 리스트]` 공백 의역을 문서의 `[단말기리스트]`로 복원하고, 컨텍스트에 있는 화면 구성 항목(`출입그룹 단말기 리스트` 등)이 답에서 빠지면 문서 원문 줄을 보완합니다. `단말기 사용자 리스트 > [추가]`처럼 breadcrumb `>`가 이동 버튼보다 앞에 나오지 않도록 정규화합니다. `terminal_list_composition` facet으로 해당 청크를 컨텍스트에 보존합니다.
+  - 검색 확장에 `단말기리스트`/`출입그룹 단말기 리스트` 등 문서 원문 UI 표기를 추가하고, 프롬프트에 띄어쓰기 없는 `[단말기리스트]` 표기 고정을 명시합니다.
+- `rag/data/eval/golden_questions.json`: "alpeta 자동빌드하려면 어떻게 하면돼?" 신규 문항을 추가하고 `expected_keywords`에 `gitpull.bat`/`define.go`/`alpeta_device.nsi`/`alpeta.nsi`/`build_install.bat`/`proto_compile`/`D:\nsis\install`을 포함했습니다. 기존 사용자·단말기 자동동기화 문항의 화면 구성/필수 연결/출입그룹 기반 설정 키워드도 보강했습니다.
+- `rag/scripts/test_rag_regression.py`: 자동화 버전 의도·쿼리 확장·구간 완결성·프롬프트 지시, 사용자·단말기 UI 표기 복원·화면 구성 facet 보완 회귀를 추가·갱신했습니다.
+- 청킹·메타데이터·임베딩 모델은 변경하지 않아 재인덱싱은 필요하지 않습니다(인덱스 1591 chunks 유지). 파이프라인 코드 반영에는 `docker compose up -d --force-recreate pipelines`가 필요합니다.
+
+### NSIS 산출 역할·사용자 단말기 절차 검색 개선 (2026-08-02)
+
+- `rag/pipelines/rag_pipeline.py`: 설치 경로 질문을 **최종 빌드 산출물**, **확인 폴더**, **명시된 개별 실행 파일 위치**, **빌드 입력 복사 폴더**로 구분했습니다. 일반적인 “빌드 완료 후 어디에 생성되는가”는 완료 문장의 최종 설치 파일 경로를 우선하고, 명시적 `AlpetaDevice.exe` 질문은 기존 device setup 경로를 유지합니다.
+- `rag/pipelines/rag_pipeline.py`: 사용자·단말기 추가/전송/동기화 조합의 절차 질문은 명시적 문서명이 없어도 `user_guide` 범위로 제한합니다. 수동 추가와 자동 동기화의 연속 근거를 함께 보존하고, 답변 프롬프트에서 두 절차·조건·제한을 구분하며 Protocol/NSIS 혼입을 금지합니다.
+- `rag/pipelines/rag_pipeline.py`: 자동 동기화 답변에서 문서 용어 `덮어쓰기`·`다시 다운로드`/`다운로드 재진행`이 빠지거나 의어로 바뀌지 않도록 검색 확장·절차 facet(`overwrite_option`)·프롬프트 표기 규칙을 보강했습니다.
+- `rag/data/eval/golden_questions.json`, `rag/scripts/test_rag_regression.py`: 최종 NSIS 산출 경로 및 Alpeta User Guide 수동 추가·자동 동기화·동일 출입그룹·덮어쓰기 옵션 회귀를 추가했습니다.
+- 청킹·문서 메타데이터·임베딩 모델은 변경하지 않아 재인덱싱은 필요하지 않습니다. 파이프라인 코드 반영에는 `docker compose up -d --force-recreate pipelines`가 필요합니다.
+
+### 목록 완결성·경로 역할 구분 (2026-08-02)
+
+v4.0 프로토콜 “전부 리스트”가 Command Preview 중간(~0x0108)에서 끊기고, 빌드 완료 후 설치 확인 폴더가 `D:\nsis\Alpeta\setup`으로 오인되던 문제를 일반 규칙으로 개선했습니다.
+
+**v4.0 프로토콜 전체 목록**
+
+- **증상**: “v4.0 프로토콜 전부 리스트업” 질문에 TOC 후반(`0x010A`/`0x010B`/`0x010C`, 출입그룹, 스냅샷 등)이 빠지고 Preview 일부만 나옴.
+- **원인**: TOC 페이지가 번호 제목마다 쪼개져 `MAX_CHUNKS_PER_SOURCE=2`에 잘림. Preview가 의미 점수로 앞서도 TOC보다 불완전함.
+- **해결**:
+  - `rag/scripts/index_documents.py`: 목차·명령 카탈로그처럼 짧은 번호/hex/점선 행이 밀집한 PDF 페이지는 섹션 분리하지 않고, 더 큰 임베딩 청크(960)로 인덱싱.
+  - `rag/pipelines/rag_pipeline.py`: 전부/전체/리스트업 의도 감지, 소스당·top-k 상한 확대, 동일 출처 카탈로그 보충, **인접 목차 페이지 hex 커버리지 보강**, 답변 프롬프트에 목록 완결성 규칙 추가. 특정 command hex 하드코딩 없음.
+
+**빌드 완료 후 설치 확인 폴더**
+
+- **증상**: “설치 파일을 확인하는 폴더”에 `D:\nsis\Alpeta\setup`(device exe 위치) 또는 `D:\nsis`만 답함. 기대는 `D:\nsis\install`.
+- **원인**: “설치 파일”이 `executable` 의도로 분류되어 `.exe` 생성 경로가 리랭크에서 앞섬.
+- **해결**: `output_folder` 의도(확인 폴더/이동하면/생성된 설치 등). 확인 폴더 질문에서는 executable 의도를 제거하고, 확인·이동 표현이 있는 폴더 경로에 경로 역할 점수를 가산. AlpetaDevice.exe 생성 경로 골든은 executable로 유지.
+
+**재인덱싱·회귀**
+
+- TOC 청킹 변경으로 **`--reset` 재인덱싱 필요**(청크 1615 → 1591).
+- `test_rag_regression.py` **45/45** 통과. 골든에 v4 전부 리스트·install 확인 폴더 문항 추가.
+- eval(rerank): 대상 2문항 키워드 PASS. 기존 NSIS automation·FaceWT·AlpetaDevice setup 유지.
+
+**운영 반영**
+
+```bash
+docker compose run --rm indexer python /app/scripts/index_documents.py /app/docs --reset
+docker compose up -d --force-recreate pipelines
+```
+
+### 기술 토큰·API 문서 검색 품질 개선 (2026-08-02)
+
+알페타 설치 자동화 질문에서 산출물(`.exe`)을 자동화 파일로 오인하거나, alpeta swagger FaceWT/FAW API 질문에서 `swagger_kr.md`가 검색되지 않던 문제를 개선했습니다. Open WebUI 무응답(첫 토큰 대기)은 원인 분석만 했고 이번 코드 수정 범위가 아닙니다.
+
+**NSIS 자동화 파일 검색**
+
+- **증상**: “nsis로 알페타 설치하는 자동화 파일” 류 질문에 `AlpetaDevice.exe`가 우선되거나 `build_install.bat` 전체 경로가 안정적으로 나오지 않음.
+- **원인**: 의미 유사도만으로는 `.bat`(자동화) / `.nsi`(스크립트) / `.exe`(산출물) 역할이 구분되지 않음. 평가기도 출처만 맞으면 필수 키워드 누락을 성공 처리할 수 있었음.
+- **해결** (`rag/pipelines/rag_pipeline.py`): 파일 역할(artifact intent) 감지, 원문·경로·확장자 보존, RRF·리랭크에 기술 근거 점수 가산, 같은 지시문의 폴더+파일명 전체 경로 결합, 답변 프롬프트에 역할 구분·경로 비추측 규칙 추가.
+- **평가 계약** (`rag/scripts/eval_retrieval.py`): 항목 성공 = **출처 + 모든 필수 키워드**. 골든에 NSIS 문항과 전체 경로(`D:\nsis\eXbuilder\build_install.bat`) 요구 추가.
+
+**Swagger FaceWT/FAW API 검색**
+
+- **증상**: “alpeta swagger에서 FAW/FaceWT 스키마·API” 질문에 User Guide·Protocol만 인용되고 “문서에 API 없다”에 가까운 오답.
+- **원인**: 질문의 `alpeta` → `product=alpeta` 필터로 product 미태그인 `swagger_kr.md`가 후보에서 완전 배제. `FaceWT` 같은 CamelCase가 technical token으로 추출되지 않음.
+- **해결**:
+  - `rag/scripts/index_documents.py`: 파일명 swagger/openapi/api → `document_type=api`.
+  - `rag_pipeline.py`: API 의도 시 `document_type=api` 스코프·product 필터 완화, CamelCase/대문자 식별자 토큰 보존, API evidence 가점, “Swagger 근거가 있으면 UI/프로토콜로 API 대체 금지” 프롬프트 규칙.
+  - `rag/scripts/swagger_yaml_to_md.py`: 컨테이너 `/app/docs`와 로컬 `rag/data/docs` 기본 경로 자동 선택. `swagger_kr.md` 재생성.
+- **재인덱싱**: 메타데이터 `api` + swagger 청킹 반영으로 청크 1437 → 1615. **반영 시 `--reset` 재인덱싱 필요**(이미 실행된 환경이면 pipelines 재기동만으로 코드 반영 가능).
+
+**회귀·골든·실패 기록**
+
+- `rag/scripts/test_rag_regression.py`: NSIS 역할 구분·FaceWT/API 스코프·평가 계약 등 추가 (**39/39** 통과).
+- `rag/data/eval/golden_questions.json`: NSIS 4문항, FaceWT/FAW swagger 1문항, stream 경로 문항 등 추가.
+- `PL_FAILURE_LOG.md`: PLF-20260801-001(무응답 분석·수정 대기), PLF-002(키워드 계약), PLF-003(기준선·pipe 원문 보존) 및 예방 체크리스트.
+- eval 대상 FaceWT·NSIS는 PASS. 전체 exit 1은 stream 경로 키워드·일부 flaky 등 **비대상 잔여 FAIL** 때문.
+
+**운영 반영**
+
+```bash
+docker compose run --rm --no-deps --entrypoint python indexer /app/scripts/swagger_yaml_to_md.py --input /app/docs/swagger_kr.yaml --output /app/docs/swagger_kr.md
+docker compose run --rm indexer python /app/scripts/index_documents.py /app/docs --reset
+docker compose up -d --force-recreate pipelines
+```
+
 ### 후속 질문 문맥화 (2026-07-30)
 
 - `rag/pipelines/rag_pipeline.py`: 기존에는 답변 LLM만 최근 2턴을 보고 **검색은 현재 질문 문자열만 사용**해, "그거 수정하는 API는?" 같은 후속 질문이 엉뚱한 문서를 검색했음.

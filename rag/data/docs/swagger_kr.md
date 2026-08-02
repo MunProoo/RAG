@@ -55,6 +55,25 @@
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
 
+**스키마 `ExdbLoginAccountInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `id` | string |  | id |
+| `pw` | string |  | pw |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
 ---
 
 ## GET `/v1/accessAreas`
@@ -69,6 +88,17 @@
 |------|------|--------|
 | `200` | successful operation |  |
 | `405` | Invalid input |  |
+
+**스키마 `AccessGroup`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ID` | integer |  | 출입 그룹 아이디 |
+| `Name` | string |  | 출입그룹 이름 |
+| `TimezoneID` | integer |  | 타임존 아이디 |
+| `VisitEnable` | integer |  | 방문객 출입 허용 여부 |
+| `ElevatorSetID` | integer |  | 출입층 아이디 |
+| `AreaCodes` | array<integer> |  | 출입그룹에 포함된 출입구역 목록 |
 
 ---
 
@@ -90,6 +120,27 @@
 |------|------|--------|
 | `200` | successful operation |  |
 | `405` | Invalid input |  |
+
+**스키마 `AccessAreaPost`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ID` | integer |  | Access Area id |
+| `Name` | string |  | Access Area name |
+| `Floor` | string |  | Access Area name |
+| `TID` | array<integer> |  | Access Area id |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
 
 ---
 
@@ -113,6 +164,22 @@
 | `200` | successful operation |  |
 | `405` | Invalid input |  |
 
+**스키마 `AccessAreaPost`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ID` | integer |  | Access Area id |
+| `Name` | string |  | Access Area name |
+| `Floor` | string |  | Access Area name |
+| `TID` | array<integer> |  | Access Area id |
+
+**스키마 `AccessGroup_Terminal_Download_Res`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `TerminalID` | integer |  | 단말기 아이디 |
+| `Result` | integer |  | 전송 결과 |
+
 ---
 
 ## DELETE `/v1/accessAreas/{id}`
@@ -134,6 +201,18 @@
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
 
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
 ---
 
 ## GET `/v1/accessAreas/{id}/terminals`
@@ -153,6 +232,12 @@
 |------|------|--------|
 | `200` | successful operation |  |
 | `405` | Invalid input |  |
+
+**스키마 `TerminalIDs`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `TerminalIDs` | array<integer> |  | 단말기 아이디 목록 |
 
 ---
 
@@ -175,6 +260,23 @@
 | `200` | successful operation | `AccessGroupList` |
 | `405` | Invalid input |  |
 
+**스키마 `AccessGroupList`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `AccessGroupList` | array<AccessGroup> |  |  |
+
+**스키마 `AccessGroup`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ID` | integer |  | 출입 그룹 아이디 |
+| `Name` | string |  | 출입그룹 이름 |
+| `TimezoneID` | integer |  | 타임존 아이디 |
+| `VisitEnable` | integer |  | 방문객 출입 허용 여부 |
+| `ElevatorSetID` | integer |  | 출입층 아이디 |
+| `AreaCodes` | array<integer> |  | 출입그룹에 포함된 출입구역 목록 |
+
 ---
 
 ## POST `/v1/accessGroups`
@@ -195,6 +297,24 @@
 |------|------|--------|
 | `200` | successful operation | `ApiResponse` |
 | `405` | Invalid input |  |
+
+**스키마 `AccessGroup`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ID` | integer |  | 출입 그룹 아이디 |
+| `Name` | string |  | 출입그룹 이름 |
+| `TimezoneID` | integer |  | 타임존 아이디 |
+| `VisitEnable` | integer |  | 방문객 출입 허용 여부 |
+| `ElevatorSetID` | integer |  | 출입층 아이디 |
+| `AreaCodes` | array<integer> |  | 출입그룹에 포함된 출입구역 목록 |
+
+**스키마 `ApiResponse`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `resultCode` | integer |  |  |
+| `message` | string |  |  |
 
 ---
 
@@ -217,6 +337,13 @@
 | `200` | successful operation |  |
 | `405` | Invalid input |  |
 
+**스키마 `AccessGroup_Terminal_Download_Res`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `TerminalID` | integer |  | 단말기 아이디 |
+| `Result` | integer |  | 전송 결과 |
+
 ---
 
 ## GET `/v1/accessGroups/{id}`
@@ -236,6 +363,17 @@
 |------|------|--------|
 | `200` | successful operation |  |
 | `405` | Invalid input |  |
+
+**스키마 `AccessGroup`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ID` | integer |  | 출입 그룹 아이디 |
+| `Name` | string |  | 출입그룹 이름 |
+| `TimezoneID` | integer |  | 타임존 아이디 |
+| `VisitEnable` | integer |  | 방문객 출입 허용 여부 |
+| `ElevatorSetID` | integer |  | 출입층 아이디 |
+| `AreaCodes` | array<integer> |  | 출입그룹에 포함된 출입구역 목록 |
 
 ---
 
@@ -257,6 +395,24 @@
 |------|------|--------|
 | `200` | successful operation | `ApiResponse` |
 | `405` | Invalid input |  |
+
+**스키마 `AccessGroup`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ID` | integer |  | 출입 그룹 아이디 |
+| `Name` | string |  | 출입그룹 이름 |
+| `TimezoneID` | integer |  | 타임존 아이디 |
+| `VisitEnable` | integer |  | 방문객 출입 허용 여부 |
+| `ElevatorSetID` | integer |  | 출입층 아이디 |
+| `AreaCodes` | array<integer> |  | 출입그룹에 포함된 출입구역 목록 |
+
+**스키마 `ApiResponse`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `resultCode` | integer |  |  |
+| `message` | string |  |  |
 
 ---
 
@@ -280,6 +436,13 @@
 | `200` | successful operation | `ApiResponse` |
 | `405` | Invalid input |  |
 
+**스키마 `ApiResponse`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `resultCode` | integer |  |  |
+| `message` | string |  |  |
+
 ---
 
 ## DELETE `/v1/accessGroups/{id}/accessAreas`
@@ -301,6 +464,19 @@
 |------|------|--------|
 | `200` | successful operation | `ApiResponse` |
 | `405` | Invalid input |  |
+
+**스키마 `AccessAreaIDs`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ID` | array<integer> |  | 출입구역 아이디 리스트 |
+
+**스키마 `ApiResponse`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `resultCode` | integer |  |  |
+| `message` | string |  |  |
 
 ---
 
@@ -324,6 +500,42 @@
 | `200` | successful operation |  |
 | `405` | Invalid input |  |
 
+**스키마 `AccessGroup_AllUsers`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+| `RegUsersTotal` | RegUsersTotal |  |  |
+| `RegUsersInfo` | object |  |  |
+| `UnRegUsersTotal` | UnRegUsersTotal |  |  |
+| `UnRegUsersInfo` | UnRegUsersInfo |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
+**스키마 `RegUsersTotal`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Count` | integer |  |  |
+
+**스키마 `UnRegUsersTotal`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Count` | integer |  |  |
+
+**스키마 `UnRegUsersInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ID` | string |  |  |
+| `UniqueID` | string |  |  |
+| `Name` | string |  |  |
+
 ---
 
 ## PUT `/v1/accessGroups/{id}/users`
@@ -345,6 +557,26 @@
 | `200` | successful operation |  |
 | `405` | Invalid input |  |
 
+**스키마 `AccessGroupUserID`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `UserID` | array<string> |  | 출입그룹에 등록, 삭제 할 사용자 아이디 |
+| `Source` | integer |  | 사용자 등록시 0, 삭제시 출입그룹 아이디 |
+| `Target` | integer |  | 사용자 등록시 출입그룹 아이디, 삭제시 0 |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
 ---
 
 ## GET `/v1/antiPassback`
@@ -364,6 +596,15 @@
 |------|------|--------|
 | `200` | successful operation | `TerminalAPBInfo` |
 | `405` | Invalid input |  |
+
+**스키마 `TerminalAPBInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `TerminalID` | integer |  | 단말기 ID |
+| `AreaIn` | integer |  | 입구 영역 ID |
+| `AreaOut` | integer |  | 출구 영역 ID |
+| `SoftPassBack` | boolean |  | soft-passback(anti-passback 확인을 하지만 인증 성공 시 무조건 출입 허용) 여부 |
 
 ---
 
@@ -385,6 +626,22 @@
 | `200` | successful operation | `ApiResponse` |
 | `405` | Invalid input |  |
 
+**스키마 `TerminalAPBInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `TerminalID` | integer |  | 단말기 ID |
+| `AreaIn` | integer |  | 입구 영역 ID |
+| `AreaOut` | integer |  | 출구 영역 ID |
+| `SoftPassBack` | boolean |  | soft-passback(anti-passback 확인을 하지만 인증 성공 시 무조건 출입 허용) 여부 |
+
+**스키마 `ApiResponse`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `resultCode` | integer |  |  |
+| `message` | string |  |  |
+
 ---
 
 ## DELETE `/v1/antiPassback`
@@ -405,6 +662,13 @@
 | `200` | successful operation | `ApiResponse` |
 | `405` | Invalid input |  |
 
+**스키마 `ApiResponse`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `resultCode` | integer |  |  |
+| `message` | string |  |  |
+
 ---
 
 ## GET `/v1/antiPassback/areas`
@@ -419,6 +683,13 @@
 |------|------|--------|
 | `200` | successful operation |  |
 | `405` | Invalid input |  |
+
+**스키마 `APBAreaInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `AreaID` | integer |  | 영역 ID(1000 ~ 9999) |
+| `Name` | string |  | 영역 이름 |
 
 ---
 
@@ -440,6 +711,20 @@
 | `200` | successful operation | `ApiResponse` |
 | `405` | Invalid input |  |
 
+**스키마 `APBAreaInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `AreaID` | integer |  | 영역 ID(1000 ~ 9999) |
+| `Name` | string |  | 영역 이름 |
+
+**스키마 `ApiResponse`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `resultCode` | integer |  |  |
+| `message` | string |  |  |
+
 ---
 
 ## GET `/v1/antiPassback/areas/{id}`
@@ -459,6 +744,13 @@
 |------|------|--------|
 | `200` | successful operation | `APBAreaInfo` |
 | `405` | Invalid input |  |
+
+**스키마 `APBAreaInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `AreaID` | integer |  | 영역 ID(1000 ~ 9999) |
+| `Name` | string |  | 영역 이름 |
 
 ---
 
@@ -481,6 +773,20 @@
 | `200` | successful operation | `ApiResponse` |
 | `405` | Invalid input |  |
 
+**스키마 `APBAreaInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `AreaID` | integer |  | 영역 ID(1000 ~ 9999) |
+| `Name` | string |  | 영역 이름 |
+
+**스키마 `ApiResponse`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `resultCode` | integer |  |  |
+| `message` | string |  |  |
+
 ---
 
 ## DELETE `/v1/antiPassback/areas/{id}`
@@ -501,6 +807,13 @@
 | `200` | successful operation | `ApiResponse` |
 | `405` | Invalid input |  |
 
+**스키마 `ApiResponse`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `resultCode` | integer |  |  |
+| `message` | string |  |  |
+
 ---
 
 ## GET `/v1/antiPassback/areas/{id}/details`
@@ -520,6 +833,22 @@
 |------|------|--------|
 | `200` | successful operation | `APBAreaDetailInfo` |
 | `405` | Invalid input |  |
+
+**스키마 `APBAreaDetailInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `AreaID` | integer |  | 영역 ID |
+| `Name` | string |  | 영역 이름 |
+| `In` | array<APBAreaTerminalInfo> |  | 입구 영역 정보 (단말기 & 영역 ID) |
+| `Out` | array<APBAreaTerminalInfo> |  | 출구 영역 정보 (단말기 & 영역 ID) |
+
+**스키마 `APBAreaTerminalInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `TerminalID` | integer |  | 단말기 ID |
+| `LinkedAreaID` | integer |  | 연결 된 영역 ID (입구 정보일 경우 설정 된 출구 영역 ID) |
 
 ---
 
@@ -546,6 +875,52 @@
 |------|------|--------|
 | `200` | successful operation |  |
 | `405` | Invalid input |  |
+
+**스키마 `AuthLogListResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+| `Total` | Total |  |  |
+| `AuthLogList` | AuthLog |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
+**스키마 `Total`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Count` | integer |  |  |
+
+**스키마 `AuthLog`** (이 API의 요청/응답 구조)
+
+기타 인증데이터 (ex. 온도)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `IndexKey` | integer |  | 로그정보 고유 키 |
+| `TerminalID` | integer |  | 단말기 ID |
+| `UserID` | string |  | 사용자 ID |
+| `GroupCode` | integer |  | 사용자 그룹 코드 |
+| `UserName` | string |  | 사용자 이름 |
+| `EventTime` | string |  | 인증로그 시간 |
+| `ServerRecordTime` | string |  | 서버에 저장 된 시간 |
+| `AuthType` | integer |  | 인증 타입 |
+| `AuthResult` | integer |  | 인증 결과 |
+| `Func` | integer |  | 단말기 기능 |
+| `FuncType` | integer |  | 단말기 기능 키 |
+| `Card` | string |  | 카드 번호 |
+| `UserType` | integer |  | 사용자 타입 |
+| `IsPicture` | integer |  | 인증 로그 이미지 저장 여부 |
+| `Property` | string |  | 인증 속성 |
+| `Latitude` | integer |  | 위치 정보(위도) |
+| `Longitude` | integer |  | 위치 정보 (경도) |
+| `ReserveType` | integer |  | 기타 인증데이터 타입 (ex. 온도) |
+| `ReserveData` | string |  |  |
 
 ---
 
@@ -598,6 +973,19 @@
 | `200` | successful operation |  |
 | `405` | Invalid input |  |
 
+**스키마 `AuditLog`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `EventTime` | string |  | 작업 발생 시각 |
+| `UserID` | string |  | 관리자 아이디 |
+| `Category` | integer |  | 작업 구분 |
+| `Content` | integer |  | 작업 내용 |
+| `Detail` | string |  | 작업 상세 |
+| `Target` | string |  | 작업 대상 |
+| `Action` | integer |  | 작업 처리 내용 |
+| `Location` | integer |  | 작업 위치 |
+
 ---
 
 ## GET `/v1/authLogs/{logIndex}`
@@ -620,6 +1008,34 @@
 |------|------|--------|
 | `200` | successful operation |  |
 | `405` | Invalid input |  |
+
+**스키마 `AuthLogDetailResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+| `AuthLogList` | AuthLogDetail |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
+**스키마 `AuthLogDetail`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `IndexKey` | integer |  | 로그정보 고유 키 |
+| `UserID` | string |  | 사용자 ID |
+| `UserName` | string |  | 사용자 이름 |
+| `EventTime` | string |  | 인증로그 시간 |
+| `AuthResult` | integer |  | 인증결과 |
+| `Func` | integer |  | 단말기 기능 |
+| `FuncType` | integer |  | 단말기 기능 키 |
+| `Card` | string |  | 카드 번호 |
+| `UserImage` | string |  | 사용자 이미지 |
+| `LogImage` | string |  | 로그 이미지 |
 
 ---
 
@@ -645,6 +1061,25 @@
 | `200` | successful operation |  |
 | `405` | Invalid input |  |
 
+**스키마 `AuthLogImageResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+| `AuthLogImage` | AuthLogImage |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
+**스키마 `AuthLogImage`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `LogImage` | string |  | 인증로그 이미지 |
+
 ---
 
 ## GET `/v1/authLogsStatistics/month`
@@ -666,6 +1101,30 @@
 |------|------|--------|
 | `200` | successful operation |  |
 | `405` | Invalid input |  |
+
+**스키마 `AuthLogsMonthlyStatisticsResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+| `AuthLogsMonthlyStatistics` | AuthLogsMonthlyStatistics |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
+**스키마 `AuthLogsMonthlyStatistics`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `TotalCount` | integer |  | 월별 전체 인증기록 갯수 |
+| `SuccessResultCount` | integer |  | 월별 인증 성공 갯수 |
+| `FailResultCount` | integer |  | 월별 인증 실패 갯수 |
+| `CountbyAuthType` | CountbyAuthType |  |  |
+| `TopFivebyTerminal` | array<TopFivebyTerminal> |  |  |
+| `TopFivebyUser` | array<TopFivebyUser> |  |  |
 
 ---
 
@@ -691,6 +1150,46 @@
 | `200` | successful operation | `UserListResult` |
 | `405` | Invalid input |  |
 
+**스키마 `UserListResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+| `Total` | Total |  |  |
+| `UserList` | array<UserListInfo> |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
+**스키마 `Total`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Count` | integer |  |  |
+
+**스키마 `UserListInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ID` | string |  | 사용자 ID |
+| `UniqueID` | string |  | 고유값 |
+| `Name` | string |  | 사용자 이름 |
+| `AuthInfo` | array<integer> |  | 인증방식 |
+| `Privilege` | integer |  | 사용자 권한 |
+| `RegistDate` | string |  | 등록일 |
+| `ExpireDate` | string |  | 만료일 |
+| `GroupCode` | integer |  | 그룹 코드 |
+| `AccessGroupCode` | integer |  | 출입그룹 코드 |
+| `TimezoneCode` | integer |  | 타임존 코드 |
+| `BlackList` | integer |  | 블랙리스트 유무 |
+| `FPIdentify` | integer |  | 지문 1:N |
+| `FaceIdentify` | integer |  | 얼굴 1:N |
+| `APBZone` | integer |  | 안태패스백 현재 위치 |
+| `EmployeeNum` | string |  | 사원번호 |
+
 ---
 
 ## GET `/v1/blacklists/{id}`
@@ -712,6 +1211,67 @@
 | `200` | successful operation | `UserInfoResult` |
 | `405` | Invalid input |  |
 
+**스키마 `UserInfoResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+| `UserInfo` | UserInfo |  |  |
+| `UserCardInfo` | array<UserCardInfo> |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
+**스키마 `UserInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ID` | string |  | 사용자 아이디 |
+| `UniqueID` | string |  | 고유값 |
+| `Name` | string |  | 사용자 이름 |
+| `AuthInfo` | array<integer> |  | 인증방식 |
+| `Privilege` | integer |  | 사용자 권한 |
+| `CreateDate` | string |  | 생성일자 |
+| `UsePeriodFlag` | integer |  | 사용자 사용 기간 사용 flag |
+| `RegistDate` | string |  | 등록일 |
+| `ExpireDate` | string |  | 만료일 |
+| `Password` | string |  | 비밀번호 |
+| `GroupCode` | integer |  | 그룹 코드 |
+| `AccessGroupCode` | integer |  | 출입그룹 코드 |
+| `UserType` | integer |  | 사용자 타입 |
+| `TimezoneCode` | integer |  | 타임존 코드 |
+| `BlackList` | integer |  | 블랙리스트 유무 |
+| `FPIdentify` | integer |  | 지문 1:N |
+| `FaceIdentify` | integer |  | 얼굴 1:N |
+| `DuressFinger` | array<integer> |  | 협박 지문 |
+| `Partition` | integer |  | ACU 파티션 |
+| `APBExcept` | integer |  | 안티패스백 예외 적용 |
+| `APBZone` | integer |  | 안태패스백 현재 위치 |
+| `WorkCode` | string |  | 근태 코드 |
+| `MealCode` | string |  | 식수 코드 |
+| `MoneyCode` | string |  | 근태 지급액 코드 |
+| `MessageCode` | integer |  | 사용자 메시지 코드 |
+| `VerifyLevel` | integer |  | 인증 레벨 |
+| `PositionCode` | integer |  | 직급 코드 |
+| `Department` | string |  | 부서 코드 |
+| `LoginPW` | string |  | 클라이언트 접속 비밀번호 |
+| `LoginAllowed` | string |  | 클라이언트 접속 허용 여부 |
+| `Picture` | string |  |  |
+| `EmployeeNum` | string |  | 사원번호 |
+| `Email` | string |  | 이메일 주소 |
+| `Phone` | string |  | 전화 번호 |
+
+**스키마 `UserCardInfo`** (이 API의 요청/응답 구조)
+
+카드번호
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `CardNum` | string |  |  |
+
 ---
 
 ## DELETE `/v1/blacklists/{id}`
@@ -731,6 +1291,18 @@
 |------|------|--------|
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
 
 ---
 
@@ -753,6 +1325,18 @@
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
 
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
 ---
 
 ## POST `/v1/blacklists/{id}/release`
@@ -774,6 +1358,18 @@
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
 
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
 ---
 
 ## GET `/v1/elevators`
@@ -789,6 +1385,18 @@
 |------|------|--------|
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
 
 ---
 
@@ -810,6 +1418,26 @@
 |------|------|--------|
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
+
+**스키마 `ElevatorSetInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ElevatorSetID` | integer |  | ElevatorSetID |
+| `ElevatorSetName` | string |  | ElevatorSetName |
+| `AccessFloor` | array<integer> |  | Access Floor |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
 
 ---
 
@@ -833,6 +1461,26 @@
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
 
+**스키마 `ElevatorSetInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ElevatorSetID` | integer |  | ElevatorSetID |
+| `ElevatorSetName` | string |  | ElevatorSetName |
+| `AccessFloor` | array<integer> |  | Access Floor |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
 ---
 
 ## DELETE `/v1/elevators/{elevatorID}`
@@ -854,6 +1502,18 @@
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
 
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
 ---
 
 ## GET `/v1/groups`
@@ -873,6 +1533,28 @@
 |------|------|--------|
 | `200` | successful operation | `GroupListResult` |
 | `405` | Invalid input |  |
+
+**스키마 `GroupListResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+| `GroupInfo` | array<GroupInfo> |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
+**스키마 `GroupInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `GroupID` | integer |  | 그룹 ID |
+| `Parent` | integer |  | 상위 그룹 ID |
+| `Name` | string |  | 그룹 이름 |
+| `description` | string |  | 설명 |
 
 ---
 
@@ -894,6 +1576,36 @@
 | `200` | successful operation | `GroupResult` |
 | `405` | Invalid input |  |
 
+**스키마 `GroupInfoReq`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `GroupID` | integer |  | 그룹 ID |
+| `Parent` | integer |  | 상위 그룹 ID |
+| `Name` | string |  | 그룹 이름 |
+
+**스키마 `GroupResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+| `GroupInfo` | GroupInfo |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
+**스키마 `GroupInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `GroupID` | integer |  | 그룹 ID |
+| `Parent` | integer |  | 상위 그룹 ID |
+| `Name` | string |  | 그룹 이름 |
+| `description` | string |  | 설명 |
+
 ---
 
 ## GET `/v1/groups/user/count`
@@ -908,6 +1620,26 @@
 |------|------|--------|
 | `200` | successful operation | `UserCountInGroupResult` |
 | `405` | Invalid input |  |
+
+**스키마 `UserCountInGroupResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+| `UserCountByGroups` | array<UserCountByGroups> |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
+**스키마 `UserCountByGroups`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `GroupID` | integer |  | 그룹 코드 |
+| `UserCount` | integer |  | UserCount |
 
 ---
 
@@ -928,6 +1660,28 @@
 |------|------|--------|
 | `200` | successful operation | `GroupListResult` |
 | `405` | Invalid input |  |
+
+**스키마 `GroupListResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+| `GroupInfo` | array<GroupInfo> |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
+**스키마 `GroupInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `GroupID` | integer |  | 그룹 ID |
+| `Parent` | integer |  | 상위 그룹 ID |
+| `Name` | string |  | 그룹 이름 |
+| `description` | string |  | 설명 |
 
 ---
 
@@ -950,6 +1704,26 @@
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
 
+**스키마 `GroupInfoReq`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `GroupID` | integer |  | 그룹 ID |
+| `Parent` | integer |  | 상위 그룹 ID |
+| `Name` | string |  | 그룹 이름 |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
 ---
 
 ## DELETE `/v1/groups/{id}`
@@ -969,6 +1743,18 @@
 |------|------|--------|
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
 
 ---
 
@@ -992,6 +1778,22 @@
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
 
+**스키마 `TerminalIDList`** (이 API의 요청/응답 구조)
+
+- **type**: `array`
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
 ---
 
 ## PUT `/v1/groups/{id}/users`
@@ -1014,6 +1816,24 @@
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
 
+**스키마 `UserIDList`** (이 API의 요청/응답 구조)
+
+사용자 ID 목록
+
+- **type**: `array`
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
 ---
 
 ## GET `/v1/license`
@@ -1028,6 +1848,32 @@
 |------|------|--------|
 | `200` | successful operation | `ResultLicenseInfo` |
 | `405` | Invalid input |  |
+
+**스키마 `ResultLicenseInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+| `LicenseInfo` | LicenseInfo |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
+**스키마 `LicenseInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `LicenseType` | integer |  |  |
+| `LicenseKey` | string |  |  |
+| `SerialKey` | string |  |  |
+| `CustomerID` | string |  |  |
+| `CompanyName` | string |  |  |
+| `MacAddress` | string |  |  |
+| `ExpireAt` | string |  |  |
+| `Status` | string |  |  |
 
 ---
 
@@ -1049,6 +1895,30 @@
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
 
+**스키마 `ActivationInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Mode` | integer |  |  |
+| `ProductID` | integer |  |  |
+| `SerialKey` | string |  |  |
+| `CustomerID` | string |  |  |
+| `CompanyName` | string |  |  |
+| `ClientKey` | string |  |  |
+| `LicenseKey` | string |  |  |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
 ---
 
 ## GET `/v1/license/clientKey`
@@ -1064,6 +1934,25 @@
 |------|------|--------|
 | `200` | successful operation | `ResultClientKeyInfo` |
 | `405` | Invalid input |  |
+
+**스키마 `ResultClientKeyInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+| `LicenseInfo` | ClientKeyInfo |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
+**스키마 `ClientKeyInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ClientKey` | string |  |  |
 
 ---
 
@@ -1085,6 +1974,60 @@
 | `200` | successful operation | `LoginResult` |
 | `405` | Invalid input |  |
 
+**스키마 `Login`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `userId` | string |  | 사용자 ID |
+| `password` | string |  | 암호 |
+| `userType` | integer |  | 로그인 요청 타입 (0: 일반관리자, 1: UniqueID, 2: 마스터관리자) |
+
+**스키마 `LoginResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+| `AccountInfo` | AccountInfo |  |  |
+| `SystemInfo` | SystemInfo |  |  |
+| `LoginFailInfo` | LoginFailInfo |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
+**스키마 `AccountInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `UserID` | integer |  | 사용자 아이디 |
+| `UniqueID` | string |  | 고유값 |
+| `Uuid` | string |  | 고유값 |
+| `Name` | string |  | 사용자 이름 |
+| `LoginPW` | string |  | 패스워드 |
+| `Privilege` | integer |  | 사용자 권한 |
+| `FirstLoginFlag` | integer |  | 첫번째 로그인 flag |
+| `ServerID` | integer |  |  |
+| `LoginAllowed` | integer |  | 로그인 허용 flag |
+| `LoginFailCount` | integer |  | 로그인 실패 횟수 |
+
+**스키마 `SystemInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Version` | string |  | 서버 버전 정보 |
+| `LicenseLevel` | integer |  | 라이센스 레벨 |
+| `BrandType` | integer |  | 서버 브랜드 타입 |
+| `TimezoneVersion` | integer |  | 타임존 버전 |
+| `HTTPSFlag` | integer |  | HTTP Flag |
+
+**스키마 `LoginFailInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `RemindCount` | integer |  | 사용자 로그인 요청가능 횟수 |
+
 ---
 
 ## GET `/v1/logout`
@@ -1099,6 +2042,18 @@
 |------|------|--------|
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
 
 ---
 
@@ -1125,6 +2080,19 @@
 | `200` | successful operation |  |
 | `405` | Invalid input |  |
 
+**스키마 `AuditLog`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `EventTime` | string |  | 작업 발생 시각 |
+| `UserID` | string |  | 관리자 아이디 |
+| `Category` | integer |  | 작업 구분 |
+| `Content` | integer |  | 작업 내용 |
+| `Detail` | string |  | 작업 상세 |
+| `Target` | string |  | 작업 대상 |
+| `Action` | integer |  | 작업 처리 내용 |
+| `Location` | integer |  | 작업 위치 |
+
 ---
 
 ## DELETE `/v1/logs/audit_log`
@@ -1149,6 +2117,13 @@
 | `200` | successful operation | `ApiResponse` |
 | `405` | Invalid input |  |
 
+**스키마 `ApiResponse`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `resultCode` | integer |  |  |
+| `message` | string |  |  |
+
 ---
 
 ## GET `/v1/logs/audit_log/{id}/terminal`
@@ -1170,6 +2145,13 @@
 |------|------|--------|
 | `200` | successful operation | `ApiResponse` |
 | `405` | Invalid input |  |
+
+**스키마 `ApiResponse`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `resultCode` | integer |  |  |
+| `message` | string |  |  |
 
 ---
 
@@ -1196,6 +2178,17 @@
 | `200` | successful operation |  |
 | `405` | Invalid input |  |
 
+**스키마 `EventLog`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `EventTime` | string |  | 이벤트 발생 시각 |
+| `DeviceID` | integer |  | 단말기 아이디 |
+| `UserID` | string |  | 관리자 아이디 |
+| `Category` | integer |  | 작업 구분 |
+| `Content` | integer |  | 작업 내용 |
+| `Detail` | string |  | 작업 상세 |
+
 ---
 
 ## DELETE `/v1/logs/event_log`
@@ -1220,6 +2213,13 @@
 | `200` | successful operation | `ApiResponse` |
 | `405` | Invalid input |  |
 
+**스키마 `ApiResponse`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `resultCode` | integer |  |  |
+| `message` | string |  |  |
+
 ---
 
 ## GET `/v1/map`
@@ -1234,6 +2234,26 @@
 |------|------|--------|
 | `200` | successful operation | `ImageInfoResult` |
 | `405` | Invalid input |  |
+
+**스키마 `ImageInfoResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+| `ImageInfo` | ImageInfo |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
+**스키마 `ImageInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ImageType` | string |  | 이미지 타입 |
+| `ImageData` | string |  | 이미지 데이터 |
 
 ---
 
@@ -1255,6 +2275,24 @@
 | `200` | successful operation | `ApiResponse` |
 | `405` | Invalid input |  |
 
+**스키마 `MapAreaInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `MapCode` | integer |  |  |
+| `Name` | string |  | 맵 명칭 |
+| `PosX` | integer |  |  |
+| `PosY` | integer |  |  |
+| `ImageType` | string |  | 이미지 타입 |
+| `ImageData` | string |  | 이미지 데이터 |
+
+**스키마 `ApiResponse`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `resultCode` | integer |  |  |
+| `message` | string |  |  |
+
 ---
 
 ## GET `/v1/map/areas`
@@ -1269,6 +2307,37 @@
 |------|------|--------|
 | `200` | successful operation |  |
 | `405` | Invalid input |  |
+
+**스키마 `MapAreaListResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+| `Count` | CountResultData |  |  |
+| `MapAreaList` | MapAreaInfo |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
+**스키마 `CountResultData`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Count` | integer |  |  |
+
+**스키마 `MapAreaInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `MapCode` | integer |  |  |
+| `Name` | string |  | 맵 명칭 |
+| `PosX` | integer |  |  |
+| `PosY` | integer |  |  |
+| `ImageType` | string |  | 이미지 타입 |
+| `ImageData` | string |  | 이미지 데이터 |
 
 ---
 
@@ -1290,6 +2359,24 @@
 | `200` | successful operation | `ApiResponse` |
 | `405` | Invalid input |  |
 
+**스키마 `MapAreaInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `MapCode` | integer |  |  |
+| `Name` | string |  | 맵 명칭 |
+| `PosX` | integer |  |  |
+| `PosY` | integer |  |  |
+| `ImageType` | string |  | 이미지 타입 |
+| `ImageData` | string |  | 이미지 데이터 |
+
+**스키마 `ApiResponse`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `resultCode` | integer |  |  |
+| `message` | string |  |  |
+
 ---
 
 ## PUT `/v1/map/areas/position`
@@ -1310,6 +2397,20 @@
 | `200` | successful operation | `ApiResponse` |
 | `405` | Invalid input |  |
 
+**스키마 `APBAreaInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `AreaID` | integer |  | 영역 ID(1000 ~ 9999) |
+| `Name` | string |  | 영역 이름 |
+
+**스키마 `ApiResponse`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `resultCode` | integer |  |  |
+| `message` | string |  |  |
+
 ---
 
 ## GET `/v1/map/areas/terminals`
@@ -1324,6 +2425,13 @@
 |------|------|--------|
 | `200` | successful operation | `APBAreaInfo` |
 | `405` | Invalid input |  |
+
+**스키마 `APBAreaInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `AreaID` | integer |  | 영역 ID(1000 ~ 9999) |
+| `Name` | string |  | 영역 이름 |
 
 ---
 
@@ -1344,6 +2452,13 @@
 |------|------|--------|
 | `200` | successful operation | `APBAreaInfo` |
 | `405` | Invalid input |  |
+
+**스키마 `APBAreaInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `AreaID` | integer |  | 영역 ID(1000 ~ 9999) |
+| `Name` | string |  | 영역 이름 |
 
 ---
 
@@ -1366,6 +2481,20 @@
 | `200` | successful operation | `ApiResponse` |
 | `405` | Invalid input |  |
 
+**스키마 `APBAreaInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `AreaID` | integer |  | 영역 ID(1000 ~ 9999) |
+| `Name` | string |  | 영역 이름 |
+
+**스키마 `ApiResponse`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `resultCode` | integer |  |  |
+| `message` | string |  |  |
+
 ---
 
 ## DELETE `/v1/map/areas/{code}`
@@ -1385,6 +2514,13 @@
 |------|------|--------|
 | `200` | successful operation | `ApiResponse` |
 | `405` | Invalid input |  |
+
+**스키마 `ApiResponse`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `resultCode` | integer |  |  |
+| `message` | string |  |  |
 
 ---
 
@@ -1407,6 +2543,20 @@
 | `200` | successful operation | `ApiResponse` |
 | `405` | Invalid input |  |
 
+**스키마 `APBAreaInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `AreaID` | integer |  | 영역 ID(1000 ~ 9999) |
+| `Name` | string |  | 영역 이름 |
+
+**스키마 `ApiResponse`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `resultCode` | integer |  |  |
+| `message` | string |  |  |
+
 ---
 
 ## PUT `/v1/map/areas/{code}/position`
@@ -1428,6 +2578,20 @@
 | `200` | successful operation | `ApiResponse` |
 | `405` | Invalid input |  |
 
+**스키마 `APBAreaInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `AreaID` | integer |  | 영역 ID(1000 ~ 9999) |
+| `Name` | string |  | 영역 이름 |
+
+**스키마 `ApiResponse`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `resultCode` | integer |  |  |
+| `message` | string |  |  |
+
 ---
 
 ## GET `/v1/map/areas/{code}/terminals`
@@ -1447,6 +2611,13 @@
 |------|------|--------|
 | `200` | successful operation | `APBAreaInfo` |
 | `405` | Invalid input |  |
+
+**스키마 `APBAreaInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `AreaID` | integer |  | 영역 ID(1000 ~ 9999) |
+| `Name` | string |  | 영역 이름 |
 
 ---
 
@@ -1469,6 +2640,20 @@
 | `200` | successful operation | `ApiResponse` |
 | `405` | Invalid input |  |
 
+**스키마 `APBAreaInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `AreaID` | integer |  | 영역 ID(1000 ~ 9999) |
+| `Name` | string |  | 영역 이름 |
+
+**스키마 `ApiResponse`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `resultCode` | integer |  |  |
+| `message` | string |  |  |
+
 ---
 
 ## GET `/v1/map/areas/{code}/terminals/{id}`
@@ -1489,6 +2674,13 @@
 |------|------|--------|
 | `200` | successful operation | `APBAreaInfo` |
 | `405` | Invalid input |  |
+
+**스키마 `APBAreaInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `AreaID` | integer |  | 영역 ID(1000 ~ 9999) |
+| `Name` | string |  | 영역 이름 |
 
 ---
 
@@ -1512,6 +2704,20 @@
 | `200` | successful operation | `ApiResponse` |
 | `405` | Invalid input |  |
 
+**스키마 `APBAreaInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `AreaID` | integer |  | 영역 ID(1000 ~ 9999) |
+| `Name` | string |  | 영역 이름 |
+
+**스키마 `ApiResponse`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `resultCode` | integer |  |  |
+| `message` | string |  |  |
+
 ---
 
 ## DELETE `/v1/map/areas/{code}/terminals/{id}`
@@ -1533,6 +2739,13 @@
 | `200` | successful operation | `ApiResponse` |
 | `405` | Invalid input |  |
 
+**스키마 `ApiResponse`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `resultCode` | integer |  |  |
+| `message` | string |  |  |
+
 ---
 
 ## GET `/v1/mealData`
@@ -1548,6 +2761,40 @@
 |------|------|--------|
 | `200` | successful operation | `MealDataListResult` |
 | `405` | Invalid input |  |
+
+**스키마 `MealDataListResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+| `MealData` | array<MealDataInfo> |  | 식수 끼니 리스트 |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
+**스키마 `MealDataInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Code` | string |  | 끼니 코드 |
+| `Name` | string |  | 끼니 명칭 |
+| `Type` | integer |  | 끼니 종류 1: 조식, 2: 중식, 3: 석식, 4: 간식, 5: 야간간식 |
+| `Limit` | integer |  | 끼니 횟수 제한 |
+| `StartTime` | string |  | 끼니 시작 시간 |
+| `EndTime` | string |  | 끼니 종료 시간 |
+| `Menu1` | string |  | 메뉴1 명칭 |
+| `Menu1Price` | string |  | 메뉴1가격 |
+| `Menu2` | string |  | 메뉴2 명칭 |
+| `Menu2Price` | string |  | 메뉴2가격 |
+| `Menu3` | string |  | 메뉴3 명칭 |
+| `Menu3Price` | string |  | 메뉴3가격 |
+| `Menu4` | string |  | 메뉴4 명칭 |
+| `Menu4Price` | string |  | 메뉴4가격 |
+| `StartTimeflag` | integer |  | 시작시간 당일,내일 flag |
+| `EndTimeflag` | integer |  | 종료시간 당일,내일 flag |
 
 ---
 
@@ -1569,6 +2816,39 @@
 |------|------|--------|
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
+
+**스키마 `MealDataInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Code` | string |  | 끼니 코드 |
+| `Name` | string |  | 끼니 명칭 |
+| `Type` | integer |  | 끼니 종류 1: 조식, 2: 중식, 3: 석식, 4: 간식, 5: 야간간식 |
+| `Limit` | integer |  | 끼니 횟수 제한 |
+| `StartTime` | string |  | 끼니 시작 시간 |
+| `EndTime` | string |  | 끼니 종료 시간 |
+| `Menu1` | string |  | 메뉴1 명칭 |
+| `Menu1Price` | string |  | 메뉴1가격 |
+| `Menu2` | string |  | 메뉴2 명칭 |
+| `Menu2Price` | string |  | 메뉴2가격 |
+| `Menu3` | string |  | 메뉴3 명칭 |
+| `Menu3Price` | string |  | 메뉴3가격 |
+| `Menu4` | string |  | 메뉴4 명칭 |
+| `Menu4Price` | string |  | 메뉴4가격 |
+| `StartTimeflag` | integer |  | 시작시간 당일,내일 flag |
+| `EndTimeflag` | integer |  | 종료시간 당일,내일 flag |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
 
 ---
 
@@ -1592,6 +2872,39 @@
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
 
+**스키마 `MealDataInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Code` | string |  | 끼니 코드 |
+| `Name` | string |  | 끼니 명칭 |
+| `Type` | integer |  | 끼니 종류 1: 조식, 2: 중식, 3: 석식, 4: 간식, 5: 야간간식 |
+| `Limit` | integer |  | 끼니 횟수 제한 |
+| `StartTime` | string |  | 끼니 시작 시간 |
+| `EndTime` | string |  | 끼니 종료 시간 |
+| `Menu1` | string |  | 메뉴1 명칭 |
+| `Menu1Price` | string |  | 메뉴1가격 |
+| `Menu2` | string |  | 메뉴2 명칭 |
+| `Menu2Price` | string |  | 메뉴2가격 |
+| `Menu3` | string |  | 메뉴3 명칭 |
+| `Menu3Price` | string |  | 메뉴3가격 |
+| `Menu4` | string |  | 메뉴4 명칭 |
+| `Menu4Price` | string |  | 메뉴4가격 |
+| `StartTimeflag` | integer |  | 시작시간 당일,내일 flag |
+| `EndTimeflag` | integer |  | 종료시간 당일,내일 flag |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
 ---
 
 ## DELETE `/v1/mealData/{meadDataCode}`
@@ -1613,6 +2926,18 @@
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
 
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
 ---
 
 ## POST `/v1/mealProcess`
@@ -1633,6 +2958,48 @@
 |------|------|--------|
 | `200` | successful operation | `MealProcessResult` |
 | `405` | Invalid input |  |
+
+**스키마 `MealProcessReq`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `MealProcessSetting` | MealProcessSetting |  |  |
+| `ID` | UserIDList |  |  |
+
+**스키마 `MealProcessSetting`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `TaskID` | integer |  | 작업 ID |
+| `Total` | integer |  | 선택된 사용자 갯수 |
+| `Process` | integer |  | 처리상태 |
+| `StartAt` | string |  | 처리작업 시작 일자 |
+| `EndAt` | string |  | 처리작업 종료 일자 |
+
+**스키마 `UserIDList`** (이 API의 요청/응답 구조)
+
+사용자 ID 목록
+
+- **type**: `array`
+
+**스키마 `MealProcessResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+| `TaskID` | TaskIDData |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
+**스키마 `TaskIDData`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ID` | integer |  | 등록된 테스크 ID |
 
 ---
 
@@ -1658,6 +3025,39 @@
 | `200` | successful operation | `MealResultListResult` |
 | `405` | Invalid input |  |
 
+**스키마 `MealResultListResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+| `Total` | Total |  |  |
+| `MealResult` | array<MealResult> |  | 식수결과 리스트 |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
+**스키마 `Total`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Count` | integer |  |  |
+
+**스키마 `MealResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `DateTime` | string |  | 발생일자 |
+| `TerminalID` | integer |  | 단말기 아이디 |
+| `UserID` | integer |  | 사용자 아이디 |
+| `Type` | integer |  | 끼니 타입 |
+| `Menu` | string |  | 메뉴 명칭 |
+| `Pay` | string |  | 식수 금액 |
+| `Result` | integer |  | 인증결과 |
+| `UpMode` | integer |  | 단말기에서 인증기록 올라온 모드 |
+
 ---
 
 ## GET `/v1/mealStatistics`
@@ -1679,6 +3079,27 @@
 |------|------|--------|
 | `200` | successful operation | `MealStatisticsResult` |
 | `405` | Invalid input |  |
+
+**스키마 `MealStatisticsResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+| `MealStatisticsDay` | array<MealStatisticsDay> |  | 일자별 결과 |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
+**스키마 `MealStatisticsDay`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Day` | string |  | 날짜 |
+| `Type` | integer |  | 끼니 타입 |
+| `Count` | integer |  | 끼니 별 카운트 |
 
 ---
 
@@ -1702,6 +3123,30 @@
 | `200` | successful operation | `MealTotalStatusResult` |
 | `405` | Invalid input |  |
 
+**스키마 `MealTotalStatusResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+| `MealTotalStatus` | object |  | 종합현황 |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
+**스키마 `MealTotalStatus`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Total` | integer |  | 총합 횟수 |
+| `Success` | integer |  | 식수 인증성공 횟수 |
+| `Fail` | integer |  | 식수 인증실패 횟수 |
+| `Amount` | integer |  | 기간 동안 식사 총합금액 |
+| `CountByGroup` | array<CountByGroup> |  | 그룹별 사용자 수 |
+| `MealStatisticsDay` | array<MealStatisticsDay> |  | 일자별 결과 |
+
 ---
 
 ## GET `/v1/meals`
@@ -1717,6 +3162,35 @@
 |------|------|--------|
 | `200` | successful operation | `MealListResult` |
 | `405` | Invalid input |  |
+
+**스키마 `MealListResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+| `Meal` | array<MealInfo> |  | 식수정보 리스트 |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
+**스키마 `MealInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Code` | string |  | 식수 코드 |
+| `Name` | string |  | 식수 코드명 |
+| `DayLimit` | integer |  | 일 제한 |
+| `MonthLimit` | integer |  | 월 제한 |
+| `StartAt` | string |  | 기간 제한 설정 시작일 YYYY-MM-DD hh:mm:ss |
+| `EndAt` | string |  | 기간 제한 설정 종료일 YYYY-MM-DD hh:mm:ss |
+| `MealDataCode1` | string |  | 첫번째 끼니코드 |
+| `MealDataCode2` | string |  | 두번째 끼니코드 |
+| `MealDataCode3` | string |  | 세번째 끼니코드 |
+| `MealDataCode4` | string |  | 네번째 끼니코드 |
+| `MealDataCode5` | string |  | 다섯번째 끼니코드 |
 
 ---
 
@@ -1738,6 +3212,34 @@
 |------|------|--------|
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
+
+**스키마 `MealInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Code` | string |  | 식수 코드 |
+| `Name` | string |  | 식수 코드명 |
+| `DayLimit` | integer |  | 일 제한 |
+| `MonthLimit` | integer |  | 월 제한 |
+| `StartAt` | string |  | 기간 제한 설정 시작일 YYYY-MM-DD hh:mm:ss |
+| `EndAt` | string |  | 기간 제한 설정 종료일 YYYY-MM-DD hh:mm:ss |
+| `MealDataCode1` | string |  | 첫번째 끼니코드 |
+| `MealDataCode2` | string |  | 두번째 끼니코드 |
+| `MealDataCode3` | string |  | 세번째 끼니코드 |
+| `MealDataCode4` | string |  | 네번째 끼니코드 |
+| `MealDataCode5` | string |  | 다섯번째 끼니코드 |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
 
 ---
 
@@ -1761,6 +3263,34 @@
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
 
+**스키마 `MealInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Code` | string |  | 식수 코드 |
+| `Name` | string |  | 식수 코드명 |
+| `DayLimit` | integer |  | 일 제한 |
+| `MonthLimit` | integer |  | 월 제한 |
+| `StartAt` | string |  | 기간 제한 설정 시작일 YYYY-MM-DD hh:mm:ss |
+| `EndAt` | string |  | 기간 제한 설정 종료일 YYYY-MM-DD hh:mm:ss |
+| `MealDataCode1` | string |  | 첫번째 끼니코드 |
+| `MealDataCode2` | string |  | 두번째 끼니코드 |
+| `MealDataCode3` | string |  | 세번째 끼니코드 |
+| `MealDataCode4` | string |  | 네번째 끼니코드 |
+| `MealDataCode5` | string |  | 다섯번째 끼니코드 |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
 ---
 
 ## DELETE `/v1/meals/{mealcode}`
@@ -1781,6 +3311,18 @@
 |------|------|--------|
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
 
 ---
 
@@ -1804,6 +3346,18 @@
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
 
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
 ---
 
 ## POST `/v1/menuGroups`
@@ -1825,6 +3379,23 @@
 | `200` | successful operation | `ApiResponse` |
 | `405` | Invalid input |  |
 
+**스키마 `MenuGroup`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `MenuGroupID` | integer |  | 메뉴 그룹 아이디 |
+| `UserID` | integer |  | 메뉴 그룹 사용 관리자 ID |
+| `Name` | string |  | 메뉴 그룹 Name |
+| `PosX` | integer |  | 메뉴 그룹 X좌표 |
+| `PosY` | integer |  | 메뉴 그룹 Y좌표 |
+
+**스키마 `ApiResponse`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `resultCode` | integer |  |  |
+| `message` | string |  |  |
+
 ---
 
 ## PUT `/v1/menuGroups`
@@ -1845,6 +3416,29 @@
 |------|------|--------|
 | `200` | successful operation | `ApiResponse` |
 | `405` | Invalid input |  |
+
+**스키마 `MenuGroupsInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `MenuGroup` | array<MenuGroup> |  | 메뉴그룹 목록 |
+
+**스키마 `MenuGroup`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `MenuGroupID` | integer |  | 메뉴 그룹 아이디 |
+| `UserID` | integer |  | 메뉴 그룹 사용 관리자 ID |
+| `Name` | string |  | 메뉴 그룹 Name |
+| `PosX` | integer |  | 메뉴 그룹 X좌표 |
+| `PosY` | integer |  | 메뉴 그룹 Y좌표 |
+
+**스키마 `ApiResponse`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `resultCode` | integer |  |  |
+| `message` | string |  |  |
 
 ---
 
@@ -1868,6 +3462,29 @@
 | `200` | successful operation | `ApiResponse` |
 | `405` | Invalid input |  |
 
+**스키마 `MenuGroupsInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `MenuGroup` | array<MenuGroup> |  | 메뉴그룹 목록 |
+
+**스키마 `MenuGroup`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `MenuGroupID` | integer |  | 메뉴 그룹 아이디 |
+| `UserID` | integer |  | 메뉴 그룹 사용 관리자 ID |
+| `Name` | string |  | 메뉴 그룹 Name |
+| `PosX` | integer |  | 메뉴 그룹 X좌표 |
+| `PosY` | integer |  | 메뉴 그룹 Y좌표 |
+
+**스키마 `ApiResponse`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `resultCode` | integer |  |  |
+| `message` | string |  |  |
+
 ---
 
 ## DELETE `/v1/menuGroups/{id}`
@@ -1887,6 +3504,13 @@
 |------|------|--------|
 | `200` | successful operation | `ApiResponse` |
 | `405` | Invalid input |  |
+
+**스키마 `ApiResponse`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `resultCode` | integer |  |  |
+| `message` | string |  |  |
 
 ---
 
@@ -1909,6 +3533,24 @@
 | `200` | successful operation | `ApiResponse` |
 | `405` | Invalid input |  |
 
+**스키마 `MenuUser`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `MenuID` | integer |  | 메뉴 아이디 |
+| `UserID` | integer |  | 사용자  사용자 ID |
+| `GroupID` | integer |  | 메뉴 그룹 ID |
+| `PosX` | integer |  | 메뉴 그룹 X좌표 |
+| `PosY` | integer |  | 메뉴 그룹 Y좌표 |
+| `AutoRun` | integer |  | 자동 실행 설정 |
+
+**스키마 `ApiResponse`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `resultCode` | integer |  |  |
+| `message` | string |  |  |
+
 ---
 
 ## PUT `/v1/menuUsers`
@@ -1929,6 +3571,30 @@
 |------|------|--------|
 | `200` | successful operation | `ApiResponse` |
 | `405` | Invalid input |  |
+
+**스키마 `MenuUsersInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `MenuUser` | array<MenuUser> |  | 사용자 메뉴 목록 |
+
+**스키마 `MenuUser`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `MenuID` | integer |  | 메뉴 아이디 |
+| `UserID` | integer |  | 사용자  사용자 ID |
+| `GroupID` | integer |  | 메뉴 그룹 ID |
+| `PosX` | integer |  | 메뉴 그룹 X좌표 |
+| `PosY` | integer |  | 메뉴 그룹 Y좌표 |
+| `AutoRun` | integer |  | 자동 실행 설정 |
+
+**스키마 `ApiResponse`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `resultCode` | integer |  |  |
+| `message` | string |  |  |
 
 ---
 
@@ -1952,6 +3618,30 @@
 | `200` | successful operation | `ApiResponse` |
 | `405` | Invalid input |  |
 
+**스키마 `MenuUsersInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `MenuUser` | array<MenuUser> |  | 사용자 메뉴 목록 |
+
+**스키마 `MenuUser`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `MenuID` | integer |  | 메뉴 아이디 |
+| `UserID` | integer |  | 사용자  사용자 ID |
+| `GroupID` | integer |  | 메뉴 그룹 ID |
+| `PosX` | integer |  | 메뉴 그룹 X좌표 |
+| `PosY` | integer |  | 메뉴 그룹 Y좌표 |
+| `AutoRun` | integer |  | 자동 실행 설정 |
+
+**스키마 `ApiResponse`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `resultCode` | integer |  |  |
+| `message` | string |  |  |
+
 ---
 
 ## DELETE `/v1/menuUsers/{id}`
@@ -1972,6 +3662,13 @@
 | `200` | successful operation | `ApiResponse` |
 | `405` | Invalid input |  |
 
+**스키마 `ApiResponse`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `resultCode` | integer |  |  |
+| `message` | string |  |  |
+
 ---
 
 ## GET `/v1/menus`
@@ -1987,6 +3684,49 @@
 | `200` | successful operation | `MenusInfo` |
 | `405` | Invalid input |  |
 
+**스키마 `MenusInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `MenuList` | array<MenuInfo> |  | 전체 메뉴 목록 |
+| `MenuUser` | array<MenuUser> |  | 로그인 사용자 메뉴 목록 |
+| `MenuGroup` | array<MenuGroup> |  | 로그인 사용자 메뉴그룹 목록 |
+
+**스키마 `MenuInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `MenuID` | integer |  | 메뉴아이디 |
+| `ParentID` | integer |  | 상위메뉴 아이디 |
+| `Name` | string |  |  |
+| `PosX` | integer |  | icon X좌표 |
+| `PosY` | integer |  | icon Y좌표 |
+| `Src` | string |  |  |
+| `Image` | string |  |  |
+| `LicenseCode` | integer |  | LicenseCode |
+| `description` | string |  | 메뉴 설졍 |
+
+**스키마 `MenuUser`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `MenuID` | integer |  | 메뉴 아이디 |
+| `UserID` | integer |  | 사용자  사용자 ID |
+| `GroupID` | integer |  | 메뉴 그룹 ID |
+| `PosX` | integer |  | 메뉴 그룹 X좌표 |
+| `PosY` | integer |  | 메뉴 그룹 Y좌표 |
+| `AutoRun` | integer |  | 자동 실행 설정 |
+
+**스키마 `MenuGroup`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `MenuGroupID` | integer |  | 메뉴 그룹 아이디 |
+| `UserID` | integer |  | 메뉴 그룹 사용 관리자 ID |
+| `Name` | string |  | 메뉴 그룹 Name |
+| `PosX` | integer |  | 메뉴 그룹 X좌표 |
+| `PosY` | integer |  | 메뉴 그룹 Y좌표 |
+
 ---
 
 ## GET `/v1/messages`
@@ -2001,6 +3741,26 @@
 |------|------|--------|
 | `200` | successful operation | `UserMessageListResult` |
 | `405` | Invalid input |  |
+
+**스키마 `UserMessageListResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+| `UserMessageList` | array<MessageInfo> |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
+**스키마 `MessageInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `MessageID` | integer |  | 메시지 ID |
+| `Message` | string |  | 사용자 메시지 |
 
 ---
 
@@ -2022,6 +3782,26 @@
 | `200` | successful operation | `UserMessageResult` |
 | `405` | Invalid input |  |
 
+**스키마 `MessageInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `MessageID` | integer |  | 메시지 ID |
+| `Message` | string |  | 사용자 메시지 |
+
+**스키마 `UserMessageResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+| `UserMessage` | array<MessageInfo> |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
 ---
 
 ## GET `/v1/messages/{id}`
@@ -2041,6 +3821,26 @@
 |------|------|--------|
 | `200` | successful operation | `UserMessageResult` |
 | `405` | Invalid input |  |
+
+**스키마 `UserMessageResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+| `UserMessage` | array<MessageInfo> |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
+**스키마 `MessageInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `MessageID` | integer |  | 메시지 ID |
+| `Message` | string |  | 사용자 메시지 |
 
 ---
 
@@ -2063,6 +3863,25 @@
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
 
+**스키마 `MessageInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `MessageID` | integer |  | 메시지 ID |
+| `Message` | string |  | 사용자 메시지 |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
 ---
 
 ## DELETE `/v1/messages/{id}`
@@ -2083,6 +3902,18 @@
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
 
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
 ---
 
 ## GET `/v1/notices`
@@ -2098,6 +3929,31 @@
 |------|------|--------|
 | `200` | successful operation/ | `NoticeListResult` |
 | `405` | Invalid input |  |
+
+**스키마 `NoticeListResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+| `NoticeList` | array<NoticeInfo> |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
+**스키마 `NoticeInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `NoticeID` | integer |  | 공지사항 ID |
+| `Type` | integer |  | Type |
+| `StartDate` | string |  | 시작일자 |
+| `EndDate` | string |  | 종료일자 |
+| `StartTime` | string |  | 시작시간 |
+| `EndTime` | string |  | 종료시간 |
+| `Message` | string |  | 공지사항 내용 |
 
 ---
 
@@ -2119,6 +3975,31 @@
 |------|------|--------|
 | `200` | successful operation | `NoticeResult` |
 | `405` | Invalid input |  |
+
+**스키마 `NoticeInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `NoticeID` | integer |  | 공지사항 ID |
+| `Type` | integer |  | Type |
+| `StartDate` | string |  | 시작일자 |
+| `EndDate` | string |  | 종료일자 |
+| `StartTime` | string |  | 시작시간 |
+| `EndTime` | string |  | 종료시간 |
+| `Message` | string |  | 공지사항 내용 |
+
+**스키마 `NoticeResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+| `NoticeInfo` | NoticeInfo |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
 
 ---
 
@@ -2142,6 +4023,31 @@
 | `200` | successful operation | `NoticeResult` |
 | `405` | Invalid input |  |
 
+**스키마 `NoticeInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `NoticeID` | integer |  | 공지사항 ID |
+| `Type` | integer |  | Type |
+| `StartDate` | string |  | 시작일자 |
+| `EndDate` | string |  | 종료일자 |
+| `StartTime` | string |  | 시작시간 |
+| `EndTime` | string |  | 종료시간 |
+| `Message` | string |  | 공지사항 내용 |
+
+**스키마 `NoticeResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+| `NoticeInfo` | NoticeInfo |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
 ---
 
 ## GET `/v1/options/auth`
@@ -2156,6 +4062,18 @@
 |------|------|--------|
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
 
 ---
 
@@ -2177,6 +4095,42 @@
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
 
+**스키마 `OptionAuthList`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `AuthList` | OptionAuthInfo |  |  |
+
+**스키마 `OptionAuthInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `FpOrder` | integer |  | User finger sort order |
+| `FpRegMax` | integer |  | Max fingerprint enrollment |
+| `FpLfdLevel` | integer |  | Counterfeit fingerprint security level (0~9, 0=Do not use counterfeit fingerprint) |
+| `FpVerifyLevel` | integer |  | 1:1 auth level(1~9) |
+| `FpIdentifyLevel` | integer |  | 1:N auth level(1~9) |
+| `FpSimilarLevel` | integer |  | Similar fingerprint security level (0~9, 0=Do not use similar fingerprint) |
+| `FpDownloadCount` | integer |  | Fp Download Count |
+| `RfRegMax` | integer |  | Maximum number of card registrations(1~5) |
+| `SimilarFpCheck` | integer |  | Similar Fp Check |
+| `SimilarFaCheck` | integer |  | Similar Face Check |
+| `UserAccessControl` | integer |  | User Access Control |
+| `AuthLogImagePopup` | integer |  | AuthLog Image Popup(0=not used, 1=used) |
+| `FpSearchUser` | integer |  | Whether to use 1:N authentication(0=not used, 1=used) |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
 ---
 
 ## GET `/v1/options/dashboard`
@@ -2191,6 +4145,18 @@
 |------|------|--------|
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
 
 ---
 
@@ -2212,6 +4178,33 @@
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
 
+**스키마 `OptionDashboardInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `OptionDashboard` | array<OptionDashboard> |  |  |
+
+**스키마 `OptionDashboard`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `UserID` | integer |  | User ID |
+| `WedgetID` | integer |  | Wedget ID |
+| `Layout` | string |  | Layout |
+| `Index` | integer |  | Index |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
 ---
 
 ## GET `/v1/options/ddns`
@@ -2226,6 +4219,18 @@
 |------|------|--------|
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
 
 ---
 
@@ -2247,6 +4252,33 @@
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
 
+**스키마 `OptionDDNSList`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `DDNSList` | OptionDDNSInfo |  |  |
+
+**스키마 `OptionDDNSInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Used` | integer |  | DDNS Used  (0:not Used, 1:Used) |
+| `HostName` | string |  | Host Name |
+| `ContractNo` | string |  | Contract No |
+| `UpdateTerm` | integer |  | Update cycle 0: 10min,   1: 20min,   2: 1hour,   3: 2hour,   4: 5hour,   5: 12hour |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
 ---
 
 ## GET `/v1/options/elevator`
@@ -2261,6 +4293,18 @@
 |------|------|--------|
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
 
 ---
 
@@ -2282,6 +4326,31 @@
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
 
+**스키마 `OptionElevatorInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `OptionElevator` | OptionElevator |  |  |
+
+**스키마 `OptionElevator`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `TotalFloorCount` | integer |  | Sets the total number of floors in the building. (ex: (Ground) 10 floors + (Underground) 4 floors = Total number of floors: 14.) |
+| `FirstFloor` | integer |  | Set which floor as the 1st floor in the total number of floors.(Ex: If you set ‘5’ as the 1st starting point in the total 14 floors, it can set as 10 floors (Ground) and 4 floors. (Underground)) |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
 ---
 
 ## GET `/v1/options/log`
@@ -2296,6 +4365,18 @@
 |------|------|--------|
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
 
 ---
 
@@ -2317,6 +4398,47 @@
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
 
+**스키마 `OptionLogList`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `LogList` | OptionLogInfo |  |  |
+
+**스키마 `OptionLogInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `SaveAuthlogPeriod` | integer |  | Authentication log storage period (1~365(day)) |
+| `SaveSyslogPeriod` | integer |  | System log storage period (1~365(day)) |
+| `SaveTerminallogPeriod` | integer |  | Terminal log storage period (1~365(day)) |
+| `SaveOnlySuccess` | integer |  | Save success log only (0=not used, 1=used) |
+| `CheckAuthlogDuplicate` | integer |  | Confirmation of duplicate authentication log (0=not used, 1=used) |
+| `SyslogFilterOption` | boolean |  | Whether to save the system log |
+| `SyslogFilterLogin` | boolean |  | Whether to save the client login log |
+| `SyslogFilterUser` | boolean |  | Whether to save the user log |
+| `SyslogFilterTerminal` | boolean |  | Whether to save the terminal log |
+| `SyslogFilterGroup` | boolean |  | Whether to save the group log |
+| `SyslogFilterPrivilege` | boolean |  | Whether to save the permission log |
+| `SyslogFilterTna` | boolean |  | Whether to save T&A log |
+| `SyslogFilterMeal` | boolean |  | Whether to store drinking water logs |
+| `TlogFilterOption` | boolean |  | System option log saving |
+| `TlogFilterUser` | boolean |  | Whether to save the user log |
+| `TlogFilterNetwork` | boolean |  | Whether to save the network log |
+| `TlogFilterDoorControl` | boolean |  | Whether to save log related to door |
+| `TlogFilterWarningError` | boolean |  | Whether to save warning related logs |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
 ---
 
 ## GET `/v1/options/mail`
@@ -2331,6 +4453,18 @@
 |------|------|--------|
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
 
 ---
 
@@ -2352,6 +4486,80 @@
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
 
+**스키마 `OptionMailList`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `MailList` | OptionMailInfo |  |  |
+
+**스키마 `OptionMailInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Flag` | integer |  | mail userd 0:Not Used, 1:Used |
+| `Security` | integer |  | Security 0:Not Used, 1:TLS, 2:SSL |
+| `Host` | string |  | Host (mail Server) |
+| `Port` | integer |  | Port |
+| `User` | string |  | User ID |
+| `UserPassword` | string |  | User Password |
+| `From` | string |  | From |
+| `Sender` | string |  | Sender |
+| `To` | string |  | To (Multiple selection, classification example: unioncomm@co.kr,unioncomm@co.kr) |
+| `Cc` | string |  | Cc |
+| `Bcc` | string |  | Bcc |
+| `Disconnect` | integer |  | Disconnect |
+| `CoverOpen` | integer |  | Cover Open |
+| `DoorPick` | integer |  | Door Pick |
+| `MatchingFail` | integer |  | Matching Fail |
+| `NotClose` | integer |  | Not Close |
+| `NoPermission` | integer |  | No Permission |
+| `LockError` | integer |  | Lock Error |
+| `Duress` | integer |  | Duress |
+| `Emergency` | integer |  | Emergency |
+| `ExtSignal` | integer |  | Ext Signal |
+| `AttachPicture` | integer |  | Attach Picture |
+| `Blacklist` | integer |  | Blacklist Authentication attempt |
+| `Medical` | integer |  | MCP-040 Medical Alarms |
+| `FireAlarms` | integer |  | MCP-040 Fire Alarms |
+| `PanicAlarms` | integer |  | MCP-040 Panics Alarms |
+| `BurglarAlarms` | integer |  | MCP-040 Burglar Alarms |
+| `GeneralAlarms` | integer |  | MCP-040 General Alarms |
+| `HourNonBurglary` | integer |  | 24 HOUR (AUXILIARY) Alarm-24 Hr. Non-Burg-# |
+| `SystemPeripheralTroubles` | integer |  | System Peripheral |
+| `SounderTroubles` | integer |  | Sounder/Relay Troubles |
+| `SystemTroubles` | integer |  | System Trouble |
+| `FireSupervisory` | integer |  | Fire Supervisory |
+| `CommDisables` | integer |  | Communication disable |
+| `SystemPeripheralDisables` | integer |  | System peripheral disable |
+| `SounderDisables` | integer |  | Sounder/Relay Disable |
+| `SystemDisables` | integer |  | System disable |
+| `AccessControl` | integer |  | Access Control |
+| `RemoteAccess` | integer |  | Remote Access |
+| `OpenClose` | integer |  | Open/Close |
+| `Sensor` | integer |  | Sensor Trouble - Global |
+| `ProtectionLoop` | integer |  | Protection Loop |
+| `CommTroubles` | integer |  | Communication trobles |
+| `Miscellaneous` | integer |  | Miscellaneous |
+| `SpecialCodes` | integer |  | Special codes |
+| `PersonnelMonitoring` | integer |  | Personnel monitoring |
+| `Scheduling` | integer |  | Scheduling |
+| `EventLog` | integer |  | Event log |
+| `TestMisc` | integer |  | Manual Test |
+| `Bypasses` | integer |  | Zone/Sensor Bypass |
+| `Expand` | integer |  | Acu Expand |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
 ---
 
 ## GET `/v1/options/system`
@@ -2366,6 +4574,18 @@
 |------|------|--------|
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
 
 ---
 
@@ -2387,6 +4607,39 @@
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
 
+**스키마 `OptionSystemList`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `SystemList` | OptionSystemInfo |  |  |
+
+**스키마 `OptionSystemInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `DBVersion` | integer |  | DB version |
+| `BrandType` | integer |  | Brand Type |
+| `APBLevel` | integer |  | AntiPassback level |
+| `MasterPW` | string |  | Master Password |
+| `UserIDLength` | integer |  | User ID Length |
+| `GuestIDRangeMin` | integer |  | Guest ID Range Min |
+| `GuestIDRangeMax` | integer |  | Guest ID Range Max |
+| `UserInfoEncrypt` | integer |  | User basic Info Encrypt |
+| `AuthDataEncrypt` | integer |  | User Auth Data Encrypt |
+| `TerminalEncrypt` | integer |  | Using encrypted packets |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
 ---
 
 ## GET `/v1/options/terminal`
@@ -2401,6 +4654,18 @@
 |------|------|--------|
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
 
 ---
 
@@ -2422,6 +4687,42 @@
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
 
+**스키마 `OptionTerminalList`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `TerminalList` | OptionTerminalInfo |  |  |
+
+**스키마 `OptionTerminalInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `AccessDefaultRestrict` | integer |  | Restriction of unspecified access group (0:permit, 1:restrict) |
+| `FireRange` | integer |  | Control range (0: no terminal control, 1: group terminal control, 2: all terminal control) |
+| `FireOpen` | integer |  | Door opening (0: Not set, 1: Set) |
+| `FireAlarm` | integer |  | Alarm occurrence (0: Not set, 1: Set) |
+| `FireFinish` | integer |  | Automatic shutdown of control at the end of the situation (0: not set, 1: set) |
+| `PanicRange` | integer |  | Control range (0: no terminal control, 1: group terminal control, 2: all terminal control) |
+| `PanicOpen` | integer |  | Door opening (0: Not set, 1: Set) |
+| `PanicAlarm` | integer |  | Alarm occurrence (0: Not set, 1: Set) |
+| `PanicFinish` | integer |  | Automatic shutdown of control at the end of the situation (0: not set, 1: set) |
+| `CrisisRange` | integer |  | Control range (0: no terminal control, 1: group terminal control, 2: all terminal control) |
+| `CrisisOpen` | integer |  | Door opening (0: Not set, 1: Set) |
+| `CrisisAlarm` | integer |  | Alarm occurrence (0: Not set, 1: Set) |
+| `CrisisFinish` | integer |  | Automatic shutdown of control at the end of the situation (0: not set, 1: set) |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
 ---
 
 ## GET `/v1/options/tna`
@@ -2436,6 +4737,18 @@
 |------|------|--------|
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
 
 ---
 
@@ -2457,6 +4770,39 @@
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
 
+**스키마 `OptionTNAList`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `TNAList` | OptionTNAInfo |  |  |
+
+**스키마 `OptionTNAInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `AutoProc` | integer |  | Automatic time and attendance processing setting |
+| `AutoProcTime` | integer |  | Auto attendance processing time |
+| `MoneyDigit` | integer |  | Amount Display Decimal Places |
+| `TimeShape` | integer |  | Time display format |
+| `MinuteDigit` | integer |  | Time display decimal places |
+| `SumPeriodType` | integer |  | Sum Period Type (unit) |
+| `SumStartDay` | integer |  | Sum Start (Day) |
+| `LastResultDate` | string |  | Last TNA Result Date |
+| `LastSumDate` | string |  | Last Sum Date |
+| `LastSumWeek` | integer |  | Last Sum Week |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
 ---
 
 ## GET `/v1/options/user`
@@ -2471,6 +4817,18 @@
 |------|------|--------|
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
 
 ---
 
@@ -2492,6 +4850,41 @@
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
 
+**스키마 `OptionUserList`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `UserList` | OptionUserInfo |  |  |
+
+**스키마 `OptionUserInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `TerminalUserSync` | integer |  | Automatic Sync of Device Users (0=not used , 1=used) |
+| `TerminalUserUploadOverwrite` | integer |  | Overwriting when the terminal user uploads (0=not used , 1=used) |
+| `PasswordPeriod` | integer |  | Change User Password cycle (Unit-day, 0=not used) |
+| `AuthFailCount` | integer |  | Continuous Authentication Failure Blocking (Unit-min, 0=not used) |
+| `PwChangeFirst` | integer |  | Password change at first login (0=not used , 1=used) |
+| `PwNotAllowOld` | integer |  | Whether to allow the use of old passwords (0=not used , 1=used) |
+| `PwNotAllowDuplicateChar` | integer |  | Whether to allow the same character sequence when setting the password (0=not used , 1=used) |
+| `PwNotAllowSameID` | integer |  | Whether to allow the same password as ID (0=not used , 1=used) |
+| `PwRequiredUpper` | integer |  | Password contains uppercase letters (0=not used , 1=used) |
+| `PwRequiredLower` | integer |  | Password contains lowercase letters (0=not used , 1=used) |
+| `PwRequiredNum` | integer |  | Password contains numbers (0=not used , 1=used) |
+| `PwRequiredSymbol` | integer |  | Password contains special characters (0=not used , 1=used) |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
 ---
 
 ## GET `/v1/positions`
@@ -2506,6 +4899,19 @@
 |------|------|--------|
 | `200` | successful operation | `PositionsResult` |
 | `405` | Invalid input |  |
+
+**스키마 `PositionsResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `PositionList` | array<PositionInfo> |  |  |
+
+**스키마 `PositionInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `PositionID` | integer |  | 직급 ID |
+| `Name` | string |  | 직급 이름 |
 
 ---
 
@@ -2528,6 +4934,25 @@
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
 
+**스키마 `PositionInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `PositionID` | integer |  | 직급 ID |
+| `Name` | string |  | 직급 이름 |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
 ---
 
 ## GET `/v1/positions/{id}`
@@ -2548,6 +4973,26 @@
 |------|------|--------|
 | `200` | successful operation | `PositionInfoResult` |
 | `405` | Invalid input |  |
+
+**스키마 `PositionInfoResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+| `PositionInfo` | PositionInfo |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
+**스키마 `PositionInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `PositionID` | integer |  | 직급 ID |
+| `Name` | string |  | 직급 이름 |
 
 ---
 
@@ -2571,6 +5016,25 @@
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
 
+**스키마 `PositionInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `PositionID` | integer |  | 직급 ID |
+| `Name` | string |  | 직급 이름 |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
 ---
 
 ## DELETE `/v1/positions/{id}`
@@ -2591,6 +5055,18 @@
 |------|------|--------|
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
 
 ---
 
@@ -2616,6 +5092,147 @@
 | `200` | successful operation | `PrivilegeInfo` |
 | `405` | Invalid input |  |
 
+**스키마 `PrivilegeInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `PrivilegeID` | integer |  | 권한 ID |
+| `Name` | string |  | 권한 이름 |
+| `description` | string |  | 설명 |
+| `Monitoring` | PrivilegeMonitoring |  |  |
+| `Terminal` | PrivilegeTerminal |  |  |
+| `User` | PrivilegeUser |  |  |
+| `Group` | PrivilegeGroup |  |  |
+| `Guest` | PrivilegeGuest |  |  |
+| `Blacklist` | PrivilegeBlacklist |  |  |
+| `AccessControl` | PrivilegeAccessControl |  |  |
+| `Map` | PrivilegeMap |  |  |
+| `TNA` | PrivilegeTNA |  |  |
+| `Log` | PrivilegeLog |  |  |
+| `Meal` | PrivilegeMeal |  |  |
+| `Option` | PrivilegeOption |  |  |
+
+**스키마 `PrivilegeMonitoring`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Permit` | integer |  | 모니터링 권한 허용 |
+| `Client` | integer |  | 클라이언트 모니터링 |
+| `TerminalStatus` | integer |  | 단말기 상태 모니터링 |
+| `Auth` | integer |  | 인증로그 모니터링 |
+| `Event` | integer |  | 이벤트(시스템)로그 모니터링 |
+
+**스키마 `PrivilegeTerminal`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Permit` | integer |  | 단말기 권한 허용 |
+| `Regist` | integer |  | 단말기 등록 |
+| `Update` | integer |  | 단말기 수정 |
+| `Delete` | integer |  | 단말기 삭제 |
+| `FW` | integer |  | 단말기 펌웨어 업데이트 |
+| `Option` | integer |  | 단말기 옵션 수정 |
+| `SetManager` | integer |  | 관리자 설정 |
+| `UserFile` | integer |  | 단말기 사용자 파일 관리 |
+
+**스키마 `PrivilegeUser`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Permit` | integer |  | 사용자 관리 허용 |
+| `Regist` | integer |  | 사용자 등록 |
+| `Update` | integer |  | 사용자 수정 |
+| `Delete` | integer |  | 사용자 삭제 |
+| `TerminalUser` | integer |  | 단말기 사용자 관리 |
+| `RegistAdmin` | integer |  | 관리자 등록 |
+
+**스키마 `PrivilegeGroup`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Permit` | integer |  | 그룹 관리 허용 |
+| `Regist` | integer |  | 그룹 등록 |
+| `Update` | integer |  | 그룹 수정 |
+| `Delete` | integer |  | 그룹 삭제 |
+| `User` | integer |  | 사용자 그룹 변경 |
+
+**스키마 `PrivilegeGuest`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Permit` | integer |  | 방문객 관리 허용 |
+| `Regist` | integer |  | 방문객 등록 |
+| `Update` | integer |  | 방문객 수정 |
+| `Delete` | integer |  | 방문객 삭제 |
+
+**스키마 `PrivilegeBlacklist`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Permit` | integer |  | 블랙 리스트 관리 허용 |
+| `Change` | integer |  | 블랙 리스트 변경 |
+| `Release` | integer |  | 블랙 리스트 초기화 |
+| `Update` | integer |  | 블랙 리스트 수정 |
+| `Delete` | integer |  | 블랙 리스트 삭제 |
+| `Apply` | integer |  | 블랙 리스트 적용 |
+
+**스키마 `PrivilegeAccessControl`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Permit` | integer |  | 출입그룹 관리 허용 |
+| `Set` | integer |  | 출입그룹 설정 |
+
+**스키마 `PrivilegeMap`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Permit` | integer |  | 사이트맵 관리 허용 |
+| `Set` | integer |  | 사이트맵 설정 |
+
+**스키마 `PrivilegeTNA`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Permit` | integer |  | 근태 관리 허용 |
+| `Set` | integer |  | 근태 설정 |
+| `Special` | integer |  | 특별근무 지정 |
+| `Manage` | integer |  | 근태 관리 |
+| `OutState` | integer |  | 근무 현황 조회 |
+| `OutExcRecord` | integer |  | 제외 기록 조회 |
+| `summary` | integer |  | 집계 관리 |
+| `SendResult` | integer |  | 외부 전송 |
+| `DeleteResult` | integer |  | 근태 결과 삭제 |
+
+**스키마 `PrivilegeLog`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Permit` | integer |  | 로그 관리 허용 |
+| `Delete` | integer |  | 로그 삭제 |
+| `BackupRestore` | integer |  | 로그 백업 및 복원 |
+
+**스키마 `PrivilegeMeal`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Permit` | integer |  | 식수 관리 허용 |
+| `DeleteResult` | integer |  | 결과 삭제 |
+| `ViewGroup` | integer |  | 그룹별 조회 |
+| `ViewPersonal` | integer |  | 개인별 조회 |
+| `Set` | integer |  | 식수 설정 |
+
+**스키마 `PrivilegeOption`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Permit` | integer |  | 옵션 관리 허용 |
+| `Local` | integer |  | 클라이언트 관련 옵션 |
+| `Server` | integer |  | 서버 관련 옵션 |
+| `Password` | integer |  | 암호 관리 |
+| `Mail` | integer |  | e-mail 관리 |
+| `TNA` | integer |  | 근태 관리 |
+
 ---
 
 ## POST `/v1/privileges`
@@ -2636,6 +5253,153 @@
 | `200` | successful operation | `Result` |
 | `405` | Invalid input |  |
 
+**스키마 `PrivilegeInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `PrivilegeID` | integer |  | 권한 ID |
+| `Name` | string |  | 권한 이름 |
+| `description` | string |  | 설명 |
+| `Monitoring` | PrivilegeMonitoring |  |  |
+| `Terminal` | PrivilegeTerminal |  |  |
+| `User` | PrivilegeUser |  |  |
+| `Group` | PrivilegeGroup |  |  |
+| `Guest` | PrivilegeGuest |  |  |
+| `Blacklist` | PrivilegeBlacklist |  |  |
+| `AccessControl` | PrivilegeAccessControl |  |  |
+| `Map` | PrivilegeMap |  |  |
+| `TNA` | PrivilegeTNA |  |  |
+| `Log` | PrivilegeLog |  |  |
+| `Meal` | PrivilegeMeal |  |  |
+| `Option` | PrivilegeOption |  |  |
+
+**스키마 `PrivilegeMonitoring`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Permit` | integer |  | 모니터링 권한 허용 |
+| `Client` | integer |  | 클라이언트 모니터링 |
+| `TerminalStatus` | integer |  | 단말기 상태 모니터링 |
+| `Auth` | integer |  | 인증로그 모니터링 |
+| `Event` | integer |  | 이벤트(시스템)로그 모니터링 |
+
+**스키마 `PrivilegeTerminal`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Permit` | integer |  | 단말기 권한 허용 |
+| `Regist` | integer |  | 단말기 등록 |
+| `Update` | integer |  | 단말기 수정 |
+| `Delete` | integer |  | 단말기 삭제 |
+| `FW` | integer |  | 단말기 펌웨어 업데이트 |
+| `Option` | integer |  | 단말기 옵션 수정 |
+| `SetManager` | integer |  | 관리자 설정 |
+| `UserFile` | integer |  | 단말기 사용자 파일 관리 |
+
+**스키마 `PrivilegeUser`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Permit` | integer |  | 사용자 관리 허용 |
+| `Regist` | integer |  | 사용자 등록 |
+| `Update` | integer |  | 사용자 수정 |
+| `Delete` | integer |  | 사용자 삭제 |
+| `TerminalUser` | integer |  | 단말기 사용자 관리 |
+| `RegistAdmin` | integer |  | 관리자 등록 |
+
+**스키마 `PrivilegeGroup`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Permit` | integer |  | 그룹 관리 허용 |
+| `Regist` | integer |  | 그룹 등록 |
+| `Update` | integer |  | 그룹 수정 |
+| `Delete` | integer |  | 그룹 삭제 |
+| `User` | integer |  | 사용자 그룹 변경 |
+
+**스키마 `PrivilegeGuest`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Permit` | integer |  | 방문객 관리 허용 |
+| `Regist` | integer |  | 방문객 등록 |
+| `Update` | integer |  | 방문객 수정 |
+| `Delete` | integer |  | 방문객 삭제 |
+
+**스키마 `PrivilegeBlacklist`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Permit` | integer |  | 블랙 리스트 관리 허용 |
+| `Change` | integer |  | 블랙 리스트 변경 |
+| `Release` | integer |  | 블랙 리스트 초기화 |
+| `Update` | integer |  | 블랙 리스트 수정 |
+| `Delete` | integer |  | 블랙 리스트 삭제 |
+| `Apply` | integer |  | 블랙 리스트 적용 |
+
+**스키마 `PrivilegeAccessControl`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Permit` | integer |  | 출입그룹 관리 허용 |
+| `Set` | integer |  | 출입그룹 설정 |
+
+**스키마 `PrivilegeMap`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Permit` | integer |  | 사이트맵 관리 허용 |
+| `Set` | integer |  | 사이트맵 설정 |
+
+**스키마 `PrivilegeTNA`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Permit` | integer |  | 근태 관리 허용 |
+| `Set` | integer |  | 근태 설정 |
+| `Special` | integer |  | 특별근무 지정 |
+| `Manage` | integer |  | 근태 관리 |
+| `OutState` | integer |  | 근무 현황 조회 |
+| `OutExcRecord` | integer |  | 제외 기록 조회 |
+| `summary` | integer |  | 집계 관리 |
+| `SendResult` | integer |  | 외부 전송 |
+| `DeleteResult` | integer |  | 근태 결과 삭제 |
+
+**스키마 `PrivilegeLog`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Permit` | integer |  | 로그 관리 허용 |
+| `Delete` | integer |  | 로그 삭제 |
+| `BackupRestore` | integer |  | 로그 백업 및 복원 |
+
+**스키마 `PrivilegeMeal`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Permit` | integer |  | 식수 관리 허용 |
+| `DeleteResult` | integer |  | 결과 삭제 |
+| `ViewGroup` | integer |  | 그룹별 조회 |
+| `ViewPersonal` | integer |  | 개인별 조회 |
+| `Set` | integer |  | 식수 설정 |
+
+**스키마 `PrivilegeOption`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Permit` | integer |  | 옵션 관리 허용 |
+| `Local` | integer |  | 클라이언트 관련 옵션 |
+| `Server` | integer |  | 서버 관련 옵션 |
+| `Password` | integer |  | 암호 관리 |
+| `Mail` | integer |  | e-mail 관리 |
+| `TNA` | integer |  | 근태 관리 |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
 ---
 
 ## GET `/v1/privileges/{id}`
@@ -2655,6 +5419,147 @@
 |------|------|--------|
 | `200` | successful operation | `PrivilegeInfo` |
 | `405` | Invalid input |  |
+
+**스키마 `PrivilegeInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `PrivilegeID` | integer |  | 권한 ID |
+| `Name` | string |  | 권한 이름 |
+| `description` | string |  | 설명 |
+| `Monitoring` | PrivilegeMonitoring |  |  |
+| `Terminal` | PrivilegeTerminal |  |  |
+| `User` | PrivilegeUser |  |  |
+| `Group` | PrivilegeGroup |  |  |
+| `Guest` | PrivilegeGuest |  |  |
+| `Blacklist` | PrivilegeBlacklist |  |  |
+| `AccessControl` | PrivilegeAccessControl |  |  |
+| `Map` | PrivilegeMap |  |  |
+| `TNA` | PrivilegeTNA |  |  |
+| `Log` | PrivilegeLog |  |  |
+| `Meal` | PrivilegeMeal |  |  |
+| `Option` | PrivilegeOption |  |  |
+
+**스키마 `PrivilegeMonitoring`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Permit` | integer |  | 모니터링 권한 허용 |
+| `Client` | integer |  | 클라이언트 모니터링 |
+| `TerminalStatus` | integer |  | 단말기 상태 모니터링 |
+| `Auth` | integer |  | 인증로그 모니터링 |
+| `Event` | integer |  | 이벤트(시스템)로그 모니터링 |
+
+**스키마 `PrivilegeTerminal`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Permit` | integer |  | 단말기 권한 허용 |
+| `Regist` | integer |  | 단말기 등록 |
+| `Update` | integer |  | 단말기 수정 |
+| `Delete` | integer |  | 단말기 삭제 |
+| `FW` | integer |  | 단말기 펌웨어 업데이트 |
+| `Option` | integer |  | 단말기 옵션 수정 |
+| `SetManager` | integer |  | 관리자 설정 |
+| `UserFile` | integer |  | 단말기 사용자 파일 관리 |
+
+**스키마 `PrivilegeUser`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Permit` | integer |  | 사용자 관리 허용 |
+| `Regist` | integer |  | 사용자 등록 |
+| `Update` | integer |  | 사용자 수정 |
+| `Delete` | integer |  | 사용자 삭제 |
+| `TerminalUser` | integer |  | 단말기 사용자 관리 |
+| `RegistAdmin` | integer |  | 관리자 등록 |
+
+**스키마 `PrivilegeGroup`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Permit` | integer |  | 그룹 관리 허용 |
+| `Regist` | integer |  | 그룹 등록 |
+| `Update` | integer |  | 그룹 수정 |
+| `Delete` | integer |  | 그룹 삭제 |
+| `User` | integer |  | 사용자 그룹 변경 |
+
+**스키마 `PrivilegeGuest`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Permit` | integer |  | 방문객 관리 허용 |
+| `Regist` | integer |  | 방문객 등록 |
+| `Update` | integer |  | 방문객 수정 |
+| `Delete` | integer |  | 방문객 삭제 |
+
+**스키마 `PrivilegeBlacklist`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Permit` | integer |  | 블랙 리스트 관리 허용 |
+| `Change` | integer |  | 블랙 리스트 변경 |
+| `Release` | integer |  | 블랙 리스트 초기화 |
+| `Update` | integer |  | 블랙 리스트 수정 |
+| `Delete` | integer |  | 블랙 리스트 삭제 |
+| `Apply` | integer |  | 블랙 리스트 적용 |
+
+**스키마 `PrivilegeAccessControl`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Permit` | integer |  | 출입그룹 관리 허용 |
+| `Set` | integer |  | 출입그룹 설정 |
+
+**스키마 `PrivilegeMap`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Permit` | integer |  | 사이트맵 관리 허용 |
+| `Set` | integer |  | 사이트맵 설정 |
+
+**스키마 `PrivilegeTNA`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Permit` | integer |  | 근태 관리 허용 |
+| `Set` | integer |  | 근태 설정 |
+| `Special` | integer |  | 특별근무 지정 |
+| `Manage` | integer |  | 근태 관리 |
+| `OutState` | integer |  | 근무 현황 조회 |
+| `OutExcRecord` | integer |  | 제외 기록 조회 |
+| `summary` | integer |  | 집계 관리 |
+| `SendResult` | integer |  | 외부 전송 |
+| `DeleteResult` | integer |  | 근태 결과 삭제 |
+
+**스키마 `PrivilegeLog`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Permit` | integer |  | 로그 관리 허용 |
+| `Delete` | integer |  | 로그 삭제 |
+| `BackupRestore` | integer |  | 로그 백업 및 복원 |
+
+**스키마 `PrivilegeMeal`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Permit` | integer |  | 식수 관리 허용 |
+| `DeleteResult` | integer |  | 결과 삭제 |
+| `ViewGroup` | integer |  | 그룹별 조회 |
+| `ViewPersonal` | integer |  | 개인별 조회 |
+| `Set` | integer |  | 식수 설정 |
+
+**스키마 `PrivilegeOption`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Permit` | integer |  | 옵션 관리 허용 |
+| `Local` | integer |  | 클라이언트 관련 옵션 |
+| `Server` | integer |  | 서버 관련 옵션 |
+| `Password` | integer |  | 암호 관리 |
+| `Mail` | integer |  | e-mail 관리 |
+| `TNA` | integer |  | 근태 관리 |
 
 ---
 
@@ -2677,6 +5582,153 @@
 | `200` | successful operation | `Result` |
 | `405` | Invalid input |  |
 
+**스키마 `PrivilegeInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `PrivilegeID` | integer |  | 권한 ID |
+| `Name` | string |  | 권한 이름 |
+| `description` | string |  | 설명 |
+| `Monitoring` | PrivilegeMonitoring |  |  |
+| `Terminal` | PrivilegeTerminal |  |  |
+| `User` | PrivilegeUser |  |  |
+| `Group` | PrivilegeGroup |  |  |
+| `Guest` | PrivilegeGuest |  |  |
+| `Blacklist` | PrivilegeBlacklist |  |  |
+| `AccessControl` | PrivilegeAccessControl |  |  |
+| `Map` | PrivilegeMap |  |  |
+| `TNA` | PrivilegeTNA |  |  |
+| `Log` | PrivilegeLog |  |  |
+| `Meal` | PrivilegeMeal |  |  |
+| `Option` | PrivilegeOption |  |  |
+
+**스키마 `PrivilegeMonitoring`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Permit` | integer |  | 모니터링 권한 허용 |
+| `Client` | integer |  | 클라이언트 모니터링 |
+| `TerminalStatus` | integer |  | 단말기 상태 모니터링 |
+| `Auth` | integer |  | 인증로그 모니터링 |
+| `Event` | integer |  | 이벤트(시스템)로그 모니터링 |
+
+**스키마 `PrivilegeTerminal`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Permit` | integer |  | 단말기 권한 허용 |
+| `Regist` | integer |  | 단말기 등록 |
+| `Update` | integer |  | 단말기 수정 |
+| `Delete` | integer |  | 단말기 삭제 |
+| `FW` | integer |  | 단말기 펌웨어 업데이트 |
+| `Option` | integer |  | 단말기 옵션 수정 |
+| `SetManager` | integer |  | 관리자 설정 |
+| `UserFile` | integer |  | 단말기 사용자 파일 관리 |
+
+**스키마 `PrivilegeUser`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Permit` | integer |  | 사용자 관리 허용 |
+| `Regist` | integer |  | 사용자 등록 |
+| `Update` | integer |  | 사용자 수정 |
+| `Delete` | integer |  | 사용자 삭제 |
+| `TerminalUser` | integer |  | 단말기 사용자 관리 |
+| `RegistAdmin` | integer |  | 관리자 등록 |
+
+**스키마 `PrivilegeGroup`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Permit` | integer |  | 그룹 관리 허용 |
+| `Regist` | integer |  | 그룹 등록 |
+| `Update` | integer |  | 그룹 수정 |
+| `Delete` | integer |  | 그룹 삭제 |
+| `User` | integer |  | 사용자 그룹 변경 |
+
+**스키마 `PrivilegeGuest`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Permit` | integer |  | 방문객 관리 허용 |
+| `Regist` | integer |  | 방문객 등록 |
+| `Update` | integer |  | 방문객 수정 |
+| `Delete` | integer |  | 방문객 삭제 |
+
+**스키마 `PrivilegeBlacklist`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Permit` | integer |  | 블랙 리스트 관리 허용 |
+| `Change` | integer |  | 블랙 리스트 변경 |
+| `Release` | integer |  | 블랙 리스트 초기화 |
+| `Update` | integer |  | 블랙 리스트 수정 |
+| `Delete` | integer |  | 블랙 리스트 삭제 |
+| `Apply` | integer |  | 블랙 리스트 적용 |
+
+**스키마 `PrivilegeAccessControl`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Permit` | integer |  | 출입그룹 관리 허용 |
+| `Set` | integer |  | 출입그룹 설정 |
+
+**스키마 `PrivilegeMap`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Permit` | integer |  | 사이트맵 관리 허용 |
+| `Set` | integer |  | 사이트맵 설정 |
+
+**스키마 `PrivilegeTNA`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Permit` | integer |  | 근태 관리 허용 |
+| `Set` | integer |  | 근태 설정 |
+| `Special` | integer |  | 특별근무 지정 |
+| `Manage` | integer |  | 근태 관리 |
+| `OutState` | integer |  | 근무 현황 조회 |
+| `OutExcRecord` | integer |  | 제외 기록 조회 |
+| `summary` | integer |  | 집계 관리 |
+| `SendResult` | integer |  | 외부 전송 |
+| `DeleteResult` | integer |  | 근태 결과 삭제 |
+
+**스키마 `PrivilegeLog`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Permit` | integer |  | 로그 관리 허용 |
+| `Delete` | integer |  | 로그 삭제 |
+| `BackupRestore` | integer |  | 로그 백업 및 복원 |
+
+**스키마 `PrivilegeMeal`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Permit` | integer |  | 식수 관리 허용 |
+| `DeleteResult` | integer |  | 결과 삭제 |
+| `ViewGroup` | integer |  | 그룹별 조회 |
+| `ViewPersonal` | integer |  | 개인별 조회 |
+| `Set` | integer |  | 식수 설정 |
+
+**스키마 `PrivilegeOption`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Permit` | integer |  | 옵션 관리 허용 |
+| `Local` | integer |  | 클라이언트 관련 옵션 |
+| `Server` | integer |  | 서버 관련 옵션 |
+| `Password` | integer |  | 암호 관리 |
+| `Mail` | integer |  | e-mail 관리 |
+| `TNA` | integer |  | 근태 관리 |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
 ---
 
 ## DELETE `/v1/privileges/{id}`
@@ -2697,6 +5749,12 @@
 | `200` | successful operation | `Result` |
 | `405` | Invalid input |  |
 
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
 ---
 
 ## GET `/v1/privileges/{id}/groups`
@@ -2716,6 +5774,21 @@
 |------|------|--------|
 | `200` | successful operation | `TerminalTinyList` |
 | `405` | Invalid input |  |
+
+**스키마 `TerminalTinyList`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `total` | integer |  |  |
+| `terminals` | array<TerminalTinyInfo> |  |  |
+
+**스키마 `TerminalTinyInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ID` | integer |  | 단말기 아이디 |
+| `Name` | string |  | 단말기 이름 |
+| `Type` | integer |  | 단말기 타입 |
 
 ---
 
@@ -2738,6 +5811,17 @@
 | `200` | successful operation | `ApiResponse` |
 | `405` | Invalid input |  |
 
+**스키마 `GroupIDList`** (이 API의 요청/응답 구조)
+
+- **type**: `array`
+
+**스키마 `ApiResponse`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `resultCode` | integer |  |  |
+| `message` | string |  |  |
+
 ---
 
 ## DELETE `/v1/privileges/{id}/groups`
@@ -2759,6 +5843,17 @@
 | `200` | successful operation | `ApiResponse` |
 | `405` | Invalid input |  |
 
+**스키마 `GroupIDList`** (이 API의 요청/응답 구조)
+
+- **type**: `array`
+
+**스키마 `ApiResponse`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `resultCode` | integer |  |  |
+| `message` | string |  |  |
+
 ---
 
 ## GET `/v1/privileges/{id}/terminals`
@@ -2778,6 +5873,21 @@
 |------|------|--------|
 | `200` | successful operation | `TerminalTinyList` |
 | `405` | Invalid input |  |
+
+**스키마 `TerminalTinyList`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `total` | integer |  |  |
+| `terminals` | array<TerminalTinyInfo> |  |  |
+
+**스키마 `TerminalTinyInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ID` | integer |  | 단말기 아이디 |
+| `Name` | string |  | 단말기 이름 |
+| `Type` | integer |  | 단말기 타입 |
 
 ---
 
@@ -2800,6 +5910,17 @@
 | `200` | successful operation | `ApiResponse` |
 | `405` | Invalid input |  |
 
+**스키마 `TerminalIDList`** (이 API의 요청/응답 구조)
+
+- **type**: `array`
+
+**스키마 `ApiResponse`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `resultCode` | integer |  |  |
+| `message` | string |  |  |
+
 ---
 
 ## DELETE `/v1/privileges/{id}/terminals`
@@ -2821,6 +5942,17 @@
 | `200` | successful operation | `ApiResponse` |
 | `405` | Invalid input |  |
 
+**스키마 `TerminalIDList`** (이 API의 요청/응답 구조)
+
+- **type**: `array`
+
+**스키마 `ApiResponse`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `resultCode` | integer |  |  |
+| `message` | string |  |  |
+
 ---
 
 ## GET `/v1/privileges/{id}/users`
@@ -2840,6 +5972,21 @@
 |------|------|--------|
 | `200` | successful operation | `UserTinyList` |
 | `405` | Invalid input |  |
+
+**스키마 `UserTinyList`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `total` | integer |  |  |
+| `users` | array<UserTinyInfo> |  |  |
+
+**스키마 `UserTinyInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ID` | string |  | 사용자 아이디 |
+| `UniqueID` | string |  | 고유값 |
+| `Name` | string |  | 사용자 이름 |
 
 ---
 
@@ -2862,6 +6009,19 @@
 | `200` | successful operation | `ApiResponse` |
 | `405` | Invalid input |  |
 
+**스키마 `UserIDList`** (이 API의 요청/응답 구조)
+
+사용자 ID 목록
+
+- **type**: `array`
+
+**스키마 `ApiResponse`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `resultCode` | integer |  |  |
+| `message` | string |  |  |
+
 ---
 
 ## DELETE `/v1/privileges/{id}/users`
@@ -2882,6 +6042,19 @@
 |------|------|--------|
 | `200` | successful operation | `ApiResponse` |
 | `405` | Invalid input |  |
+
+**스키마 `UserIDList`** (이 API의 요청/응답 구조)
+
+사용자 ID 목록
+
+- **type**: `array`
+
+**스키마 `ApiResponse`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `resultCode` | integer |  |  |
+| `message` | string |  |  |
 
 ---
 
@@ -2905,6 +6078,13 @@
 | `200` | successful operation | `ApiResponse` |
 | `405` | Invalid input |  |
 
+**스키마 `ApiResponse`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `resultCode` | integer |  |  |
+| `message` | string |  |  |
+
 ---
 
 ## POST `/v1/terminalAdmins`
@@ -2924,6 +6104,20 @@
 |------|------|--------|
 | `200` | successful operation | `ApiResponse` |
 | `405` | Invalid input |  |
+
+**스키마 `TerminalAdmins`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ID` | array<integer> |  | 단말기 목록 |
+| `Mode` | integer |  |  |
+
+**스키마 `ApiResponse`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `resultCode` | integer |  |  |
+| `message` | string |  |  |
 
 ---
 
@@ -2946,6 +6140,20 @@
 | `200` | successful operation | `ApiResponse` |
 | `405` | Invalid input |  |
 
+**스키마 `TerminalAdmins`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ID` | array<integer> |  | 단말기 목록 |
+| `Mode` | integer |  |  |
+
+**스키마 `ApiResponse`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `resultCode` | integer |  |  |
+| `message` | string |  |  |
+
 ---
 
 ## GET `/v1/terminalAdmins/{id}/admin`
@@ -2966,6 +6174,13 @@
 |------|------|--------|
 | `200` | successful operation | `TerminalAdmins` |
 | `405` | Invalid input |  |
+
+**스키마 `TerminalAdmins`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ID` | array<integer> |  | 단말기 목록 |
+| `Mode` | integer |  |  |
 
 ---
 
@@ -2988,6 +6203,13 @@
 | `200` | successful operation | `ApiResponse` |
 | `405` | Invalid input |  |
 
+**스키마 `ApiResponse`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `resultCode` | integer |  |  |
+| `message` | string |  |  |
+
 ---
 
 ## GET `/v1/terminalAdmins/{id}/terminals`
@@ -3008,6 +6230,13 @@
 |------|------|--------|
 | `200` | successful operation | `TerminalAdmins` |
 | `405` | Invalid input |  |
+
+**스키마 `TerminalAdmins`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ID` | array<integer> |  | 단말기 목록 |
+| `Mode` | integer |  |  |
 
 ---
 
@@ -3030,6 +6259,25 @@
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
 
+**스키마 `TerminalAdminSave`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `TerminalID` | array<integer> |  | 관리자를 저장할 터미널 ID 목록 |
+| `Mode` | integer |  | 모드 |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
 ---
 
 ## DELETE `/v1/terminalAdmins/{id}/terminals`
@@ -3051,6 +6299,13 @@
 | `200` | successful operation | `ApiResponse` |
 | `405` | Invalid input |  |
 
+**스키마 `ApiResponse`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `resultCode` | integer |  |  |
+| `message` | string |  |  |
+
 ---
 
 ## GET `/v1/terminalUsers/{id}/count`
@@ -3070,6 +6325,12 @@
 |------|------|--------|
 | `200` | successful operation | `TerminalUserCount` |
 | `405` | Invalid input |  |
+
+**스키마 `TerminalUserCount`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `TotalCount` | integer |  | 단말기 사용자 전체 카운트 |
 
 ---
 
@@ -3092,6 +6353,24 @@
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
 
+**스키마 `UserIDs`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ID` | array<integer> |  |  |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
 ---
 
 ## GET `/v1/terminalUsers/{id}/info`
@@ -3113,6 +6392,19 @@
 |------|------|--------|
 | `200` | successful operation | `TerminalUserInfo` |
 | `405` | Invalid input |  |
+
+**스키마 `TerminalUserInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `UserInfos` | array<UserSimpleInfo> |  | 단말기 사용자 전체 데이터 |
+
+**스키마 `UserSimpleInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ID` | integer |  | 사용자 아이디 |
+| `Name` | string |  | 사용자 이름 |
 
 ---
 
@@ -3138,6 +6430,43 @@
 | `200` | successful operation |  |
 | `405` | Invalid input |  |
 
+**스키마 `TerminalListResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+| `Total` | Total |  |  |
+| `TerminalInfo` | array<TerminalInfo> |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
+**스키마 `Total`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Count` | integer |  |  |
+
+**스키마 `TerminalInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ID` | integer |  | 단말기 아이디 |
+| `Name` | string |  | 단말기 이름 |
+| `GroupID` | integer |  | 그룹 코드 |
+| `State` | integer |  | 단말기 상태 |
+| `Type` | integer |  | 단말기 모델명 |
+| `FuncType` | integer |  | 기능 타입 0:출입통제, 1:근태, 2:식수 |
+| `IPAddress` | string |  | 단말기 아이피 주소 |
+| `MacAddress` | string |  | 단말기 맥주소 |
+| `Version` | string |  | 단말기 펌웨어 버전 |
+| `RemoteDoor` | integer |  | 출입문 원격 제어 범위 0:모두 허용, 1:모두 허용 안함, 2: 일시개방만 허용 |
+| `UTCIndex` | integer |  | 타임존 |
+| `description` | string |  | 기타 사항 |
+
 ---
 
 ## POST `/v1/terminals`
@@ -3157,6 +6486,26 @@
 |------|------|--------|
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
+
+**스키마 `CreateTerminal`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ID` | integer |  | 단말기 아이디 |
+| `Name` | string |  | 단말기 이름 |
+| `description` | string |  | 기타 사항 |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
 
 ---
 
@@ -3178,6 +6527,18 @@
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
 
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
 ---
 
 ## POST `/v1/terminals/notice`
@@ -3198,6 +6559,26 @@
 |------|------|--------|
 | `200` | successful operation | `ApiResponse` |
 | `405` | Invalid input |  |
+
+**스키마 `PublicNotice`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `NoticeID` | integer |  | 공지 번호 |
+| `Type` | integer |  | 0:설정, 1:초기화 |
+| `StartDate` | string |  | 시작일 YYYYMMdd |
+| `EndDate` | string |  | 종료일 YYYYMMdd |
+| `StartTime` | string |  | 시작 시간 HH:mm |
+| `EndTime` | string |  | 종료 시간 HH:mm |
+| `Message` | string |  | 공지 문구 |
+| `TerminalID` | array<integer> |  | 적용할 단말기 아이디 |
+
+**스키마 `ApiResponse`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `resultCode` | integer |  |  |
+| `message` | string |  |  |
 
 ---
 
@@ -3221,6 +6602,57 @@
 | `200` | successful operation | `TerminalInfoResult` |
 | `405` | Invalid input |  |
 
+**스키마 `TerminalInfoResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+| `TerminalInfo` | TerminalInfo |  |  |
+| `TerminalApbAreaInfo` | TerminalApbAreaInfo |  |  |
+| `TerminalImage` | TerminalImage |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
+**스키마 `TerminalInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ID` | integer |  | 단말기 아이디 |
+| `Name` | string |  | 단말기 이름 |
+| `GroupID` | integer |  | 그룹 코드 |
+| `State` | integer |  | 단말기 상태 |
+| `Type` | integer |  | 단말기 모델명 |
+| `FuncType` | integer |  | 기능 타입 0:출입통제, 1:근태, 2:식수 |
+| `IPAddress` | string |  | 단말기 아이피 주소 |
+| `MacAddress` | string |  | 단말기 맥주소 |
+| `Version` | string |  | 단말기 펌웨어 버전 |
+| `RemoteDoor` | integer |  | 출입문 원격 제어 범위 0:모두 허용, 1:모두 허용 안함, 2: 일시개방만 허용 |
+| `UTCIndex` | integer |  | 타임존 |
+| `description` | string |  | 기타 사항 |
+
+**스키마 `TerminalApbAreaInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ID` | integer |  | 단말기 아이디 |
+| `AreaIn` | integer |  | 안티패스백 구역 입구 |
+| `AreaInName` | string |  | 안티패스백 구역입구 명칭 |
+| `AreaOut` | integer |  | 안티패스백 구역출구 |
+| `AreaOutName` | string |  | 안티패스백 구역출구 명칭 |
+| `SoftPassback` | integer |  | 소프트패스백 사용/미사용 |
+
+**스키마 `TerminalImage`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `FileType` | string |  | 파일 확장자 |
+| `FileSize` | integer |  | 파일 사이즈 |
+| `ImageData` | string |  | 파일 데이터 |
+
 ---
 
 ## PUT `/v1/terminals/{id}`
@@ -3242,6 +6674,35 @@
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
 
+**스키마 `TerminalInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ID` | integer |  | 단말기 아이디 |
+| `Name` | string |  | 단말기 이름 |
+| `GroupID` | integer |  | 그룹 코드 |
+| `State` | integer |  | 단말기 상태 |
+| `Type` | integer |  | 단말기 모델명 |
+| `FuncType` | integer |  | 기능 타입 0:출입통제, 1:근태, 2:식수 |
+| `IPAddress` | string |  | 단말기 아이피 주소 |
+| `MacAddress` | string |  | 단말기 맥주소 |
+| `Version` | string |  | 단말기 펌웨어 버전 |
+| `RemoteDoor` | integer |  | 출입문 원격 제어 범위 0:모두 허용, 1:모두 허용 안함, 2: 일시개방만 허용 |
+| `UTCIndex` | integer |  | 타임존 |
+| `description` | string |  | 기타 사항 |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
 ---
 
 ## DELETE `/v1/terminals/{id}`
@@ -3261,6 +6722,18 @@
 |------|------|--------|
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
 
 ---
 
@@ -3283,6 +6756,25 @@
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
 
+**스키마 `TerminalDoorControl`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ID` | integer |  | 단말기 아이디 |
+| `Option` | integer |  | 0:일시개방, 1:계속 문열림, 2:잠금 |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
 ---
 
 ## POST `/v1/terminals/{id}/control/emergency`
@@ -3303,6 +6795,26 @@
 |------|------|--------|
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
+
+**스키마 `TerminalSetEmergency`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `TerminalID` | integer |  | 단말기 아이디 |
+| `Status` | integer |  | 0:설정, 1:종료 |
+| `Type` | integer |  | 0:기본, 1:화재, 2:패닉, 3:응급 |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
 
 ---
 
@@ -3325,6 +6837,26 @@
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
 
+**스키마 `TerminalLockControl`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `TerminalID` | integer |  | 단말기 아이디 |
+| `Status` | integer |  | 0:열림, 1:잠금 |
+| `Type` | integer |  | 0:기본, 1: 단말기 폐쇄 |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
 ---
 
 ## GET `/v1/terminals/{id}/option/alarm`
@@ -3344,6 +6876,39 @@
 |------|------|--------|
 | `200` | successful operation | `TerminalAlarmInfoResult` |
 | `405` | Invalid input |  |
+
+**스키마 `TerminalAlarmInfoResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+| `AlarmOptionList` | array<WebAlarm> |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
+**스키마 `WebAlarm`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Hour` | integer |  | 시 |
+| `Minute` | integer |  | 분 |
+| `Sunday` | integer |  | 일요일 |
+| `Monday` | integer |  | 월요일 |
+| `Tuesday` | integer |  | 화요일 |
+| `Wednesday` | integer |  | 수요일 |
+| `Thursday` | integer |  | 목요일 |
+| `Friday` | integer |  | 금요일 |
+| `Saturday` | integer |  | 토요일 |
+| `Holiday` | integer |  | 공휴일 |
+| `Duration` | integer |  | 지속시간 (최대:  60 초) |
+| `Reserved1` | integer |  | 고정값 |
+| `Reserved2` | integer |  | 고정값 |
+| `Reserved3` | integer |  | 고정값 |
+| `Reserved4` | integer |  | 고정값 |
 
 ---
 
@@ -3366,6 +6931,39 @@
 | `200` | successful operation | `ApiResponse` |
 | `405` | Invalid input |  |
 
+**스키마 `AlarmOptionList`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Alarms` | array<WebAlarm> |  |  |
+
+**스키마 `WebAlarm`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Hour` | integer |  | 시 |
+| `Minute` | integer |  | 분 |
+| `Sunday` | integer |  | 일요일 |
+| `Monday` | integer |  | 월요일 |
+| `Tuesday` | integer |  | 화요일 |
+| `Wednesday` | integer |  | 수요일 |
+| `Thursday` | integer |  | 목요일 |
+| `Friday` | integer |  | 금요일 |
+| `Saturday` | integer |  | 토요일 |
+| `Holiday` | integer |  | 공휴일 |
+| `Duration` | integer |  | 지속시간 (최대:  60 초) |
+| `Reserved1` | integer |  | 고정값 |
+| `Reserved2` | integer |  | 고정값 |
+| `Reserved3` | integer |  | 고정값 |
+| `Reserved4` | integer |  | 고정값 |
+
+**스키마 `ApiResponse`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `resultCode` | integer |  |  |
+| `message` | string |  |  |
+
 ---
 
 ## GET `/v1/terminals/{id}/option/basic`
@@ -3385,6 +6983,24 @@
 |------|------|--------|
 | `200` | successful operation | `TerminalBasicOption` |
 | `405` | Invalid input |  |
+
+**스키마 `TerminalBasicOption`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Bright` | integer |  | 단말기 밝기 |
+| `Contrast` | integer |  | 단말기 대조 |
+| `Gain` | integer |  |  |
+| `UserKey` | integer |  |  |
+| `UserIDLength` | integer |  | 사용자 아이디 길이 |
+| `VerifyLevel` | integer |  | Verify 레벨 |
+| `IdentifyLevel` | integer |  | Indetify 레벨 |
+| `PassbackLevel` | integer |  | 안티패스백 레벨 |
+| `LimitedLevel` | integer |  |  |
+| `MicLevel` | integer |  | 마이크 레벨 |
+| `Volume` | integer |  | 볼륨 |
+| `AutoEnter` | integer |  | 자동 엔터키 사용 |
+| `OperateMode` | integer |  |  |
 
 ---
 
@@ -3407,6 +7023,36 @@
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
 
+**스키마 `TerminalBasicOption`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Bright` | integer |  | 단말기 밝기 |
+| `Contrast` | integer |  | 단말기 대조 |
+| `Gain` | integer |  |  |
+| `UserKey` | integer |  |  |
+| `UserIDLength` | integer |  | 사용자 아이디 길이 |
+| `VerifyLevel` | integer |  | Verify 레벨 |
+| `IdentifyLevel` | integer |  | Indetify 레벨 |
+| `PassbackLevel` | integer |  | 안티패스백 레벨 |
+| `LimitedLevel` | integer |  |  |
+| `MicLevel` | integer |  | 마이크 레벨 |
+| `Volume` | integer |  | 볼륨 |
+| `AutoEnter` | integer |  | 자동 엔터키 사용 |
+| `OperateMode` | integer |  |  |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
 ---
 
 ## GET `/v1/terminals/{id}/option/display`
@@ -3427,6 +7073,26 @@
 | `200` | successful operation | `TerminalSystemOption` |
 | `405` | Invalid input |  |
 
+**스키마 `TerminalSystemOption`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Language` | integer |  |  |
+| `UseVoice` | integer |  |  |
+| `UseBeep` | integer |  |  |
+| `DoorOpenDuration` | integer |  |  |
+| `DoorOpenWarning` | integer |  |  |
+| `EncryptionType` | integer |  |  |
+| `UseLog` | integer |  |  |
+| `UseRF` | integer |  |  |
+| `UseWiegand` | integer |  |  |
+| `UseFunction` | integer |  |  |
+| `TerminalMode` | integer |  |  |
+| `NetworkTimeout` | integer |  |  |
+| `TimezoneCode` | integer |  |  |
+| `UseTimezone` | integer |  |  |
+| `UseServerAuthentication` | integer |  |  |
+
 ---
 
 ## GET `/v1/terminals/{id}/option/entire`
@@ -3446,6 +7112,24 @@
 |------|------|--------|
 | `200` | successful operation | `TerminalBasicOption` |
 | `405` | Invalid input |  |
+
+**스키마 `TerminalBasicOption`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Bright` | integer |  | 단말기 밝기 |
+| `Contrast` | integer |  | 단말기 대조 |
+| `Gain` | integer |  |  |
+| `UserKey` | integer |  |  |
+| `UserIDLength` | integer |  | 사용자 아이디 길이 |
+| `VerifyLevel` | integer |  | Verify 레벨 |
+| `IdentifyLevel` | integer |  | Indetify 레벨 |
+| `PassbackLevel` | integer |  | 안티패스백 레벨 |
+| `LimitedLevel` | integer |  |  |
+| `MicLevel` | integer |  | 마이크 레벨 |
+| `Volume` | integer |  | 볼륨 |
+| `AutoEnter` | integer |  | 자동 엔터키 사용 |
+| `OperateMode` | integer |  |  |
 
 ---
 
@@ -3468,6 +7152,31 @@
 | `200` | successful operation | `ApiResponse` |
 | `405` | Invalid input |  |
 
+**스키마 `TerminalBasicOption`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Bright` | integer |  | 단말기 밝기 |
+| `Contrast` | integer |  | 단말기 대조 |
+| `Gain` | integer |  |  |
+| `UserKey` | integer |  |  |
+| `UserIDLength` | integer |  | 사용자 아이디 길이 |
+| `VerifyLevel` | integer |  | Verify 레벨 |
+| `IdentifyLevel` | integer |  | Indetify 레벨 |
+| `PassbackLevel` | integer |  | 안티패스백 레벨 |
+| `LimitedLevel` | integer |  |  |
+| `MicLevel` | integer |  | 마이크 레벨 |
+| `Volume` | integer |  | 볼륨 |
+| `AutoEnter` | integer |  | 자동 엔터키 사용 |
+| `OperateMode` | integer |  |  |
+
+**스키마 `ApiResponse`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `resultCode` | integer |  |  |
+| `message` | string |  |  |
+
 ---
 
 ## GET `/v1/terminals/{id}/option/holiday`
@@ -3487,6 +7196,20 @@
 |------|------|--------|
 | `200` | successful operation | `TerminalHolidayOption` |
 | `405` | Invalid input |  |
+
+**스키마 `TerminalHolidayOption`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Holidays` | array<HolidayConfig> |  | 단말기 휴일 목록 |
+
+**스키마 `HolidayConfig`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Month` | integer |  | 월 |
+| `Day` | integer |  | 일 |
+| `Type` | integer |  | 휴일 타입 |
 
 ---
 
@@ -3509,6 +7232,32 @@
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
 
+**스키마 `TerminalHolidayOption`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Holidays` | array<HolidayConfig> |  | 단말기 휴일 목록 |
+
+**스키마 `HolidayConfig`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Month` | integer |  | 월 |
+| `Day` | integer |  | 일 |
+| `Type` | integer |  | 휴일 타입 |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
 ---
 
 ## GET `/v1/terminals/{id}/option/holiday/timezone`
@@ -3529,6 +7278,27 @@
 | `200` | successful operation | `TimezoneHolidayToTerminalOptResult` |
 | `405` | Invalid input |  |
 
+**스키마 `TimezoneHolidayToTerminalOptResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+| `HolidayOptionList` | array<HolidayConfig> |  | 단말기 휴일 목록 |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
+**스키마 `HolidayConfig`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Month` | integer |  | 월 |
+| `Day` | integer |  | 일 |
+| `Type` | integer |  | 휴일 타입 |
+
 ---
 
 ## GET `/v1/terminals/{id}/option/lock`
@@ -3548,6 +7318,25 @@
 |------|------|--------|
 | `200` | successful operation In order, 'Sun, Mon, Tue, Wed, Thu, Fri, Sat, Hol1, Hol2, Hol3' | `TerminalLockOptionResult` |
 | `405` | Invalid input |  |
+
+**스키마 `TerminalLockOptionResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+| `LockOptionInfo` | TerminalLockOption |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
+**스키마 `TerminalLockOption`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Schedules` | array<LockConfig> |  | 단말기 락 스케줄 목록 |
 
 ---
 
@@ -3570,6 +7359,32 @@
 | `200` | successful operation | `ApiResponse` |
 | `405` | Invalid input |  |
 
+**스키마 `TerminalLockOption`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Schedules` | array<LockConfig> |  | 단말기 락 스케줄 목록 |
+
+**스키마 `LockConfig`** (이 API의 요청/응답 구조)
+
+열림 시간 3
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Lock1` | TimeHHmmHHmm |  | 잠금 시간 1 |
+| `Lock2` | TimeHHmmHHmm |  | 잠금 시간 2 |
+| `Lock3` | TimeHHmmHHmm |  | 잠금 시간 3 |
+| `Open1` | TimeHHmmHHmm |  | 열림 시간 1 |
+| `Open2` | TimeHHmmHHmm |  | 열림 시간 2 |
+| `Open3` | TimeHHmmHHmm |  |  |
+
+**스키마 `ApiResponse`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `resultCode` | integer |  |  |
+| `message` | string |  |  |
+
 ---
 
 ## GET `/v1/terminals/{id}/option/meal`
@@ -3589,6 +7404,48 @@
 |------|------|--------|
 | `200` | successful operation | `TerminalMealInfoResult` |
 | `405` | Invalid input |  |
+
+**스키마 `TerminalMealInfoResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+| `MealOptValue` | TerminalMealOption |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
+**스키마 `TerminalMealOption`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `BStartHour` | integer |  | 조식 시작시간의 시간값 |
+| `BStartMinute` | integer |  | 조식 시작시간의 분값 |
+| `BEndHour` | integer |  | 조식 종료시간의 시간값 |
+| `BEndMinute` | integer |  | 조식 종료시간의 분값 |
+| `LStartHour` | integer |  | 중식 시작시간의 시간값 |
+| `LStartMinute` | integer |  | 중식 시작시간의 분값 |
+| `LEndHour` | integer |  | 중식 종료시간의 시간값 |
+| `LEndMinute` | integer |  | 중식 종료시간의 분값 |
+| `DStartHour` | integer |  | 중식 종료시간의 시간값 |
+| `DStartMinute` | integer |  | 중식 종료시간의 분값 |
+| `DEndHour` | integer |  | 석식 종료시간의 시간값 |
+| `DEndMinute` | integer |  | 석식 종료시간의 분값 |
+| `LsStartHour` | integer |  | 석식 시작시간의 시간값 |
+| `LsStartMinute` | integer |  | 석식 시작시간의 분값 |
+| `LsEndHour` | integer |  | 석식 종료시간의 시간값 |
+| `LsEndMinute` | integer |  | 석식 종료시간의 분값 |
+| `SStartHour` | integer |  | 석식 시작시간의 시간값 |
+| `SStartMinute` | integer |  | 석식 시작시간의 분값 |
+| `SEndHour` | integer |  | 석식 종료시간의 시간값 |
+| `SEndMinute` | integer |  | 석식 종료시간의 분값 |
+| `MonthLimit` | integer |  | 고정값 (0) |
+| `DayLimit` | integer |  | 고정값 (0) |
+| `Duplicate` | integer |  | 중복인증 허용 flag |
+| `MealName` | string |  | 고정값 (') |
 
 ---
 
@@ -3611,6 +7468,47 @@
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
 
+**스키마 `TerminalMealOption`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `BStartHour` | integer |  | 조식 시작시간의 시간값 |
+| `BStartMinute` | integer |  | 조식 시작시간의 분값 |
+| `BEndHour` | integer |  | 조식 종료시간의 시간값 |
+| `BEndMinute` | integer |  | 조식 종료시간의 분값 |
+| `LStartHour` | integer |  | 중식 시작시간의 시간값 |
+| `LStartMinute` | integer |  | 중식 시작시간의 분값 |
+| `LEndHour` | integer |  | 중식 종료시간의 시간값 |
+| `LEndMinute` | integer |  | 중식 종료시간의 분값 |
+| `DStartHour` | integer |  | 중식 종료시간의 시간값 |
+| `DStartMinute` | integer |  | 중식 종료시간의 분값 |
+| `DEndHour` | integer |  | 석식 종료시간의 시간값 |
+| `DEndMinute` | integer |  | 석식 종료시간의 분값 |
+| `LsStartHour` | integer |  | 석식 시작시간의 시간값 |
+| `LsStartMinute` | integer |  | 석식 시작시간의 분값 |
+| `LsEndHour` | integer |  | 석식 종료시간의 시간값 |
+| `LsEndMinute` | integer |  | 석식 종료시간의 분값 |
+| `SStartHour` | integer |  | 석식 시작시간의 시간값 |
+| `SStartMinute` | integer |  | 석식 시작시간의 분값 |
+| `SEndHour` | integer |  | 석식 종료시간의 시간값 |
+| `SEndMinute` | integer |  | 석식 종료시간의 분값 |
+| `MonthLimit` | integer |  | 고정값 (0) |
+| `DayLimit` | integer |  | 고정값 (0) |
+| `Duplicate` | integer |  | 중복인증 허용 flag |
+| `MealName` | string |  | 고정값 (') |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
 ---
 
 ## GET `/v1/terminals/{id}/option/network`
@@ -3630,6 +7528,17 @@
 |------|------|--------|
 | `200` | successful operation | `TerminalNetworkOption` |
 | `405` | Invalid input |  |
+
+**스키마 `TerminalNetworkOption`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Type` | integer |  | 네트워크 타입 0:TCP, 1:UDP |
+| `IP` | string |  | 아이피 주소 |
+| `Subnet` | string |  | 서브넷 |
+| `Gateway` | string |  | 게이트웨이 |
+| `ServerIP` | string |  | 서버 아이피 주소 |
+| `ServerPort` | integer |  | 서버 포트 |
 
 ---
 
@@ -3652,6 +7561,29 @@
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
 
+**스키마 `TerminalNetworkOption`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Type` | integer |  | 네트워크 타입 0:TCP, 1:UDP |
+| `IP` | string |  | 아이피 주소 |
+| `Subnet` | string |  | 서브넷 |
+| `Gateway` | string |  | 게이트웨이 |
+| `ServerIP` | string |  | 서버 아이피 주소 |
+| `ServerPort` | integer |  | 서버 포트 |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
 ---
 
 ## GET `/v1/terminals/{id}/option/setting`
@@ -3671,6 +7603,26 @@
 |------|------|--------|
 | `200` | successful operation | `TerminalSystemOption` |
 | `405` | Invalid input |  |
+
+**스키마 `TerminalSystemOption`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Language` | integer |  |  |
+| `UseVoice` | integer |  |  |
+| `UseBeep` | integer |  |  |
+| `DoorOpenDuration` | integer |  |  |
+| `DoorOpenWarning` | integer |  |  |
+| `EncryptionType` | integer |  |  |
+| `UseLog` | integer |  |  |
+| `UseRF` | integer |  |  |
+| `UseWiegand` | integer |  |  |
+| `UseFunction` | integer |  |  |
+| `TerminalMode` | integer |  |  |
+| `NetworkTimeout` | integer |  |  |
+| `TimezoneCode` | integer |  |  |
+| `UseTimezone` | integer |  |  |
+| `UseServerAuthentication` | integer |  |  |
 
 ---
 
@@ -3692,6 +7644,26 @@
 | `200` | successful operation | `TerminalSystemOption` |
 | `405` | Invalid input |  |
 
+**스키마 `TerminalSystemOption`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Language` | integer |  |  |
+| `UseVoice` | integer |  |  |
+| `UseBeep` | integer |  |  |
+| `DoorOpenDuration` | integer |  |  |
+| `DoorOpenWarning` | integer |  |  |
+| `EncryptionType` | integer |  |  |
+| `UseLog` | integer |  |  |
+| `UseRF` | integer |  |  |
+| `UseWiegand` | integer |  |  |
+| `UseFunction` | integer |  |  |
+| `TerminalMode` | integer |  |  |
+| `NetworkTimeout` | integer |  |  |
+| `TimezoneCode` | integer |  |  |
+| `UseTimezone` | integer |  |  |
+| `UseServerAuthentication` | integer |  |  |
+
 ---
 
 ## GET `/v1/terminals/{id}/option/voip`
@@ -3711,6 +7683,14 @@
 |------|------|--------|
 | `200` | successful operation | `TerminalVoipOption` |
 | `405` | Invalid input |  |
+
+**스키마 `TerminalVoipOption`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `SvrAddress` | string |  | 서버 주소 |
+| `AccountId` | string |  | 접속 계정(id) |
+| `AccountPwd` | string |  | 접속 패스워드(password) |
 
 ---
 
@@ -3732,6 +7712,24 @@
 |------|------|--------|
 | `200` | successful operation | `MCP_ReaderInfo` |
 | `405` | Invalid input |  |
+
+**스키마 `MCP_ReaderInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `TerminalID` | integer |  | 단말기 ID |
+| `ReaderName0` | string |  | 리더기0 이름 |
+| `ReaderName1` | string |  | 리더기1 이름 |
+| `ReaderName2` | string |  | 리더기2 이름 |
+| `ReaderName3` | string |  | 리더기3 이름 |
+| `ReaderName4` | string |  | 리더기4 이름 |
+| `ReaderName5` | string |  | 리더기5 이름 |
+| `ReaderName6` | string |  | 리더기6 이름 |
+| `ReaderName7` | string |  | 리더기7 이름 |
+| `WiegandName1` | string |  | 위겐드1 이름 |
+| `WiegandName2` | string |  | 위겐드2 이름 |
+| `WiegandName3` | string |  | 위겐드3 이름 |
+| `WiegandName4` | string |  | 위겐드4 이름 |
 
 ---
 
@@ -3755,6 +7753,31 @@
 | `200` | successful operation | `ApiResponse` |
 | `405` | Invalid input |  |
 
+**스키마 `MCP_ReaderInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `TerminalID` | integer |  | 단말기 ID |
+| `ReaderName0` | string |  | 리더기0 이름 |
+| `ReaderName1` | string |  | 리더기1 이름 |
+| `ReaderName2` | string |  | 리더기2 이름 |
+| `ReaderName3` | string |  | 리더기3 이름 |
+| `ReaderName4` | string |  | 리더기4 이름 |
+| `ReaderName5` | string |  | 리더기5 이름 |
+| `ReaderName6` | string |  | 리더기6 이름 |
+| `ReaderName7` | string |  | 리더기7 이름 |
+| `WiegandName1` | string |  | 위겐드1 이름 |
+| `WiegandName2` | string |  | 위겐드2 이름 |
+| `WiegandName3` | string |  | 위겐드3 이름 |
+| `WiegandName4` | string |  | 위겐드4 이름 |
+
+**스키마 `ApiResponse`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `resultCode` | integer |  |  |
+| `message` | string |  |  |
+
 ---
 
 ## PUT `/v1/terminals/{id}/readerNames`
@@ -3777,6 +7800,31 @@
 | `200` | successful operation | `ApiResponse` |
 | `405` | Invalid input |  |
 
+**스키마 `MCP_ReaderInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `TerminalID` | integer |  | 단말기 ID |
+| `ReaderName0` | string |  | 리더기0 이름 |
+| `ReaderName1` | string |  | 리더기1 이름 |
+| `ReaderName2` | string |  | 리더기2 이름 |
+| `ReaderName3` | string |  | 리더기3 이름 |
+| `ReaderName4` | string |  | 리더기4 이름 |
+| `ReaderName5` | string |  | 리더기5 이름 |
+| `ReaderName6` | string |  | 리더기6 이름 |
+| `ReaderName7` | string |  | 리더기7 이름 |
+| `WiegandName1` | string |  | 위겐드1 이름 |
+| `WiegandName2` | string |  | 위겐드2 이름 |
+| `WiegandName3` | string |  | 위겐드3 이름 |
+| `WiegandName4` | string |  | 위겐드4 이름 |
+
+**스키마 `ApiResponse`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `resultCode` | integer |  |  |
+| `message` | string |  |  |
+
 ---
 
 ## GET `/v1/terminals/{id}/scan/card`
@@ -3797,6 +7845,12 @@
 |------|------|--------|
 | `200` | successful operation | `CardInfo` |
 | `405` | Invalid input |  |
+
+**스키마 `CardInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `CardNumber` | string |  | 카드 번호 |
 
 ---
 
@@ -3824,6 +7878,30 @@
 | `200` | successful operation | `GetFaceInfoFromTerminal` |
 | `405` | Invalid input |  |
 
+**스키마 `GetFaceInfoFromTerminal`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+| `FaceInfo` | array<FaceInfo> |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
+**스키마 `FaceInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `UserID` | integer |  | 사용자 ID |
+| `Index` | integer |  | 얼굴등록 개수 (1,2) |
+| `Type` | integer |  | 0: 간편등록(3장), 1: 일반등록(5장) |
+| `SubIndex` | integer |  | 등록된 이미지 순번(1,2,3,4,5) |
+| `TemplateSize` | integer |  | 등록 얼굴 템플릿 데이터 사이즈 |
+| `TemplateData` | integer |  | 등록 얼굴 템플릿 데이터 |
+
 ---
 
 ## GET `/v1/terminals/{id}/scan/facewt`
@@ -3845,6 +7923,27 @@
 |------|------|--------|
 | `200` | successful operation | `GetFaceWtInfoFromTerminal` |
 | `405` | Invalid input |  |
+
+**스키마 `GetFaceWtInfoFromTerminal`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+| `UserFaceWTInfo` | array<FaceWTInfo> |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
+**스키마 `FaceWTInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `TemplateType` | integer |  | 등록 얼굴 워크스루 템플릿 타입 (0: 템플릿타입, 1: 이미지 타입) |
+| `TemplateSize` | integer |  | 등록 얼굴 템플릿 데이터 사이즈 |
+| `TemplateData` | string |  | 등록 얼굴 워크스루 템플릿 데이터 |
 
 ---
 
@@ -3871,6 +7970,31 @@
 | `200` | successful operation | `GetFpImageFromTerminal` |
 | `405` | Invalid input |  |
 
+**스키마 `GetFpImageFromTerminal`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+| `FPInfo` | FPInfo |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
+**스키마 `FPInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `UserID` | string |  | 사용자 ID |
+| `FingerID` | integer |  | 지문위치 ID |
+| `TotalSize` | integer |  | 지문데이터 사이즈 |
+| `Template1` | string |  | 첫번째 지문 템플릿 |
+| `Template2` | string |  | 두번째 지문 템플릿 |
+| `ConvImage1` | string |  | 첫번째 지문 이미지 |
+| `ConvImage2` | string |  | 두번째 지문 이미지 |
+
 ---
 
 ## DELETE `/v1/terminals/{id}/users`
@@ -3890,6 +8014,18 @@
 |------|------|--------|
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
 
 ---
 
@@ -3911,6 +8047,43 @@
 |------|------|--------|
 | `200` | successful operation | `WiegandIn` |
 | `405` | Invalid input |  |
+
+**스키마 `WiegandIn`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `InBasicInfo` | InBasicInfo |  |  |
+| `Parity` | array<Parity> |  |  |
+| `ConvertFormat` | array<ConvertFormat> |  |  |
+
+**스키마 `InBasicInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Code` | integer |  | 위겐드In 구분 코드 |
+| `Name` | string |  | 위겐드In 명칭 |
+| `Bits` | integer |  | Bit Length 와 Custom Size 설정값 (0: unused, 1~128: Custom Size, 129: St. 26bit, 130: St.34bit) |
+| `Port` | integer |  | PortState (0: Active Low, 1: Active High) |
+| `ParityCount` | integer |  | Set Field 활성화된 상태 갯수 |
+| `IntervalTime` | integer |  | IntervalTime 설정값 |
+| `WidthTime` | integer |  | WidthTime 설정값 |
+
+**스키마 `Parity`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Type` | integer |  | 1: "O(Odd Parity)", 2: "E(Even Parity)" |
+| `Position` | integer |  | SetField 위치 |
+| `MaskBits` | string |  | Set Perity 위치 지정 |
+
+**스키마 `ConvertFormat`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Type` | integer |  | DataType 설정 (0: Unused, 1: Binary, 2:Decimal String, 3:Hexa String) |
+| `Digit` | integer |  | Digit Size 설정(4) |
+| `Endian` | integer |  | Endian 설정 (0: (MSBit : MSByte), 1: (LSBit : MSByte), 2: (MSBit : LSByte), 3: (LSBit : LSByte) |
+| `MaskBits` | string |  | Set Field 위치 지정 |
 
 ---
 
@@ -3934,6 +8107,50 @@
 | `200` | successful operation | `ApiResponse` |
 | `405` | Invalid input |  |
 
+**스키마 `WiegandIn`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `InBasicInfo` | InBasicInfo |  |  |
+| `Parity` | array<Parity> |  |  |
+| `ConvertFormat` | array<ConvertFormat> |  |  |
+
+**스키마 `InBasicInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Code` | integer |  | 위겐드In 구분 코드 |
+| `Name` | string |  | 위겐드In 명칭 |
+| `Bits` | integer |  | Bit Length 와 Custom Size 설정값 (0: unused, 1~128: Custom Size, 129: St. 26bit, 130: St.34bit) |
+| `Port` | integer |  | PortState (0: Active Low, 1: Active High) |
+| `ParityCount` | integer |  | Set Field 활성화된 상태 갯수 |
+| `IntervalTime` | integer |  | IntervalTime 설정값 |
+| `WidthTime` | integer |  | WidthTime 설정값 |
+
+**스키마 `Parity`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Type` | integer |  | 1: "O(Odd Parity)", 2: "E(Even Parity)" |
+| `Position` | integer |  | SetField 위치 |
+| `MaskBits` | string |  | Set Perity 위치 지정 |
+
+**스키마 `ConvertFormat`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Type` | integer |  | DataType 설정 (0: Unused, 1: Binary, 2:Decimal String, 3:Hexa String) |
+| `Digit` | integer |  | Digit Size 설정(4) |
+| `Endian` | integer |  | Endian 설정 (0: (MSBit : MSByte), 1: (LSBit : MSByte), 2: (MSBit : LSByte), 3: (LSBit : LSByte) |
+| `MaskBits` | string |  | Set Field 위치 지정 |
+
+**스키마 `ApiResponse`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `resultCode` | integer |  |  |
+| `message` | string |  |  |
+
 ---
 
 ## GET `/v1/terminals/{id}/wiegand/out`
@@ -3954,6 +8171,41 @@
 |------|------|--------|
 | `200` | successful operation | `WiegandOut` |
 | `405` | Invalid input |  |
+
+**스키마 `WiegandOut`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `OutBasicInfo` | OutBasicInfo |  |  |
+| `Parity` | array<Parity> |  |  |
+
+**스키마 `OutBasicInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Code` | integer |  | 위겐드Out 구분 코드 |
+| `Name` | string |  | 위겐드OUt 명칭 |
+| `Bits` | integer |  | Bit Length 와 Custom Size 설정값 (0: unused, 1~128: 기타 커스텀 사이즈, 129: 표준 26bit, 130: 표준 34bit) |
+| `Port` | integer |  | PortState (0: Active Low(기본), 1: Active High) |
+| `ParityCount` | integer |  | Bit 길이에서 커스텀 사이즈 선택 시 범위 지정 (범위: 1 ~ 128bit) |
+| `SendFail` | integer |  | 인증성공 시 외 실패신호까지 전송 할 경우(0:Not Anything, 1:Send Fail Data, 2:Invert Parity 3:Card Serial) |
+| `SendData` | integer |  | 0:사용자 아이디, 1:카드번호 |
+| `PulseInterval` | integer |  | 0 (설정하지 않을 경우 보통 2ms) |
+| `PulseWidth` | integer |  | 0 (설정하지 않을 경우 보통 50μs) |
+| `SiteCode` | integer |  | 사용자 별도 지정이 필요 할 경우 설정 (단말기 설정 범위 : 0~255, UNIS에서는 그 외 범위 입력 가능) |
+| `FailID` | integer |  | Send Fail 설정이 [Send Fail Data] 일 경우 실패신호 전송 데이터 포맷을 지정 |
+| `MaskSiteCode` | string |  | SetField에 설정된 SiteCode 위치 |
+| `MaskUserID` | string |  | SetField에 설정된 Data(ID) 위치 |
+| `MaskFixed0` | string |  | SetField에 설정된 (Fixed 0) 위치 |
+| `MaskFixed1` | string |  | SetField에 설정된 (Fixed 1) 위치 |
+
+**스키마 `Parity`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Type` | integer |  | 1: "O(Odd Parity)", 2: "E(Even Parity)" |
+| `Position` | integer |  | SetField 위치 |
+| `MaskBits` | string |  | Set Perity 위치 지정 |
 
 ---
 
@@ -3977,6 +8229,48 @@
 | `200` | successful operation | `ApiResponse` |
 | `405` | Invalid input |  |
 
+**스키마 `WiegandOut`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `OutBasicInfo` | OutBasicInfo |  |  |
+| `Parity` | array<Parity> |  |  |
+
+**스키마 `OutBasicInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Code` | integer |  | 위겐드Out 구분 코드 |
+| `Name` | string |  | 위겐드OUt 명칭 |
+| `Bits` | integer |  | Bit Length 와 Custom Size 설정값 (0: unused, 1~128: 기타 커스텀 사이즈, 129: 표준 26bit, 130: 표준 34bit) |
+| `Port` | integer |  | PortState (0: Active Low(기본), 1: Active High) |
+| `ParityCount` | integer |  | Bit 길이에서 커스텀 사이즈 선택 시 범위 지정 (범위: 1 ~ 128bit) |
+| `SendFail` | integer |  | 인증성공 시 외 실패신호까지 전송 할 경우(0:Not Anything, 1:Send Fail Data, 2:Invert Parity 3:Card Serial) |
+| `SendData` | integer |  | 0:사용자 아이디, 1:카드번호 |
+| `PulseInterval` | integer |  | 0 (설정하지 않을 경우 보통 2ms) |
+| `PulseWidth` | integer |  | 0 (설정하지 않을 경우 보통 50μs) |
+| `SiteCode` | integer |  | 사용자 별도 지정이 필요 할 경우 설정 (단말기 설정 범위 : 0~255, UNIS에서는 그 외 범위 입력 가능) |
+| `FailID` | integer |  | Send Fail 설정이 [Send Fail Data] 일 경우 실패신호 전송 데이터 포맷을 지정 |
+| `MaskSiteCode` | string |  | SetField에 설정된 SiteCode 위치 |
+| `MaskUserID` | string |  | SetField에 설정된 Data(ID) 위치 |
+| `MaskFixed0` | string |  | SetField에 설정된 (Fixed 0) 위치 |
+| `MaskFixed1` | string |  | SetField에 설정된 (Fixed 1) 위치 |
+
+**스키마 `Parity`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Type` | integer |  | 1: "O(Odd Parity)", 2: "E(Even Parity)" |
+| `Position` | integer |  | SetField 위치 |
+| `MaskBits` | string |  | Set Perity 위치 지정 |
+
+**스키마 `ApiResponse`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `resultCode` | integer |  |  |
+| `message` | string |  |  |
+
 ---
 
 ## POST `/v1/terminals/{terminalID}/users/{userID}`
@@ -3998,6 +8292,26 @@
 |------|------|--------|
 | `200` | successful operation | `ApiResponse` |
 | `405` | Invalid input |  |
+
+**스키마 `DownloadInfoData`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `DownloadInfo` | DownloadInfo |  |  |
+
+**스키마 `DownloadInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Total` | integer |  |  |
+| `Offset` | integer |  |  |
+
+**스키마 `ApiResponse`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `resultCode` | integer |  |  |
+| `message` | string |  |  |
 
 ---
 
@@ -4021,6 +8335,26 @@
 | `200` | successful operation | `ApiResponse` |
 | `405` | Invalid input |  |
 
+**스키마 `DownloadInfoData`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `DownloadInfo` | DownloadInfo |  |  |
+
+**스키마 `DownloadInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Total` | integer |  |  |
+| `Offset` | integer |  |  |
+
+**스키마 `ApiResponse`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `resultCode` | integer |  |  |
+| `message` | string |  |  |
+
 ---
 
 ## GET `/v1/timezones`
@@ -4041,6 +8375,22 @@
 | `200` | successful operation | `TimezoneInfo` |
 | `405` | Invalid input |  |
 
+**스키마 `TimezoneInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `TimezoneID` | integer |  | 타임존 ID |
+| `Name` | string |  | 타임존 이름 |
+| `HolidayID` | integer |  | 공휴일 정보 ID |
+| `Holiday` | integer |  | 공휴일에 설정 할 타임라인 ID |
+| `Sunday` | integer |  | 일요일에 설정 할 타임라인 ID |
+| `Monday` | integer |  | 월요일에 설정 할 타임라인 ID |
+| `Tuesday` | integer |  | 화요일에 설정 할 타임라인 ID |
+| `Wednesday` | integer |  | 수요일에 설정 할 타임라인 ID |
+| `Thursday` | integer |  | 목요일에 설정 할 타임라인 ID |
+| `Friday` | integer |  | 금요일에 설정 할 타임라인 ID |
+| `Saturday` | integer |  | 토요일에 설정 할 타임라인 ID |
+
 ---
 
 ## POST `/v1/timezones`
@@ -4060,6 +8410,29 @@
 |------|------|--------|
 | `200` | successful operation | `ApiResponse` |
 | `405` | Invalid input |  |
+
+**스키마 `TimezoneInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `TimezoneID` | integer |  | 타임존 ID |
+| `Name` | string |  | 타임존 이름 |
+| `HolidayID` | integer |  | 공휴일 정보 ID |
+| `Holiday` | integer |  | 공휴일에 설정 할 타임라인 ID |
+| `Sunday` | integer |  | 일요일에 설정 할 타임라인 ID |
+| `Monday` | integer |  | 월요일에 설정 할 타임라인 ID |
+| `Tuesday` | integer |  | 화요일에 설정 할 타임라인 ID |
+| `Wednesday` | integer |  | 수요일에 설정 할 타임라인 ID |
+| `Thursday` | integer |  | 목요일에 설정 할 타임라인 ID |
+| `Friday` | integer |  | 금요일에 설정 할 타임라인 ID |
+| `Saturday` | integer |  | 토요일에 설정 할 타임라인 ID |
+
+**스키마 `ApiResponse`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `resultCode` | integer |  |  |
+| `message` | string |  |  |
 
 ---
 
@@ -4082,6 +8455,15 @@
 | `200` | successful operation | `TimezoneHolidayInfo` |
 | `405` | Invalid input |  |
 
+**스키마 `TimezoneHolidayInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `HolidayID` | integer |  | 공휴일 ID |
+| `Name` | string |  | 공휴일 이름 |
+| `RepeatYear` | integer |  | 설정 된 년까지 반복 |
+| `Holidays` | array<integer> |  | 공휴일 목록(mmdd) |
+
 ---
 
 ## POST `/v1/timezones/holidays`
@@ -4102,6 +8484,22 @@
 | `200` | successful operation | `ApiResponse` |
 | `405` | Invalid input |  |
 
+**스키마 `TimezoneHolidayInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `HolidayID` | integer |  | 공휴일 ID |
+| `Name` | string |  | 공휴일 이름 |
+| `RepeatYear` | integer |  | 설정 된 년까지 반복 |
+| `Holidays` | array<integer> |  | 공휴일 목록(mmdd) |
+
+**스키마 `ApiResponse`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `resultCode` | integer |  |  |
+| `message` | string |  |  |
+
 ---
 
 ## GET `/v1/timezones/holidays/{id}`
@@ -4121,6 +8519,15 @@
 |------|------|--------|
 | `200` | successful operation | `TimezoneHolidayInfo` |
 | `405` | Invalid input |  |
+
+**스키마 `TimezoneHolidayInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `HolidayID` | integer |  | 공휴일 ID |
+| `Name` | string |  | 공휴일 이름 |
+| `RepeatYear` | integer |  | 설정 된 년까지 반복 |
+| `Holidays` | array<integer> |  | 공휴일 목록(mmdd) |
 
 ---
 
@@ -4143,6 +8550,22 @@
 | `200` | successful operation | `ApiResponse` |
 | `405` | Invalid input |  |
 
+**스키마 `TimezoneHolidayInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `HolidayID` | integer |  | 공휴일 ID |
+| `Name` | string |  | 공휴일 이름 |
+| `RepeatYear` | integer |  | 설정 된 년까지 반복 |
+| `Holidays` | array<integer> |  | 공휴일 목록(mmdd) |
+
+**스키마 `ApiResponse`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `resultCode` | integer |  |  |
+| `message` | string |  |  |
+
 ---
 
 ## DELETE `/v1/timezones/holidays/{id}`
@@ -4162,6 +8585,13 @@
 |------|------|--------|
 | `200` | successful operation | `ApiResponse` |
 | `405` | Invalid input |  |
+
+**스키마 `ApiResponse`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `resultCode` | integer |  |  |
+| `message` | string |  |  |
 
 ---
 
@@ -4184,6 +8614,24 @@
 | `200` | successful operation | `TimezoneTimelineInfo` |
 | `405` | Invalid input |  |
 
+**스키마 `TimezoneTimelineInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `TimelineID` | integer |  | 타임라인 ID |
+| `Name` | string |  | 타임라인 이름 |
+| `Type` | integer |  | 타임라인 타입 (1=출입통제, 2=인증타임존, 3=혼합) |
+| `TimezoneValues` | array<TimezoneValue> |  |  |
+
+**스키마 `TimezoneValue`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Type` | integer |  | 타입 (1=출입 허용, 2=출입불가, 3=인증) |
+| `ExtVal` | integer |  | 타입에 따른 확장 값(타입이 인증일 경우 인증타입 값 설정) |
+| `StartTime` | string |  | 시작 시간 |
+| `EndTime` | string |  | 종료 시간 |
+
 ---
 
 ## PUT `/v1/timezones/timelines`
@@ -4204,6 +8652,26 @@
 | `200` | successful operation | `ApiResponse` |
 | `405` | Invalid input |  |
 
+**스키마 `TimezoneTimelinePutInfoValue`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `data` | TimelinePutTimelineInfoResult |  |  |
+
+**스키마 `TimelinePutTimelineInfoResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `TimelineInfo` | TimelinePutTimelineInfo |  |  |
+| `ValList` | array<TimelinePutValList> |  |  |
+
+**스키마 `ApiResponse`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `resultCode` | integer |  |  |
+| `message` | string |  |  |
+
 ---
 
 ## GET `/v1/timezones/timelines/{id}`
@@ -4223,6 +8691,24 @@
 |------|------|--------|
 | `200` | successful operation | `TimezoneTimelineInfo` |
 | `405` | Invalid input |  |
+
+**스키마 `TimezoneTimelineInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `TimelineID` | integer |  | 타임라인 ID |
+| `Name` | string |  | 타임라인 이름 |
+| `Type` | integer |  | 타임라인 타입 (1=출입통제, 2=인증타임존, 3=혼합) |
+| `TimezoneValues` | array<TimezoneValue> |  |  |
+
+**스키마 `TimezoneValue`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Type` | integer |  | 타입 (1=출입 허용, 2=출입불가, 3=인증) |
+| `ExtVal` | integer |  | 타입에 따른 확장 값(타입이 인증일 경우 인증타입 값 설정) |
+| `StartTime` | string |  | 시작 시간 |
+| `EndTime` | string |  | 종료 시간 |
 
 ---
 
@@ -4245,6 +8731,26 @@
 | `200` | successful operation | `ApiResponse` |
 | `405` | Invalid input |  |
 
+**스키마 `TimezoneTimelinePutInfoValue`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `data` | TimelinePutTimelineInfoResult |  |  |
+
+**스키마 `TimelinePutTimelineInfoResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `TimelineInfo` | TimelinePutTimelineInfo |  |  |
+| `ValList` | array<TimelinePutValList> |  |  |
+
+**스키마 `ApiResponse`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `resultCode` | integer |  |  |
+| `message` | string |  |  |
+
 ---
 
 ## DELETE `/v1/timezones/timelines/{id}`
@@ -4264,6 +8770,13 @@
 |------|------|--------|
 | `200` | successful operation | `ApiResponse` |
 | `405` | Invalid input |  |
+
+**스키마 `ApiResponse`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `resultCode` | integer |  |  |
+| `message` | string |  |  |
 
 ---
 
@@ -4286,6 +8799,22 @@
 | `200` | successful operation | `TimezoneInfo` |
 | `405` | Invalid input |  |
 
+**스키마 `TimezoneInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `TimezoneID` | integer |  | 타임존 ID |
+| `Name` | string |  | 타임존 이름 |
+| `HolidayID` | integer |  | 공휴일 정보 ID |
+| `Holiday` | integer |  | 공휴일에 설정 할 타임라인 ID |
+| `Sunday` | integer |  | 일요일에 설정 할 타임라인 ID |
+| `Monday` | integer |  | 월요일에 설정 할 타임라인 ID |
+| `Tuesday` | integer |  | 화요일에 설정 할 타임라인 ID |
+| `Wednesday` | integer |  | 수요일에 설정 할 타임라인 ID |
+| `Thursday` | integer |  | 목요일에 설정 할 타임라인 ID |
+| `Friday` | integer |  | 금요일에 설정 할 타임라인 ID |
+| `Saturday` | integer |  | 토요일에 설정 할 타임라인 ID |
+
 ---
 
 ## PUT `/v1/timezones/{id}`
@@ -4307,6 +8836,29 @@
 | `200` | successful operation | `ApiResponse` |
 | `405` | Invalid input |  |
 
+**스키마 `TimezoneInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `TimezoneID` | integer |  | 타임존 ID |
+| `Name` | string |  | 타임존 이름 |
+| `HolidayID` | integer |  | 공휴일 정보 ID |
+| `Holiday` | integer |  | 공휴일에 설정 할 타임라인 ID |
+| `Sunday` | integer |  | 일요일에 설정 할 타임라인 ID |
+| `Monday` | integer |  | 월요일에 설정 할 타임라인 ID |
+| `Tuesday` | integer |  | 화요일에 설정 할 타임라인 ID |
+| `Wednesday` | integer |  | 수요일에 설정 할 타임라인 ID |
+| `Thursday` | integer |  | 목요일에 설정 할 타임라인 ID |
+| `Friday` | integer |  | 금요일에 설정 할 타임라인 ID |
+| `Saturday` | integer |  | 토요일에 설정 할 타임라인 ID |
+
+**스키마 `ApiResponse`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `resultCode` | integer |  |  |
+| `message` | string |  |  |
+
 ---
 
 ## DELETE `/v1/timezones/{id}`
@@ -4326,6 +8878,13 @@
 |------|------|--------|
 | `200` | successful operation | `ApiResponse` |
 | `405` | Invalid input |  |
+
+**스키마 `ApiResponse`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `resultCode` | integer |  |  |
+| `message` | string |  |  |
 
 ---
 
@@ -4351,6 +8910,21 @@
 | `200` | successful operation |  |
 | `405` | Invalid input |  |
 
+**스키마 `TNA_Absenteeism`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `UserID` | integer |  | 사용자 아이디 |
+| `Name` | string |  | 사용자 이름 |
+| `UniqueID` | string |  | 고유값 |
+| `GroupID` | integer |  | 그룹 코드 |
+| `Position` | integer |  | 직급 코드 |
+| `WorkDate` | string |  | 근무일 |
+| `Day` | string |  | 요일 |
+| `ShiftCode` | string |  | 근태 코드 |
+| `ArrivalTime` | integer |  | 출근 시간 |
+| `DepartureTime` | integer |  | 퇴근 시간 |
+
 ---
 
 ## GET `/v1/tna/early_depatures`
@@ -4374,6 +8948,22 @@
 |------|------|--------|
 | `200` | successful operation |  |
 | `405` | Invalid input |  |
+
+**스키마 `TNA_EarlyDeparture`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `UserID` | integer |  | 사용자 아이디 |
+| `Name` | string |  | 사용자 이름 |
+| `UniqueID` | string |  | 고유값 |
+| `GroupID` | integer |  | 그룹 코드 |
+| `Position` | integer |  | 직급 코드 |
+| `WorkDate` | string |  | 근무일 |
+| `Day` | string |  | 요일 |
+| `ShiftCode` | string |  | 근태 코드 |
+| `ArrivalTime` | integer |  | 출근 시간 |
+| `DepartureTime` | integer |  | 퇴근 시간 |
+| `EarlyTime` | integer |  | 조퇴 시간 |
 
 ---
 
@@ -4399,6 +8989,22 @@
 | `200` | successful operation |  |
 | `405` | Invalid input |  |
 
+**스키마 `TNA_LateArrival`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `UserID` | integer |  | 사용자 아이디 |
+| `Name` | string |  | 사용자 이름 |
+| `UniqueID` | string |  | 고유값 |
+| `GroupID` | integer |  | 그룹 코드 |
+| `Position` | integer |  | 직급 코드 |
+| `WorkDate` | string |  | 근무일 |
+| `Day` | string |  | 요일 |
+| `ShiftCode` | string |  | 근태 코드 |
+| `ArrivalTime` | integer |  | 출근 시간 |
+| `DepartureTime` | integer |  | 퇴근 시간 |
+| `LateTime` | integer |  | 지각 시간 |
+
 ---
 
 ## GET `/v1/tna/periodResult`
@@ -4423,6 +9029,58 @@
 |------|------|--------|
 | `200` | successful operation |  |
 | `405` | Invalid input |  |
+
+**스키마 `TNA_Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `WorkDate` | string |  | 근무 날짜 |
+| `UserID` | integer |  | 사용자 아이디 |
+| `Name` | string |  | 사용자 명 |
+| `UniqueID` | string |  | 고유값 |
+| `GroupID` | integer |  | 그룹 코드 |
+| `ShiftCode` | string |  | 근태 코드 |
+| `ShiftName` | string |  | 근태 코드명 |
+| `Complete` | integer |  | 근태 처리 완료 여부 0:미완료, 1:완료 |
+| `WorkState` | integer |  | 근태 타입 0:무시, 1:출근, 2:결근 |
+| `InTime` | integer |  | 출근 시간 |
+| `OutTime` | integer |  | 퇴근 시간 |
+| `LateTime` | integer |  | 지각 시간 |
+| `LackTime` | integer |  | 조퇴 시간 |
+| `MultiRange` | integer |  | 다중 근태 시간 0:미적용, 1:적용 |
+| `Worktime1In` | integer |  | 기본 시작 |
+| `Worktime1Out` | integer |  | 기본 종료 |
+| `Worktime1Late` | integer |  | 기본 지각 |
+| `Worktime1Lack` | integer |  | 기본 조퇴 |
+| `Worktime1Time` | integer |  | 기본 근무 |
+| `Worktime2In` | integer |  | 조기 시작 |
+| `Worktime2Out` | integer |  | 조기 종료 |
+| `Worktime2Late` | integer |  | 조기 지각 |
+| `Worktime2Lack` | integer |  | 조기 조퇴 |
+| `Worktime2Time` | integer |  | 조기근무 |
+| `Worktime3In` | integer |  | 연장 시작 |
+| `Worktime3Out` | integer |  | 연장 종료 |
+| `Worktime3Late` | integer |  | 연장 지각 |
+| `Worktime3Lack` | integer |  | 연장 조퇴 |
+| `Worktime3Time` | integer |  | 연장 근무 |
+| `Worktime4In` | integer |  | 야간 시작 |
+| `Worktime4Out` | integer |  | 야간 종료 |
+| `Worktime4Late` | integer |  | 야간 지각 |
+| `Worktime4Lack` | integer |  | 야간 조퇴 |
+| `Worktime4Time` | integer |  | 야간 근무 |
+| `Worktime5In` | integer |  | 휴일 시작 |
+| `Worktime5Out` | integer |  | 휴일 종료 |
+| `Worktime5Late` | integer |  | 휴일 지각 |
+| `Worktime5Lack` | integer |  | 휴일 조퇴 |
+| `Worktime5Time` | integer |  | 휴일 근무 |
+| `Worktime6In` | integer |  | 초과 시작 |
+| `Worktime6Out` | integer |  | 초과 종료 |
+| `Worktime6Late` | integer |  | 초과 지각 |
+| `Worktime6Lack` | integer |  | 초과 조퇴 |
+| `Worktime6Time` | integer |  | 초과 근무 |
+| `PayMoney` | integer |  | 금액 |
+| `Modify` | integer |  | 수정 |
+| `Remark` | string |  | 비고 |
 
 ---
 
@@ -4450,6 +9108,28 @@
 | `200` | successful operation |  |
 | `405` | Invalid input |  |
 
+**스키마 `TNA_WorkTimebyPeriodResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+| `WorkTimeList` | array<WorkTimeList> |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
+**스키마 `WorkTimeList`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `UserID` | integer |  | 사용자 아이디 |
+| `BasicWorkTime` | string |  | 기본근무 시간 포멧 (ex. 04:27) |
+| `OverWorkTime` | string |  | 연장근무 시간 포멧 (ex. 04:27) |
+| `TotalWorkTime` | string |  | 전체근무 시간 포멧 (ex. 04:27) |
+
 ---
 
 ## GET `/v1/tna/setting/payment`
@@ -4470,6 +9150,22 @@
 |------|------|--------|
 | `200` | successful operation |  |
 | `405` | Invalid input |  |
+
+**스키마 `TNA_PaymentConfig`** (이 API의 요청/응답 구조)
+
+초과근무
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Code` | string |  | 지급액 코드 |
+| `Name` | string |  | 지급액 명 |
+| `Unit` | integer |  | 지급액 정산 단위 0:시간 단위, 1:30분 단위, 2:15분 단위, 3:10분 단위, 4:1분 단위 |
+| `NormalTime` | integer |  | 기본근무 |
+| `TimeBefore` | integer |  | 조기근무 |
+| `Overtime1` | integer |  | 연장근무 |
+| `Overtime2` | integer |  | 야간근무 |
+| `OffDayHours` | integer |  | 휴일근무 |
+| `Overtime3` | integer |  |  |
 
 ---
 
@@ -4492,6 +9188,29 @@
 | `200` | successful operation | `ApiResponse` |
 | `405` | Invalid input |  |
 
+**스키마 `TNA_PaymentConfig`** (이 API의 요청/응답 구조)
+
+초과근무
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Code` | string |  | 지급액 코드 |
+| `Name` | string |  | 지급액 명 |
+| `Unit` | integer |  | 지급액 정산 단위 0:시간 단위, 1:30분 단위, 2:15분 단위, 3:10분 단위, 4:1분 단위 |
+| `NormalTime` | integer |  | 기본근무 |
+| `TimeBefore` | integer |  | 조기근무 |
+| `Overtime1` | integer |  | 연장근무 |
+| `Overtime2` | integer |  | 야간근무 |
+| `OffDayHours` | integer |  | 휴일근무 |
+| `Overtime3` | integer |  |  |
+
+**스키마 `ApiResponse`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `resultCode` | integer |  |  |
+| `message` | string |  |  |
+
 ---
 
 ## DELETE `/v1/tna/setting/payment`
@@ -4513,6 +9232,13 @@
 | `200` | successful operation | `ApiResponse` |
 | `405` | Invalid input |  |
 
+**스키마 `ApiResponse`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `resultCode` | integer |  |  |
+| `message` | string |  |  |
+
 ---
 
 ## GET `/v1/tna/setting/schedule`
@@ -4532,6 +9258,47 @@
 |------|------|--------|
 | `200` | successful operation |  |
 | `405` | Invalid input |  |
+
+**스키마 `TNA_ScheduleConfig`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Code` | string |  | 근무 형태 등록 |
+| `Name` | string |  | 근무 형태 이름 |
+| `BasicDay` | string |  | 기준 일자 (YYYYMMDD) |
+| `HolidayCode` | string |  | 공휴일 코드 |
+| `HoliShift` | string |  | 공휴일 근무 코드 |
+| `SpinCount` | integer |  | 설정 일수 (1..30) |
+| `ShiftCode` | string |  | 요일별 근무 코드 지정 (4 * 30 days) |
+| `WorkTime` | array<TNA_ScheduleWorkTime> |  | 근태 처리 시 상세 설정 |
+| `SummTime` | array<TNA_ScheduleSummTime> |  | 집계 처리 시 상세 설정 |
+
+**스키마 `TNA_ScheduleWorkTime`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Type` | integer |  | 근무 타입 0:기본근무 상세 설정, 1:조기근무 상세 설정, 2:연장근무 상세 설정, 3:야간근무 상세 설정, 4:휴일근무 상세 설정, 5:초과근무 상세 설정 |
+| `Unit` | integer |  | 시간 산출 단위 0:분단위 모두적용, 1: 10분단위 버림, 2:10분단위 반올림, 3:15분단위 버림, 4:15분단위 반올림, 5:30분단위 버림, 6:30분단위 반올림, 7:60분단위 버림, 8:60분단위 반올림 |
+| `AddTime` | integer |  | 추가 시간 (분) |
+| `AddCondi` | integer |  | 추가 조건 최소 근무 시간 (분) |
+| `DelTime` | integer |  | 공제 시간 (분) |
+| `DelCondi` | integer |  | 공제 조건 최소 근무 시간 (분) |
+| `Min` | integer |  | 최소 시간 (분) |
+| `Max` | integer |  | 최대 시간 예)99 시간은 5940 |
+| `Rate` | integer |  | 시간 할증 |
+
+**스키마 `TNA_ScheduleSummTime`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Type` | integer |  | 근무 타입 0:기본근무 상세 설정, 1:조기근무 상세 설정, 2:연장근무 상세 설정, 3:야간근무 상세 설정, 4:휴일근무 상세 설정, 5:초과근무 상세 설정 |
+| `AddTime` | integer |  | 집계 시 추가 시간 (분) |
+| `AddCondi` | integer |  | 추가 조건 최소 근무일수 |
+| `DelTime` | integer |  | 집계 시 공제 시간 |
+| `DelCondi` | integer |  | 공제 조건 최소 근무일수 |
+| `Min` | integer |  | 집계 최소 시간 |
+| `Max` | integer |  | 집계 최대 시간 |
+| `Trans` | integer |  | 집계 시간 다른 근무시간에 합산 0:지정없음, 1:기본근무, 2:조기근무 3:연장근무 4:야근근무, 5:휴일근무, 6:초과근무 |
 
 ---
 
@@ -4554,6 +9321,54 @@
 | `200` | successful operation | `ApiResponse` |
 | `405` | Invalid input |  |
 
+**스키마 `TNA_ScheduleConfig`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Code` | string |  | 근무 형태 등록 |
+| `Name` | string |  | 근무 형태 이름 |
+| `BasicDay` | string |  | 기준 일자 (YYYYMMDD) |
+| `HolidayCode` | string |  | 공휴일 코드 |
+| `HoliShift` | string |  | 공휴일 근무 코드 |
+| `SpinCount` | integer |  | 설정 일수 (1..30) |
+| `ShiftCode` | string |  | 요일별 근무 코드 지정 (4 * 30 days) |
+| `WorkTime` | array<TNA_ScheduleWorkTime> |  | 근태 처리 시 상세 설정 |
+| `SummTime` | array<TNA_ScheduleSummTime> |  | 집계 처리 시 상세 설정 |
+
+**스키마 `TNA_ScheduleWorkTime`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Type` | integer |  | 근무 타입 0:기본근무 상세 설정, 1:조기근무 상세 설정, 2:연장근무 상세 설정, 3:야간근무 상세 설정, 4:휴일근무 상세 설정, 5:초과근무 상세 설정 |
+| `Unit` | integer |  | 시간 산출 단위 0:분단위 모두적용, 1: 10분단위 버림, 2:10분단위 반올림, 3:15분단위 버림, 4:15분단위 반올림, 5:30분단위 버림, 6:30분단위 반올림, 7:60분단위 버림, 8:60분단위 반올림 |
+| `AddTime` | integer |  | 추가 시간 (분) |
+| `AddCondi` | integer |  | 추가 조건 최소 근무 시간 (분) |
+| `DelTime` | integer |  | 공제 시간 (분) |
+| `DelCondi` | integer |  | 공제 조건 최소 근무 시간 (분) |
+| `Min` | integer |  | 최소 시간 (분) |
+| `Max` | integer |  | 최대 시간 예)99 시간은 5940 |
+| `Rate` | integer |  | 시간 할증 |
+
+**스키마 `TNA_ScheduleSummTime`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Type` | integer |  | 근무 타입 0:기본근무 상세 설정, 1:조기근무 상세 설정, 2:연장근무 상세 설정, 3:야간근무 상세 설정, 4:휴일근무 상세 설정, 5:초과근무 상세 설정 |
+| `AddTime` | integer |  | 집계 시 추가 시간 (분) |
+| `AddCondi` | integer |  | 추가 조건 최소 근무일수 |
+| `DelTime` | integer |  | 집계 시 공제 시간 |
+| `DelCondi` | integer |  | 공제 조건 최소 근무일수 |
+| `Min` | integer |  | 집계 최소 시간 |
+| `Max` | integer |  | 집계 최대 시간 |
+| `Trans` | integer |  | 집계 시간 다른 근무시간에 합산 0:지정없음, 1:기본근무, 2:조기근무 3:연장근무 4:야근근무, 5:휴일근무, 6:초과근무 |
+
+**스키마 `ApiResponse`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `resultCode` | integer |  |  |
+| `message` | string |  |  |
+
 ---
 
 ## DELETE `/v1/tna/setting/schedule`
@@ -4573,6 +9388,13 @@
 |------|------|--------|
 | `200` | successful operation | `ApiResponse` |
 | `405` | Invalid input |  |
+
+**스키마 `ApiResponse`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `resultCode` | integer |  |  |
+| `message` | string |  |  |
 
 ---
 
@@ -4595,6 +9417,72 @@
 | `200` | successful operation |  |
 | `405` | Invalid input |  |
 
+**스키마 `TNA_ShiftConfig`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Code` | string |  | 근무 시간 코드 |
+| `Name` | string |  | 근무 시간 이름 |
+| `InOutMode` | integer |  | 출퇴근 인증 모드 0:모든 기록 인정, 1:출퇴근 기록만 인정 |
+| `WorkStartTime` | integer |  | 당일 근태 처리 구간 시작 시간 |
+| `WorkEndTime` | integer |  | 당일 근태 처리 구간 종료 시간 |
+| `IgnoreAbsent` | integer |  | 결근시 무시함(휴일에 적용) 0:미설정, 1:설정 |
+| `LateTime` | integer |  | 지각 처리 시각 (-1:No, 0~4320) |
+| `LackTime` | integer |  | 조퇴 처리 시각 (-1:No, 0~4320) |
+| `AutoInTime` | integer |  | 출근 자동 생성 (-1: No, 0 ~ 4320: Insertion time) |
+| `AutoOutTime` | integer |  | 퇴근 자동 생성 (-1: No, 0 ~ 4320: Insertion time) |
+| `SetExceptTime` | TNA_ShiftExceptTime |  | 고정 제외 시간 설정 |
+| `MultiRange` | integer |  | 다중 출퇴근 구간 적용 0:미사용 1:사용 |
+| `SetMultiRange` | TNA_ShiftMultiRange |  | 다중 출퇴근 구간 설정 |
+| `SetShiftTime` |  |  | 근무 시간 설정 |
+
+**스키마 `TNA_ShiftExceptTime`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ExceptExit` | integer |  | 외출 시간 제외 1 0:미사용 1:사용 |
+| `ExceptReturnMode` | integer |  | 복귀 모드 (0:모든 기능 인정 1:복귀 기록만 인정) |
+| `ExceptOut` | integer |  | 중퇴 시간 제외 0:미사용 1:사용 |
+| `ExceptInMode` | integer |  | 출근 모드 (0:모든 기록 인정 1:출근 기록만 인정) |
+| `Fixed1StartTime` | integer |  | 제외 1 시작 시간 |
+| `Fixed1EndTime` | integer |  | 제외 1 종료 시간 |
+| `Fixed2StartTime` | integer |  |  |
+| `Fixed2EndTime` | integer |  |  |
+| `Fixed3StartTime` | integer |  |  |
+| `Fixed3EndTime` | integer |  |  |
+| `Fixed4StartTime` | integer |  |  |
+| `Fixed4EndTime` | integer |  |  |
+| `Fixed5StartTime` | integer |  |  |
+| `Fixed5EndTime` | integer |  |  |
+
+**스키마 `TNA_ShiftMultiRange`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Range1StartTime` | integer |  | 구간 1 시작 시간 |
+| `Range1EndTime` | integer |  | 구간 2 종료 시간 |
+| `Range2StartTime` | integer |  |  |
+| `Range2EndTime` | integer |  |  |
+| `Range3StartTime` | integer |  |  |
+| `Range3EndTime` | integer |  |  |
+| `Range4StartTime` | integer |  |  |
+| `Range4EndTime` | integer |  |  |
+
+**스키마 `TNA_ShiftTime`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Work` | integer |  | 근무 지정 |
+| `Type` | integer |  | 시간 지정 |
+| `StartTime` | integer |  | 시작 시간 |
+| `EndTime` | integer |  | 종료 시간 |
+| `Range` | integer |  | 적용 구간 |
+| `AutoOut` | integer |  | 구간내 퇴근 부재시 자동 처리 |
+| `Unit` | integer |  | 시간 산출 단위 |
+| `MinTime` | integer |  | 최소 시간 |
+| `MaxTime` | integer |  | 최대 시간 |
+| `Rate` | integer |  | 적용 구간 |
+
 ---
 
 ## POST `/v1/tna/setting/shift`
@@ -4615,6 +9503,79 @@
 |------|------|--------|
 | `200` | successful operation | `ApiResponse` |
 | `405` | Invalid input |  |
+
+**스키마 `TNA_ShiftConfig`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Code` | string |  | 근무 시간 코드 |
+| `Name` | string |  | 근무 시간 이름 |
+| `InOutMode` | integer |  | 출퇴근 인증 모드 0:모든 기록 인정, 1:출퇴근 기록만 인정 |
+| `WorkStartTime` | integer |  | 당일 근태 처리 구간 시작 시간 |
+| `WorkEndTime` | integer |  | 당일 근태 처리 구간 종료 시간 |
+| `IgnoreAbsent` | integer |  | 결근시 무시함(휴일에 적용) 0:미설정, 1:설정 |
+| `LateTime` | integer |  | 지각 처리 시각 (-1:No, 0~4320) |
+| `LackTime` | integer |  | 조퇴 처리 시각 (-1:No, 0~4320) |
+| `AutoInTime` | integer |  | 출근 자동 생성 (-1: No, 0 ~ 4320: Insertion time) |
+| `AutoOutTime` | integer |  | 퇴근 자동 생성 (-1: No, 0 ~ 4320: Insertion time) |
+| `SetExceptTime` | TNA_ShiftExceptTime |  | 고정 제외 시간 설정 |
+| `MultiRange` | integer |  | 다중 출퇴근 구간 적용 0:미사용 1:사용 |
+| `SetMultiRange` | TNA_ShiftMultiRange |  | 다중 출퇴근 구간 설정 |
+| `SetShiftTime` |  |  | 근무 시간 설정 |
+
+**스키마 `TNA_ShiftExceptTime`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ExceptExit` | integer |  | 외출 시간 제외 1 0:미사용 1:사용 |
+| `ExceptReturnMode` | integer |  | 복귀 모드 (0:모든 기능 인정 1:복귀 기록만 인정) |
+| `ExceptOut` | integer |  | 중퇴 시간 제외 0:미사용 1:사용 |
+| `ExceptInMode` | integer |  | 출근 모드 (0:모든 기록 인정 1:출근 기록만 인정) |
+| `Fixed1StartTime` | integer |  | 제외 1 시작 시간 |
+| `Fixed1EndTime` | integer |  | 제외 1 종료 시간 |
+| `Fixed2StartTime` | integer |  |  |
+| `Fixed2EndTime` | integer |  |  |
+| `Fixed3StartTime` | integer |  |  |
+| `Fixed3EndTime` | integer |  |  |
+| `Fixed4StartTime` | integer |  |  |
+| `Fixed4EndTime` | integer |  |  |
+| `Fixed5StartTime` | integer |  |  |
+| `Fixed5EndTime` | integer |  |  |
+
+**스키마 `TNA_ShiftMultiRange`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Range1StartTime` | integer |  | 구간 1 시작 시간 |
+| `Range1EndTime` | integer |  | 구간 2 종료 시간 |
+| `Range2StartTime` | integer |  |  |
+| `Range2EndTime` | integer |  |  |
+| `Range3StartTime` | integer |  |  |
+| `Range3EndTime` | integer |  |  |
+| `Range4StartTime` | integer |  |  |
+| `Range4EndTime` | integer |  |  |
+
+**스키마 `TNA_ShiftTime`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Work` | integer |  | 근무 지정 |
+| `Type` | integer |  | 시간 지정 |
+| `StartTime` | integer |  | 시작 시간 |
+| `EndTime` | integer |  | 종료 시간 |
+| `Range` | integer |  | 적용 구간 |
+| `AutoOut` | integer |  | 구간내 퇴근 부재시 자동 처리 |
+| `Unit` | integer |  | 시간 산출 단위 |
+| `MinTime` | integer |  | 최소 시간 |
+| `MaxTime` | integer |  | 최대 시간 |
+| `Rate` | integer |  | 적용 구간 |
+
+**스키마 `ApiResponse`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `resultCode` | integer |  |  |
+| `message` | string |  |  |
 
 ---
 
@@ -4637,6 +9598,13 @@
 | `200` | successful operation | `ApiResponse` |
 | `405` | Invalid input |  |
 
+**스키마 `ApiResponse`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `resultCode` | integer |  |  |
+| `message` | string |  |  |
+
 ---
 
 ## GET `/v1/tna/setting/workconfig`
@@ -4652,6 +9620,23 @@
 |------|------|--------|
 | `200` | successful operation | `TNA_WorkConfig` |
 | `405` | Invalid input |  |
+
+**스키마 `TNA_WorkConfig`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `AutoProc` | integer |  | 0:미사용, 1:자동 근태 처리 |
+| `AutoProcTime` | integer |  | 자동 근태 처리 시간 (0 ~ 4320 = 처리 ==> 시간 앞 표기에 따라 +:다음날 처리때 오늘 날짜로, -:어제 처리한 결과 오늘 날짜로) |
+| `MoneyDigit` | integer |  | 금액 표시 소수점 자릿수 |
+| `TimeShape` | integer |  | 시간 표시 형태 (0:시분 형태, 1:숫자 형태) |
+| `MinuteDigit` | integer |  | 시간 표시 소수점 자리수, 숫자 형태 표시 시 입력 |
+| `SumPeriodType` | integer |  | 집계 기간 단위 (0:월 단위, 1: 1주 단위, 2:2주 단위) |
+| `SumStartDay` | integer |  | 집계 시작일 (월단위:일, 주단위: 1Sunday~7Saturday) |
+| `LastResultDate` | string |  | 마지막 근태 처리일 (YYYYMMDD) |
+| `LastSumDate` | string |  | 마지막 집계 처리일 (YYYYMMDD) |
+| `LastSumWeek` | integer |  | 마지막 집계 처리 주 |
+| `NeisUsed` | integer |  | Neis 연동 |
+| `NeisSavePath` | string |  | Neis 파일 저장 위치 |
 
 ---
 
@@ -4673,6 +9658,30 @@
 |------|------|--------|
 | `200` | successful operation | `ApiResponse` |
 | `405` | Invalid input |  |
+
+**스키마 `TNA_WorkConfig`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `AutoProc` | integer |  | 0:미사용, 1:자동 근태 처리 |
+| `AutoProcTime` | integer |  | 자동 근태 처리 시간 (0 ~ 4320 = 처리 ==> 시간 앞 표기에 따라 +:다음날 처리때 오늘 날짜로, -:어제 처리한 결과 오늘 날짜로) |
+| `MoneyDigit` | integer |  | 금액 표시 소수점 자릿수 |
+| `TimeShape` | integer |  | 시간 표시 형태 (0:시분 형태, 1:숫자 형태) |
+| `MinuteDigit` | integer |  | 시간 표시 소수점 자리수, 숫자 형태 표시 시 입력 |
+| `SumPeriodType` | integer |  | 집계 기간 단위 (0:월 단위, 1: 1주 단위, 2:2주 단위) |
+| `SumStartDay` | integer |  | 집계 시작일 (월단위:일, 주단위: 1Sunday~7Saturday) |
+| `LastResultDate` | string |  | 마지막 근태 처리일 (YYYYMMDD) |
+| `LastSumDate` | string |  | 마지막 집계 처리일 (YYYYMMDD) |
+| `LastSumWeek` | integer |  | 마지막 집계 처리 주 |
+| `NeisUsed` | integer |  | Neis 연동 |
+| `NeisSavePath` | string |  | Neis 파일 저장 위치 |
+
+**스키마 `ApiResponse`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `resultCode` | integer |  |  |
+| `message` | string |  |  |
 
 ---
 
@@ -4696,6 +9705,14 @@
 | `200` | successful operation |  |
 | `405` | Invalid input |  |
 
+**스키마 `TNA_SepcialShift`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `WorkDate` | string |  | 근무일 (yyyyMMdd) |
+| `UserID` | integer |  | 사용자 아이디 |
+| `ShiftCode` | string |  | 근무 코드 |
+
 ---
 
 ## POST `/v1/tna/specialshift`
@@ -4716,6 +9733,21 @@
 |------|------|--------|
 | `200` | successful operation | `ApiResponse` |
 | `405` | Invalid input |  |
+
+**스키마 `TNA_SepcialShift`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `WorkDate` | string |  | 근무일 (yyyyMMdd) |
+| `UserID` | integer |  | 사용자 아이디 |
+| `ShiftCode` | string |  | 근무 코드 |
+
+**스키마 `ApiResponse`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `resultCode` | integer |  |  |
+| `message` | string |  |  |
 
 ---
 
@@ -4738,6 +9770,13 @@
 |------|------|--------|
 | `200` | successful operation | `ApiResponse` |
 | `405` | Invalid input |  |
+
+**스키마 `ApiResponse`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `resultCode` | integer |  |  |
+| `message` | string |  |  |
 
 ---
 
@@ -4762,6 +9801,43 @@
 |------|------|--------|
 | `200` | successful operation |  |
 | `405` | Invalid input |  |
+
+**스키마 `TNA_SumResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `SumDate` | string |  | 집계 기간 (YYYY9999: 년 단위, YYYYMM99: 월 단위, YYYYMM9x: 주 단위) |
+| `UserID` | integer |  | 사용자 아이디 |
+| `Name` | string |  | 사용자 이름 |
+| `UniqueID` | string |  | 고유값 |
+| `GroupID` | integer |  | 그룹 코드 |
+| `ScheduleCode` | string |  | 근태 코드 |
+| `ScheduleName` | string |  | 근태 코드명 |
+| `StartDate` | string |  | 집계 시작일 |
+| `EndDate` | string |  | 집게 종료일 |
+| `LateTime` | integer |  | 지각 시간 |
+| `LackTime` | integer |  | 조퇴 시간 |
+| `SumTime1Late` | integer |  | 기본 지각 시간 |
+| `SumTime1Lack` | integer |  | 기본 조퇴 시간 |
+| `SumTime1Time` | integer |  | 기본 근무 시간 |
+| `SumTime2Late` | integer |  | 조기 지각 시간 |
+| `SumTime2Lack` | integer |  | 조기 조퇴 시간 |
+| `SumTime2Time` | integer |  | 조기 근무 시간 |
+| `SumTime3Late` | integer |  | 연장 지각 시간 |
+| `SumTime3Lack` | integer |  | 연장 조퇴 시간 |
+| `SumTime3Time` | integer |  | 연장 근무 시간 |
+| `SumTime4Late` | integer |  | 야간 지각 시간 |
+| `SumTime4Lack` | integer |  | 야간 조퇴 시간 |
+| `SumTime4Time` | integer |  | 야간 근무 시간 |
+| `SumTime5Late` | integer |  | 휴일 지각 시간 |
+| `SumTime5Lack` | integer |  | 휴일 조퇴 시간 |
+| `SumTime5Time` | integer |  | 휴일 근무 시간 |
+| `SumTime6Late` | integer |  | 초과 지각 시간 |
+| `SumTime6Lack` | integer |  | 초과 조퇴 시간 |
+| `SumTime6Time` | integer |  | 초과 근무 시간 |
+| `PayMoney` | integer |  | 금액 |
+| `Modify` | integer |  | 수정 |
+| `Remark` | integer |  | 비고 |
 
 ---
 
@@ -4789,6 +9865,46 @@
 | `200` | successful operation | `UserListResult` |
 | `405` | Invalid input |  |
 
+**스키마 `UserListResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+| `Total` | Total |  |  |
+| `UserList` | array<UserListInfo> |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
+**스키마 `Total`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Count` | integer |  |  |
+
+**스키마 `UserListInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ID` | string |  | 사용자 ID |
+| `UniqueID` | string |  | 고유값 |
+| `Name` | string |  | 사용자 이름 |
+| `AuthInfo` | array<integer> |  | 인증방식 |
+| `Privilege` | integer |  | 사용자 권한 |
+| `RegistDate` | string |  | 등록일 |
+| `ExpireDate` | string |  | 만료일 |
+| `GroupCode` | integer |  | 그룹 코드 |
+| `AccessGroupCode` | integer |  | 출입그룹 코드 |
+| `TimezoneCode` | integer |  | 타임존 코드 |
+| `BlackList` | integer |  | 블랙리스트 유무 |
+| `FPIdentify` | integer |  | 지문 1:N |
+| `FaceIdentify` | integer |  | 얼굴 1:N |
+| `APBZone` | integer |  | 안태패스백 현재 위치 |
+| `EmployeeNum` | string |  | 사원번호 |
+
 ---
 
 ## POST `/v1/users`
@@ -4810,6 +9926,116 @@
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
 
+**스키마 `AddUserInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `UserInfo` | UserInfo |  |  |
+| `UserFPInfo` | array<UserFPInfo> |  |  |
+| `UserFaceInfo` | array<UserFaceInfo> |  |  |
+| `UserCardInfo` | array<UserCardInfo> |  |  |
+| `UserFaceWTInfo` | array<UserFaceWTInfo> |  |  |
+| `UserIrisInfo` | array<UserIrisInfo> |  |  |
+
+**스키마 `UserInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ID` | string |  | 사용자 아이디 |
+| `UniqueID` | string |  | 고유값 |
+| `Name` | string |  | 사용자 이름 |
+| `AuthInfo` | array<integer> |  | 인증방식 |
+| `Privilege` | integer |  | 사용자 권한 |
+| `CreateDate` | string |  | 생성일자 |
+| `UsePeriodFlag` | integer |  | 사용자 사용 기간 사용 flag |
+| `RegistDate` | string |  | 등록일 |
+| `ExpireDate` | string |  | 만료일 |
+| `Password` | string |  | 비밀번호 |
+| `GroupCode` | integer |  | 그룹 코드 |
+| `AccessGroupCode` | integer |  | 출입그룹 코드 |
+| `UserType` | integer |  | 사용자 타입 |
+| `TimezoneCode` | integer |  | 타임존 코드 |
+| `BlackList` | integer |  | 블랙리스트 유무 |
+| `FPIdentify` | integer |  | 지문 1:N |
+| `FaceIdentify` | integer |  | 얼굴 1:N |
+| `DuressFinger` | array<integer> |  | 협박 지문 |
+| `Partition` | integer |  | ACU 파티션 |
+| `APBExcept` | integer |  | 안티패스백 예외 적용 |
+| `APBZone` | integer |  | 안태패스백 현재 위치 |
+| `WorkCode` | string |  | 근태 코드 |
+| `MealCode` | string |  | 식수 코드 |
+| `MoneyCode` | string |  | 근태 지급액 코드 |
+| `MessageCode` | integer |  | 사용자 메시지 코드 |
+| `VerifyLevel` | integer |  | 인증 레벨 |
+| `PositionCode` | integer |  | 직급 코드 |
+| `Department` | string |  | 부서 코드 |
+| `LoginPW` | string |  | 클라이언트 접속 비밀번호 |
+| `LoginAllowed` | string |  | 클라이언트 접속 허용 여부 |
+| `Picture` | string |  |  |
+| `EmployeeNum` | string |  | 사원번호 |
+| `Email` | string |  | 이메일 주소 |
+| `Phone` | string |  | 전화 번호 |
+
+**스키마 `UserFPInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `FingerID` | integer |  | 지문위치 정보 |
+| `MinConvType` | integer |  | BSP Template Type |
+| `TemplateIndex` | integer |  | 템플릿 순서 |
+| `TemplateData` | string |  | 지문템플릿 데이터 |
+
+**스키마 `UserFaceInfo`** (이 API의 요청/응답 구조)
+
+지문템플릿 데이터
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `UserID` | integer |  | 사용자ID |
+| `Index` | integer |  | 얼굴 index, (1,2) |
+| `Type` | integer |  | 고정값 0 |
+| `SubIndex` | integer |  | 등록 템플릿 순번 |
+| `TemplateSize` | integer |  | 등록 템플릿 사이즈 |
+| `TemplateData` | string |  |  |
+
+**스키마 `UserCardInfo`** (이 API의 요청/응답 구조)
+
+카드번호
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `CardNum` | string |  |  |
+
+**스키마 `UserFaceWTInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `UserID` | integer |  | 사용자 ID |
+| `TemplateSize` | integer |  | 등록 얼굴 템플릿 데이터 사이즈 |
+| `TemplateData` | string |  | 등록 얼굴 워크스루 템플릿 데이터 |
+| `TemplateType` | integer |  | 등록 얼굴 워크스루 템플릿 타입 (0: 템플릿타입, 1: 이미지 타입) |
+
+**스키마 `UserIrisInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `UserID` | integer |  |  |
+| `EyeType` | integer |  |  |
+| `TemplateSize` | integer |  |  |
+| `TemplateData` | string |  |  |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
 ---
 
 ## GET `/v1/users/Duplicate`
@@ -4829,6 +10055,18 @@
 |------|------|--------|
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
 
 ---
 
@@ -4851,6 +10089,18 @@
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
 
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
 ---
 
 ## GET `/v1/users/initUserInfo`
@@ -4865,6 +10115,25 @@
 |------|------|--------|
 | `200` | successful operation | `InitUserInfoResult` |
 | `405` | Invalid input |  |
+
+**스키마 `InitUserInfoResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+| `InitUserInfo` | InitUserInfo |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
+**스키마 `InitUserInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ID` | string |  | 등록 가능한 사용자 아이디 |
 
 ---
 
@@ -4889,6 +10158,67 @@
 | `200` | successful operation | `UserInfoResult` |
 | `405` | Invalid input |  |
 
+**스키마 `UserInfoResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+| `UserInfo` | UserInfo |  |  |
+| `UserCardInfo` | array<UserCardInfo> |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
+**스키마 `UserInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ID` | string |  | 사용자 아이디 |
+| `UniqueID` | string |  | 고유값 |
+| `Name` | string |  | 사용자 이름 |
+| `AuthInfo` | array<integer> |  | 인증방식 |
+| `Privilege` | integer |  | 사용자 권한 |
+| `CreateDate` | string |  | 생성일자 |
+| `UsePeriodFlag` | integer |  | 사용자 사용 기간 사용 flag |
+| `RegistDate` | string |  | 등록일 |
+| `ExpireDate` | string |  | 만료일 |
+| `Password` | string |  | 비밀번호 |
+| `GroupCode` | integer |  | 그룹 코드 |
+| `AccessGroupCode` | integer |  | 출입그룹 코드 |
+| `UserType` | integer |  | 사용자 타입 |
+| `TimezoneCode` | integer |  | 타임존 코드 |
+| `BlackList` | integer |  | 블랙리스트 유무 |
+| `FPIdentify` | integer |  | 지문 1:N |
+| `FaceIdentify` | integer |  | 얼굴 1:N |
+| `DuressFinger` | array<integer> |  | 협박 지문 |
+| `Partition` | integer |  | ACU 파티션 |
+| `APBExcept` | integer |  | 안티패스백 예외 적용 |
+| `APBZone` | integer |  | 안태패스백 현재 위치 |
+| `WorkCode` | string |  | 근태 코드 |
+| `MealCode` | string |  | 식수 코드 |
+| `MoneyCode` | string |  | 근태 지급액 코드 |
+| `MessageCode` | integer |  | 사용자 메시지 코드 |
+| `VerifyLevel` | integer |  | 인증 레벨 |
+| `PositionCode` | integer |  | 직급 코드 |
+| `Department` | string |  | 부서 코드 |
+| `LoginPW` | string |  | 클라이언트 접속 비밀번호 |
+| `LoginAllowed` | string |  | 클라이언트 접속 허용 여부 |
+| `Picture` | string |  |  |
+| `EmployeeNum` | string |  | 사원번호 |
+| `Email` | string |  | 이메일 주소 |
+| `Phone` | string |  | 전화 번호 |
+
+**스키마 `UserCardInfo`** (이 API의 요청/응답 구조)
+
+카드번호
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `CardNum` | string |  |  |
+
 ---
 
 ## PUT `/v1/users/{id}`
@@ -4910,6 +10240,106 @@
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
 
+**스키마 `UpdateUserInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `UserInfo` | UserInfo |  |  |
+| `UserFPInfo` | array<UserFPInfo> |  |  |
+| `UserFaceInfo` | array<UserFaceInfo> |  |  |
+| `UserCardInfo` | array<UserCardInfo> |  |  |
+| `UserFaceWTInfo` | array<UserFaceWTInfo> |  |  |
+
+**스키마 `UserInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ID` | string |  | 사용자 아이디 |
+| `UniqueID` | string |  | 고유값 |
+| `Name` | string |  | 사용자 이름 |
+| `AuthInfo` | array<integer> |  | 인증방식 |
+| `Privilege` | integer |  | 사용자 권한 |
+| `CreateDate` | string |  | 생성일자 |
+| `UsePeriodFlag` | integer |  | 사용자 사용 기간 사용 flag |
+| `RegistDate` | string |  | 등록일 |
+| `ExpireDate` | string |  | 만료일 |
+| `Password` | string |  | 비밀번호 |
+| `GroupCode` | integer |  | 그룹 코드 |
+| `AccessGroupCode` | integer |  | 출입그룹 코드 |
+| `UserType` | integer |  | 사용자 타입 |
+| `TimezoneCode` | integer |  | 타임존 코드 |
+| `BlackList` | integer |  | 블랙리스트 유무 |
+| `FPIdentify` | integer |  | 지문 1:N |
+| `FaceIdentify` | integer |  | 얼굴 1:N |
+| `DuressFinger` | array<integer> |  | 협박 지문 |
+| `Partition` | integer |  | ACU 파티션 |
+| `APBExcept` | integer |  | 안티패스백 예외 적용 |
+| `APBZone` | integer |  | 안태패스백 현재 위치 |
+| `WorkCode` | string |  | 근태 코드 |
+| `MealCode` | string |  | 식수 코드 |
+| `MoneyCode` | string |  | 근태 지급액 코드 |
+| `MessageCode` | integer |  | 사용자 메시지 코드 |
+| `VerifyLevel` | integer |  | 인증 레벨 |
+| `PositionCode` | integer |  | 직급 코드 |
+| `Department` | string |  | 부서 코드 |
+| `LoginPW` | string |  | 클라이언트 접속 비밀번호 |
+| `LoginAllowed` | string |  | 클라이언트 접속 허용 여부 |
+| `Picture` | string |  |  |
+| `EmployeeNum` | string |  | 사원번호 |
+| `Email` | string |  | 이메일 주소 |
+| `Phone` | string |  | 전화 번호 |
+
+**스키마 `UserFPInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `FingerID` | integer |  | 지문위치 정보 |
+| `MinConvType` | integer |  | BSP Template Type |
+| `TemplateIndex` | integer |  | 템플릿 순서 |
+| `TemplateData` | string |  | 지문템플릿 데이터 |
+
+**스키마 `UserFaceInfo`** (이 API의 요청/응답 구조)
+
+지문템플릿 데이터
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `UserID` | integer |  | 사용자ID |
+| `Index` | integer |  | 얼굴 index, (1,2) |
+| `Type` | integer |  | 고정값 0 |
+| `SubIndex` | integer |  | 등록 템플릿 순번 |
+| `TemplateSize` | integer |  | 등록 템플릿 사이즈 |
+| `TemplateData` | string |  |  |
+
+**스키마 `UserCardInfo`** (이 API의 요청/응답 구조)
+
+카드번호
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `CardNum` | string |  |  |
+
+**스키마 `UserFaceWTInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `UserID` | integer |  | 사용자 ID |
+| `TemplateSize` | integer |  | 등록 얼굴 템플릿 데이터 사이즈 |
+| `TemplateData` | string |  | 등록 얼굴 워크스루 템플릿 데이터 |
+| `TemplateType` | integer |  | 등록 얼굴 워크스루 템플릿 타입 (0: 템플릿타입, 1: 이미지 타입) |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
 ---
 
 ## DELETE `/v1/users/{id}`
@@ -4929,6 +10359,18 @@
 |------|------|--------|
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
 
 ---
 
@@ -4950,6 +10392,32 @@
 | `200` | successful operation | `UserFaceInfoResult` |
 | `405` | Invalid input |  |
 
+**스키마 `UserFaceInfoResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+| `UserFaceInfo` | array<UserFaceInfo> |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
+**스키마 `UserFaceInfo`** (이 API의 요청/응답 구조)
+
+지문템플릿 데이터
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `UserID` | integer |  | 사용자ID |
+| `Index` | integer |  | 얼굴 index, (1,2) |
+| `Type` | integer |  | 고정값 0 |
+| `SubIndex` | integer |  | 등록 템플릿 순번 |
+| `TemplateSize` | integer |  | 등록 템플릿 사이즈 |
+| `TemplateData` | string |  |  |
+
 ---
 
 ## GET `/v1/users/{id}/card`
@@ -4969,6 +10437,27 @@
 |------|------|--------|
 | `200` | successful operation | `UserRFCardInfoResult` |
 | `405` | Invalid input |  |
+
+**스키마 `UserRFCardInfoResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+| `UserCardInfo` | array<UserCardInfo> |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
+**스키마 `UserCardInfo`** (이 API의 요청/응답 구조)
+
+카드번호
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `CardNum` | string |  |  |
 
 ---
 
@@ -4991,6 +10480,26 @@
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
 
+**스키마 `UserCardInfo`** (이 API의 요청/응답 구조)
+
+카드번호
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `CardNum` | string |  |  |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
 ---
 
 ## DELETE `/v1/users/{id}/card`
@@ -5011,6 +10520,18 @@
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
 
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
 ---
 
 ## GET `/v1/users/{id}/faceWTInfo`
@@ -5030,6 +10551,28 @@
 |------|------|--------|
 | `200` | successful operation | `UserFaceWTInfoResult` |
 | `405` | Invalid input |  |
+
+**스키마 `UserFaceWTInfoResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+| `UserFaceWTInfo` | array<UserFaceWTInfo> |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
+**스키마 `UserFaceWTInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `UserID` | integer |  | 사용자 ID |
+| `TemplateSize` | integer |  | 등록 얼굴 템플릿 데이터 사이즈 |
+| `TemplateData` | string |  | 등록 얼굴 워크스루 템플릿 데이터 |
+| `TemplateType` | integer |  | 등록 얼굴 워크스루 템플릿 타입 (0: 템플릿타입, 1: 이미지 타입) |
 
 ---
 
@@ -5052,6 +10595,26 @@
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
 
+**스키마 `FaceWTInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `TemplateType` | integer |  | 등록 얼굴 워크스루 템플릿 타입 (0: 템플릿타입, 1: 이미지 타입) |
+| `TemplateSize` | integer |  | 등록 얼굴 템플릿 데이터 사이즈 |
+| `TemplateData` | string |  | 등록 얼굴 워크스루 템플릿 데이터 |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
 ---
 
 ## GET `/v1/users/{id}/fingerPrint`
@@ -5071,6 +10634,28 @@
 |------|------|--------|
 | `200` | successful operation | `UserFPInfoResult` |
 | `405` | Invalid input |  |
+
+**스키마 `UserFPInfoResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+| `UserFPInfo` | array<UserFPInfo> |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
+**스키마 `UserFPInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `FingerID` | integer |  | 지문위치 정보 |
+| `MinConvType` | integer |  | BSP Template Type |
+| `TemplateIndex` | integer |  | 템플릿 순서 |
+| `TemplateData` | string |  | 지문템플릿 데이터 |
 
 ---
 
@@ -5093,6 +10678,26 @@
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
 
+**스키마 `UserPasswordInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `UserID` | integer |  | 단말기 아이디 |
+| `CurrentPassword` | string |  | 현재 비밀번호 |
+| `NewPassword` | string |  | 새로운 비밀번호 |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
 ---
 
 ## GET `/v1/users/{id}/picture`
@@ -5112,6 +10717,26 @@
 |------|------|--------|
 | `200` | successful operation | `UserPictureResult` |
 | `405` | Invalid input |  |
+
+**스키마 `UserPictureResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+| `PictureInfo` | UserPicture |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
+**스키마 `UserPicture`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ImageType` | string |  |  |
+| `Picture` | string |  |  |
 
 ---
 
@@ -5134,6 +10759,25 @@
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
 
+**스키마 `UserPicture`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ImageType` | string |  |  |
+| `Picture` | string |  |  |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
 ---
 
 ## GET `/v1/users/{id}/terminaluser`
@@ -5153,6 +10797,26 @@
 |------|------|--------|
 | `200` | successful operation | `TerminalUserTinyListResult` |
 | `405` | Invalid input |  |
+
+**스키마 `TerminalUserTinyListResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+| `TerminalUserTinyList` | array<TerminalUserTinyInfo> |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
+**스키마 `TerminalUserTinyInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ID` | integer |  | 단말기 아이디 |
+| `Name` | string |  | 단말기 이름 |
 
 ---
 
@@ -5175,6 +10839,26 @@
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
 
+**스키마 `UserTokenInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `UserID` | integer |  |  |
+| `Token` | string |  |  |
+| `TokenType` | integer |  |  |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
 ---
 
 ## POST `/v1/visit/login`
@@ -5195,6 +10879,25 @@
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
 
+**스키마 `VisitLogin`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `userId` | string |  |  |
+| `password` | string |  |  |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
 ---
 
 ## GET `/v1/visit/logout`
@@ -5209,6 +10912,18 @@
 |------|------|--------|
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
 
 ---
 
@@ -5230,6 +10945,18 @@
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
 
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
 ---
 
 ## PUT `/v1/visit/visitApplication/{visitIndex}/status`
@@ -5250,6 +10977,18 @@
 |------|------|--------|
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
 
 ---
 
@@ -5273,6 +11012,103 @@
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
 
+**스키마 `AddVisitorInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `UserInfo` | VisitorInfo |  |  |
+| `UserFPInfo` | array<UserFPInfo> |  |  |
+| `UserFaceInfo` | array<UserFaceInfo> |  |  |
+| `UserCardInfo` | array<UserCardInfo> |  |  |
+| `UserFaceWTInfo` | array<UserFaceWTInfoVisitor> |  |  |
+
+**스키마 `VisitorInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Name` | string |  |  |
+| `AuthInfo` | array<integer> |  |  |
+| `Privilege` | integer |  |  |
+| `CreateDate` | string |  |  |
+| `UsePeriodFlag` | integer |  |  |
+| `RegistDate` | string |  |  |
+| `ExpireDate` | string |  |  |
+| `Password` | string |  |  |
+| `GroupCode` | integer |  |  |
+| `AccessGroupCode` | integer |  |  |
+| `UserType` | integer |  |  |
+| `TimezoneCode` | integer |  |  |
+| `BlackList` | integer |  |  |
+| `FPIdentify` | integer |  |  |
+| `FaceIdentify` | integer |  |  |
+| `DuressFinger` | array<integer> |  |  |
+| `Partition` | integer |  |  |
+| `APBExcept` | integer |  |  |
+| `APBZone` | integer |  |  |
+| `WorkCode` | string |  |  |
+| `MealCode` | string |  |  |
+| `MoneyCode` | string |  |  |
+| `MessageCode` | integer |  |  |
+| `VerifyLevel` | integer |  |  |
+| `PositionCode` | integer |  |  |
+| `Department` | string |  |  |
+| `LoginPW` | string |  |  |
+| `LoginAllowed` | string |  |  |
+| `Picture` | string |  |  |
+| `EmployeeNum` | string |  |  |
+| `Email` | string |  |  |
+| `Phone` | string |  |  |
+
+**스키마 `UserFPInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `FingerID` | integer |  | 지문위치 정보 |
+| `MinConvType` | integer |  | BSP Template Type |
+| `TemplateIndex` | integer |  | 템플릿 순서 |
+| `TemplateData` | string |  | 지문템플릿 데이터 |
+
+**스키마 `UserFaceInfo`** (이 API의 요청/응답 구조)
+
+지문템플릿 데이터
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `UserID` | integer |  | 사용자ID |
+| `Index` | integer |  | 얼굴 index, (1,2) |
+| `Type` | integer |  | 고정값 0 |
+| `SubIndex` | integer |  | 등록 템플릿 순번 |
+| `TemplateSize` | integer |  | 등록 템플릿 사이즈 |
+| `TemplateData` | string |  |  |
+
+**스키마 `UserCardInfo`** (이 API의 요청/응답 구조)
+
+카드번호
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `CardNum` | string |  |  |
+
+**스키마 `UserFaceWTInfoVisitor`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `TemplateSize` | integer |  |  |
+| `TemplateData` | string |  |  |
+| `TemplateType` | string |  |  |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
 ---
 
 ## POST `/v1/visit/visitInvite`
@@ -5292,6 +11128,30 @@
 |------|------|--------|
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
+
+**스키마 `VisitInvite`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `InviteType` | string |  |  |
+| `VisitIndex` | string |  |  |
+| `VisitorIndex` | string |  |  |
+| `Email` | string |  |  |
+| `Title` | string |  |  |
+| `Message` | string |  |  |
+| `AccessGroup` | integer |  |  |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
 
 ---
 
@@ -5316,6 +11176,18 @@
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
 
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
 ---
 
 ## POST `/v1/visitor/visitApplication`
@@ -5335,6 +11207,67 @@
 |------|------|--------|
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
+
+**스키마 `VisitorInfomation`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `VisitInfo` | VisitInfo |  |  |
+| `VisitorList` | array<VisitorList> |  | 방문신청 고객 리스트 |
+| `ItemList` | array<ItemList> |  | 반입물품 리스트 |
+
+**스키마 `VisitInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `StartTime` | string |  |  |
+| `EndTime` | string |  |  |
+| `Purpose` | string |  |  |
+| `VisitTargetID` | integer |  |  |
+| `VisitTargetUserName` | string |  |  |
+| `VisitTargetPositionName` | string |  |  |
+| `VisitTargetGroupName` | string |  |  |
+| `Password` | string |  |  |
+
+**스키마 `VisitorList`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `FirstName` | string |  |  |
+| `LastName` | string |  |  |
+| `Birthday` | string |  |  |
+| `Mobile` | integer |  |  |
+| `Company` | string |  |  |
+| `CarNumber` | string |  |  |
+| `Email` | string |  |  |
+| `Photo` | string |  |  |
+
+**스키마 `ItemList`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ItemType` | integer |  |  |
+| `NameType` | integer |  |  |
+| `Name` | string |  |  |
+| `InOut` | integer |  |  |
+| `SerialNum` | string |  |  |
+| `Model` | string |  |  |
+| `Purpose` | string |  |  |
+| `Unit` | string |  |  |
+| `Count` | integer |  |  |
+| `Desc` | string |  |  |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
 
 ---
 
@@ -5356,6 +11289,18 @@
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
 
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
 ---
 
 ## GET `/v1/web/notice`
@@ -5370,6 +11315,31 @@
 |------|------|--------|
 | `200` | successful operation/ | `WebNoticeResult` |
 | `405` | Invalid input |  |
+
+**스키마 `WebNoticeResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+| `WebNotice` | WebNotice |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
+**스키마 `WebNotice`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Title` | string |  |  |
+| `StartDate` | string |  |  |
+| `EndDate` | string |  |  |
+| `StartTime` | string |  |  |
+| `EndTime` | string |  |  |
+| `Message` | string |  |  |
+| `IsPopup` | string |  |  |
 
 ---
 
@@ -5391,6 +11361,24 @@
 | `200` | successful operation | `Result` |
 | `405` | Invalid input |  |
 
+**스키마 `WebNotice`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Title` | string |  |  |
+| `StartDate` | string |  |  |
+| `EndDate` | string |  |  |
+| `StartTime` | string |  |  |
+| `EndTime` | string |  |  |
+| `Message` | string |  |  |
+| `IsPopup` | string |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
 ---
 
 ## GET `/v1/wiegand/in`
@@ -5405,6 +11393,33 @@
 |------|------|--------|
 | `200` | successful operation | `WiegandListResult` |
 | `405` | Invalid input |  |
+
+**스키마 `WiegandListResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+| `Total` | Total |  |  |
+| `WiegandList` | array<WiegandList> |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
+**스키마 `Total`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Count` | integer |  |  |
+
+**스키마 `WiegandList`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Code` | integer |  | 위겐드 코드 |
+| `Name` | string |  | 위겐드 명칭 |
 
 ---
 
@@ -5426,6 +11441,55 @@
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
 
+**스키마 `WiegandIn`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `InBasicInfo` | InBasicInfo |  |  |
+| `Parity` | array<Parity> |  |  |
+| `ConvertFormat` | array<ConvertFormat> |  |  |
+
+**스키마 `InBasicInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Code` | integer |  | 위겐드In 구분 코드 |
+| `Name` | string |  | 위겐드In 명칭 |
+| `Bits` | integer |  | Bit Length 와 Custom Size 설정값 (0: unused, 1~128: Custom Size, 129: St. 26bit, 130: St.34bit) |
+| `Port` | integer |  | PortState (0: Active Low, 1: Active High) |
+| `ParityCount` | integer |  | Set Field 활성화된 상태 갯수 |
+| `IntervalTime` | integer |  | IntervalTime 설정값 |
+| `WidthTime` | integer |  | WidthTime 설정값 |
+
+**스키마 `Parity`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Type` | integer |  | 1: "O(Odd Parity)", 2: "E(Even Parity)" |
+| `Position` | integer |  | SetField 위치 |
+| `MaskBits` | string |  | Set Perity 위치 지정 |
+
+**스키마 `ConvertFormat`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Type` | integer |  | DataType 설정 (0: Unused, 1: Binary, 2:Decimal String, 3:Hexa String) |
+| `Digit` | integer |  | Digit Size 설정(4) |
+| `Endian` | integer |  | Endian 설정 (0: (MSBit : MSByte), 1: (LSBit : MSByte), 2: (MSBit : LSByte), 3: (LSBit : LSByte) |
+| `MaskBits` | string |  | Set Field 위치 지정 |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
 ---
 
 ## PUT `/v1/wiegand/in/download`
@@ -5446,6 +11510,56 @@
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
 
+**스키마 `WiegandInToTerminalDownload`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Parity` | array<Parity> |  |  |
+| `InBasicInfo` | InBasicInfo |  |  |
+| `ConvertFormat` | array<ConvertFormat> |  |  |
+| `TerminalID` | array<string> |  |  |
+
+**스키마 `Parity`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Type` | integer |  | 1: "O(Odd Parity)", 2: "E(Even Parity)" |
+| `Position` | integer |  | SetField 위치 |
+| `MaskBits` | string |  | Set Perity 위치 지정 |
+
+**스키마 `InBasicInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Code` | integer |  | 위겐드In 구분 코드 |
+| `Name` | string |  | 위겐드In 명칭 |
+| `Bits` | integer |  | Bit Length 와 Custom Size 설정값 (0: unused, 1~128: Custom Size, 129: St. 26bit, 130: St.34bit) |
+| `Port` | integer |  | PortState (0: Active Low, 1: Active High) |
+| `ParityCount` | integer |  | Set Field 활성화된 상태 갯수 |
+| `IntervalTime` | integer |  | IntervalTime 설정값 |
+| `WidthTime` | integer |  | WidthTime 설정값 |
+
+**스키마 `ConvertFormat`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Type` | integer |  | DataType 설정 (0: Unused, 1: Binary, 2:Decimal String, 3:Hexa String) |
+| `Digit` | integer |  | Digit Size 설정(4) |
+| `Endian` | integer |  | Endian 설정 (0: (MSBit : MSByte), 1: (LSBit : MSByte), 2: (MSBit : LSByte), 3: (LSBit : LSByte) |
+| `MaskBits` | string |  | Set Field 위치 지정 |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
 ---
 
 ## GET `/v1/wiegand/in/{code}`
@@ -5465,6 +11579,50 @@
 |------|------|--------|
 | `200` | successful operation | `WiegandInResult` |
 | `405` | Invalid input |  |
+
+**스키마 `WiegandInResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+| `InBasicInfo` | InBasicInfo |  |  |
+| `Parity` | array<Parity> |  |  |
+| `ConvertFormat` | array<ConvertFormat> |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
+**스키마 `InBasicInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Code` | integer |  | 위겐드In 구분 코드 |
+| `Name` | string |  | 위겐드In 명칭 |
+| `Bits` | integer |  | Bit Length 와 Custom Size 설정값 (0: unused, 1~128: Custom Size, 129: St. 26bit, 130: St.34bit) |
+| `Port` | integer |  | PortState (0: Active Low, 1: Active High) |
+| `ParityCount` | integer |  | Set Field 활성화된 상태 갯수 |
+| `IntervalTime` | integer |  | IntervalTime 설정값 |
+| `WidthTime` | integer |  | WidthTime 설정값 |
+
+**스키마 `Parity`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Type` | integer |  | 1: "O(Odd Parity)", 2: "E(Even Parity)" |
+| `Position` | integer |  | SetField 위치 |
+| `MaskBits` | string |  | Set Perity 위치 지정 |
+
+**스키마 `ConvertFormat`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Type` | integer |  | DataType 설정 (0: Unused, 1: Binary, 2:Decimal String, 3:Hexa String) |
+| `Digit` | integer |  | Digit Size 설정(4) |
+| `Endian` | integer |  | Endian 설정 (0: (MSBit : MSByte), 1: (LSBit : MSByte), 2: (MSBit : LSByte), 3: (LSBit : LSByte) |
+| `MaskBits` | string |  | Set Field 위치 지정 |
 
 ---
 
@@ -5487,6 +11645,55 @@
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
 
+**스키마 `WiegandIn`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `InBasicInfo` | InBasicInfo |  |  |
+| `Parity` | array<Parity> |  |  |
+| `ConvertFormat` | array<ConvertFormat> |  |  |
+
+**스키마 `InBasicInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Code` | integer |  | 위겐드In 구분 코드 |
+| `Name` | string |  | 위겐드In 명칭 |
+| `Bits` | integer |  | Bit Length 와 Custom Size 설정값 (0: unused, 1~128: Custom Size, 129: St. 26bit, 130: St.34bit) |
+| `Port` | integer |  | PortState (0: Active Low, 1: Active High) |
+| `ParityCount` | integer |  | Set Field 활성화된 상태 갯수 |
+| `IntervalTime` | integer |  | IntervalTime 설정값 |
+| `WidthTime` | integer |  | WidthTime 설정값 |
+
+**스키마 `Parity`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Type` | integer |  | 1: "O(Odd Parity)", 2: "E(Even Parity)" |
+| `Position` | integer |  | SetField 위치 |
+| `MaskBits` | string |  | Set Perity 위치 지정 |
+
+**스키마 `ConvertFormat`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Type` | integer |  | DataType 설정 (0: Unused, 1: Binary, 2:Decimal String, 3:Hexa String) |
+| `Digit` | integer |  | Digit Size 설정(4) |
+| `Endian` | integer |  | Endian 설정 (0: (MSBit : MSByte), 1: (LSBit : MSByte), 2: (MSBit : LSByte), 3: (LSBit : LSByte) |
+| `MaskBits` | string |  | Set Field 위치 지정 |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
 ---
 
 ## DELETE `/v1/wiegand/in/{code}`
@@ -5506,6 +11713,18 @@
 |------|------|--------|
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
 
 ---
 
@@ -5527,6 +11746,50 @@
 | `200` | successful operation | `WiegandInResult` |
 | `405` | Invalid input |  |
 
+**스키마 `WiegandInResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+| `InBasicInfo` | InBasicInfo |  |  |
+| `Parity` | array<Parity> |  |  |
+| `ConvertFormat` | array<ConvertFormat> |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
+**스키마 `InBasicInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Code` | integer |  | 위겐드In 구분 코드 |
+| `Name` | string |  | 위겐드In 명칭 |
+| `Bits` | integer |  | Bit Length 와 Custom Size 설정값 (0: unused, 1~128: Custom Size, 129: St. 26bit, 130: St.34bit) |
+| `Port` | integer |  | PortState (0: Active Low, 1: Active High) |
+| `ParityCount` | integer |  | Set Field 활성화된 상태 갯수 |
+| `IntervalTime` | integer |  | IntervalTime 설정값 |
+| `WidthTime` | integer |  | WidthTime 설정값 |
+
+**스키마 `Parity`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Type` | integer |  | 1: "O(Odd Parity)", 2: "E(Even Parity)" |
+| `Position` | integer |  | SetField 위치 |
+| `MaskBits` | string |  | Set Perity 위치 지정 |
+
+**스키마 `ConvertFormat`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Type` | integer |  | DataType 설정 (0: Unused, 1: Binary, 2:Decimal String, 3:Hexa String) |
+| `Digit` | integer |  | Digit Size 설정(4) |
+| `Endian` | integer |  | Endian 설정 (0: (MSBit : MSByte), 1: (LSBit : MSByte), 2: (MSBit : LSByte), 3: (LSBit : LSByte) |
+| `MaskBits` | string |  | Set Field 위치 지정 |
+
 ---
 
 ## GET `/v1/wiegand/out`
@@ -5541,6 +11804,33 @@
 |------|------|--------|
 | `200` | successful operation | `WiegandListResult` |
 | `405` | Invalid input |  |
+
+**스키마 `WiegandListResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+| `Total` | Total |  |  |
+| `WiegandList` | array<WiegandList> |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
+**스키마 `Total`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Count` | integer |  |  |
+
+**스키마 `WiegandList`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Code` | integer |  | 위겐드 코드 |
+| `Name` | string |  | 위겐드 명칭 |
 
 ---
 
@@ -5562,6 +11852,53 @@
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
 
+**스키마 `WiegandOut`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `OutBasicInfo` | OutBasicInfo |  |  |
+| `Parity` | array<Parity> |  |  |
+
+**스키마 `OutBasicInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Code` | integer |  | 위겐드Out 구분 코드 |
+| `Name` | string |  | 위겐드OUt 명칭 |
+| `Bits` | integer |  | Bit Length 와 Custom Size 설정값 (0: unused, 1~128: 기타 커스텀 사이즈, 129: 표준 26bit, 130: 표준 34bit) |
+| `Port` | integer |  | PortState (0: Active Low(기본), 1: Active High) |
+| `ParityCount` | integer |  | Bit 길이에서 커스텀 사이즈 선택 시 범위 지정 (범위: 1 ~ 128bit) |
+| `SendFail` | integer |  | 인증성공 시 외 실패신호까지 전송 할 경우(0:Not Anything, 1:Send Fail Data, 2:Invert Parity 3:Card Serial) |
+| `SendData` | integer |  | 0:사용자 아이디, 1:카드번호 |
+| `PulseInterval` | integer |  | 0 (설정하지 않을 경우 보통 2ms) |
+| `PulseWidth` | integer |  | 0 (설정하지 않을 경우 보통 50μs) |
+| `SiteCode` | integer |  | 사용자 별도 지정이 필요 할 경우 설정 (단말기 설정 범위 : 0~255, UNIS에서는 그 외 범위 입력 가능) |
+| `FailID` | integer |  | Send Fail 설정이 [Send Fail Data] 일 경우 실패신호 전송 데이터 포맷을 지정 |
+| `MaskSiteCode` | string |  | SetField에 설정된 SiteCode 위치 |
+| `MaskUserID` | string |  | SetField에 설정된 Data(ID) 위치 |
+| `MaskFixed0` | string |  | SetField에 설정된 (Fixed 0) 위치 |
+| `MaskFixed1` | string |  | SetField에 설정된 (Fixed 1) 위치 |
+
+**스키마 `Parity`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Type` | integer |  | 1: "O(Odd Parity)", 2: "E(Even Parity)" |
+| `Position` | integer |  | SetField 위치 |
+| `MaskBits` | string |  | Set Perity 위치 지정 |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
 ---
 
 ## PUT `/v1/wiegand/out/download`
@@ -5582,6 +11919,56 @@
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
 
+**스키마 `WiegandInToTerminalDownload`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Parity` | array<Parity> |  |  |
+| `InBasicInfo` | InBasicInfo |  |  |
+| `ConvertFormat` | array<ConvertFormat> |  |  |
+| `TerminalID` | array<string> |  |  |
+
+**스키마 `Parity`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Type` | integer |  | 1: "O(Odd Parity)", 2: "E(Even Parity)" |
+| `Position` | integer |  | SetField 위치 |
+| `MaskBits` | string |  | Set Perity 위치 지정 |
+
+**스키마 `InBasicInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Code` | integer |  | 위겐드In 구분 코드 |
+| `Name` | string |  | 위겐드In 명칭 |
+| `Bits` | integer |  | Bit Length 와 Custom Size 설정값 (0: unused, 1~128: Custom Size, 129: St. 26bit, 130: St.34bit) |
+| `Port` | integer |  | PortState (0: Active Low, 1: Active High) |
+| `ParityCount` | integer |  | Set Field 활성화된 상태 갯수 |
+| `IntervalTime` | integer |  | IntervalTime 설정값 |
+| `WidthTime` | integer |  | WidthTime 설정값 |
+
+**스키마 `ConvertFormat`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Type` | integer |  | DataType 설정 (0: Unused, 1: Binary, 2:Decimal String, 3:Hexa String) |
+| `Digit` | integer |  | Digit Size 설정(4) |
+| `Endian` | integer |  | Endian 설정 (0: (MSBit : MSByte), 1: (LSBit : MSByte), 2: (MSBit : LSByte), 3: (LSBit : LSByte) |
+| `MaskBits` | string |  | Set Field 위치 지정 |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
 ---
 
 ## GET `/v1/wiegand/out/{code}`
@@ -5601,6 +11988,48 @@
 |------|------|--------|
 | `200` | successful operation | `WiegandOutResult` |
 | `405` | Invalid input |  |
+
+**스키마 `WiegandOutResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+| `OutBasicInfo` | OutBasicInfo |  |  |
+| `Parity` | array<Parity> |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
+**스키마 `OutBasicInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Code` | integer |  | 위겐드Out 구분 코드 |
+| `Name` | string |  | 위겐드OUt 명칭 |
+| `Bits` | integer |  | Bit Length 와 Custom Size 설정값 (0: unused, 1~128: 기타 커스텀 사이즈, 129: 표준 26bit, 130: 표준 34bit) |
+| `Port` | integer |  | PortState (0: Active Low(기본), 1: Active High) |
+| `ParityCount` | integer |  | Bit 길이에서 커스텀 사이즈 선택 시 범위 지정 (범위: 1 ~ 128bit) |
+| `SendFail` | integer |  | 인증성공 시 외 실패신호까지 전송 할 경우(0:Not Anything, 1:Send Fail Data, 2:Invert Parity 3:Card Serial) |
+| `SendData` | integer |  | 0:사용자 아이디, 1:카드번호 |
+| `PulseInterval` | integer |  | 0 (설정하지 않을 경우 보통 2ms) |
+| `PulseWidth` | integer |  | 0 (설정하지 않을 경우 보통 50μs) |
+| `SiteCode` | integer |  | 사용자 별도 지정이 필요 할 경우 설정 (단말기 설정 범위 : 0~255, UNIS에서는 그 외 범위 입력 가능) |
+| `FailID` | integer |  | Send Fail 설정이 [Send Fail Data] 일 경우 실패신호 전송 데이터 포맷을 지정 |
+| `MaskSiteCode` | string |  | SetField에 설정된 SiteCode 위치 |
+| `MaskUserID` | string |  | SetField에 설정된 Data(ID) 위치 |
+| `MaskFixed0` | string |  | SetField에 설정된 (Fixed 0) 위치 |
+| `MaskFixed1` | string |  | SetField에 설정된 (Fixed 1) 위치 |
+
+**스키마 `Parity`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Type` | integer |  | 1: "O(Odd Parity)", 2: "E(Even Parity)" |
+| `Position` | integer |  | SetField 위치 |
+| `MaskBits` | string |  | Set Perity 위치 지정 |
 
 ---
 
@@ -5623,6 +12052,53 @@
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
 
+**스키마 `WiegandOut`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `OutBasicInfo` | OutBasicInfo |  |  |
+| `Parity` | array<Parity> |  |  |
+
+**스키마 `OutBasicInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Code` | integer |  | 위겐드Out 구분 코드 |
+| `Name` | string |  | 위겐드OUt 명칭 |
+| `Bits` | integer |  | Bit Length 와 Custom Size 설정값 (0: unused, 1~128: 기타 커스텀 사이즈, 129: 표준 26bit, 130: 표준 34bit) |
+| `Port` | integer |  | PortState (0: Active Low(기본), 1: Active High) |
+| `ParityCount` | integer |  | Bit 길이에서 커스텀 사이즈 선택 시 범위 지정 (범위: 1 ~ 128bit) |
+| `SendFail` | integer |  | 인증성공 시 외 실패신호까지 전송 할 경우(0:Not Anything, 1:Send Fail Data, 2:Invert Parity 3:Card Serial) |
+| `SendData` | integer |  | 0:사용자 아이디, 1:카드번호 |
+| `PulseInterval` | integer |  | 0 (설정하지 않을 경우 보통 2ms) |
+| `PulseWidth` | integer |  | 0 (설정하지 않을 경우 보통 50μs) |
+| `SiteCode` | integer |  | 사용자 별도 지정이 필요 할 경우 설정 (단말기 설정 범위 : 0~255, UNIS에서는 그 외 범위 입력 가능) |
+| `FailID` | integer |  | Send Fail 설정이 [Send Fail Data] 일 경우 실패신호 전송 데이터 포맷을 지정 |
+| `MaskSiteCode` | string |  | SetField에 설정된 SiteCode 위치 |
+| `MaskUserID` | string |  | SetField에 설정된 Data(ID) 위치 |
+| `MaskFixed0` | string |  | SetField에 설정된 (Fixed 0) 위치 |
+| `MaskFixed1` | string |  | SetField에 설정된 (Fixed 1) 위치 |
+
+**스키마 `Parity`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Type` | integer |  | 1: "O(Odd Parity)", 2: "E(Even Parity)" |
+| `Position` | integer |  | SetField 위치 |
+| `MaskBits` | string |  | Set Perity 위치 지정 |
+
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
 ---
 
 ## DELETE `/v1/wiegand/out/{code}`
@@ -5643,6 +12119,18 @@
 | `200` | successful operation | `ResponseResult` |
 | `405` | Invalid input |  |
 
+**스키마 `ResponseResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
 ---
 
 ## GET `/v1/wiegand/out/{terminalID}/terminal`
@@ -5662,6 +12150,48 @@
 |------|------|--------|
 | `200` | successful operation | `WiegandOutResult` |
 | `405` | Invalid input\ |  |
+
+**스키마 `WiegandOutResult`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Result` | Result |  |  |
+| `OutBasicInfo` | OutBasicInfo |  |  |
+| `Parity` | array<Parity> |  |  |
+
+**스키마 `Result`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `ResultCode` | integer |  |  |
+
+**스키마 `OutBasicInfo`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Code` | integer |  | 위겐드Out 구분 코드 |
+| `Name` | string |  | 위겐드OUt 명칭 |
+| `Bits` | integer |  | Bit Length 와 Custom Size 설정값 (0: unused, 1~128: 기타 커스텀 사이즈, 129: 표준 26bit, 130: 표준 34bit) |
+| `Port` | integer |  | PortState (0: Active Low(기본), 1: Active High) |
+| `ParityCount` | integer |  | Bit 길이에서 커스텀 사이즈 선택 시 범위 지정 (범위: 1 ~ 128bit) |
+| `SendFail` | integer |  | 인증성공 시 외 실패신호까지 전송 할 경우(0:Not Anything, 1:Send Fail Data, 2:Invert Parity 3:Card Serial) |
+| `SendData` | integer |  | 0:사용자 아이디, 1:카드번호 |
+| `PulseInterval` | integer |  | 0 (설정하지 않을 경우 보통 2ms) |
+| `PulseWidth` | integer |  | 0 (설정하지 않을 경우 보통 50μs) |
+| `SiteCode` | integer |  | 사용자 별도 지정이 필요 할 경우 설정 (단말기 설정 범위 : 0~255, UNIS에서는 그 외 범위 입력 가능) |
+| `FailID` | integer |  | Send Fail 설정이 [Send Fail Data] 일 경우 실패신호 전송 데이터 포맷을 지정 |
+| `MaskSiteCode` | string |  | SetField에 설정된 SiteCode 위치 |
+| `MaskUserID` | string |  | SetField에 설정된 Data(ID) 위치 |
+| `MaskFixed0` | string |  | SetField에 설정된 (Fixed 0) 위치 |
+| `MaskFixed1` | string |  | SetField에 설정된 (Fixed 1) 위치 |
+
+**스키마 `Parity`** (이 API의 요청/응답 구조)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `Type` | integer |  | 1: "O(Odd Parity)", 2: "E(Even Parity)" |
+| `Position` | integer |  | SetField 위치 |
+| `MaskBits` | string |  | Set Perity 위치 지정 |
 
 ---
 

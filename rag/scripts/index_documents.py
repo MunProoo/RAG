@@ -26,6 +26,8 @@ DEFAULT_OVERLAP = int(os.getenv("CHUNK_OVERLAP", "80"))
 BM25_INDEX_PATH = Path(os.getenv("BM25_INDEX_PATH", str(Path(CHROMA_PATH) / "bm25_index.json")))
 
 DOCUMENT_TYPE_RULES = {
+    # API/Swagger는 제품명 없이도 검색 필터로 잡을 수 있게 별도 타입으로 둡니다.
+    "api": ("swagger", "openapi", "api"),
     "protocol": ("protocol", "프로토콜", "주장치"),
     "install": ("설치", "install", "nsis", "빌드", "package"),
     "user_guide": ("user guide", "사용자 가이드", "사용자매뉴얼", "매뉴얼"),
@@ -220,6 +222,33 @@ def _section_title(text: str) -> str:
 # Only multi-level numbered lines (e.g. "3.1 출입그룹 설정") are treated as section
 # starts; single "1." lines are usually list items and would over-fragment pages.
 _PDF_SECTION_HEADING = re.compile(r"^\d+(?:\.\d+)+\.?\s+\S.*$")
+# TOC/catalog rows often look like "4.1 Title (0x0001) ..... 11".
+_TOC_DOT_LEADER = re.compile(r"\.{2,}\s*\d+\s*$")
+_TOC_COMMAND_ENTRY = re.compile(
+    r"^\d+(?:\.\d+)+\.?\s+.+(?:\(0x[0-9A-Fa-f]+\)|0x[0-9A-Fa-f]+)",
+    re.IGNORECASE,
+)
+
+
+def is_toc_or_catalog_page(page_text: str) -> bool:
+    """목차·명령 카탈로그처럼 짧은 항목 줄이 밀집한 페이지인지 판별합니다.
+
+    입력은 한 PDF 페이지 원문입니다. 이런 페이지를 번호 제목마다 쪼개면
+    '전부 리스트' 질문에 상위 K개만 남고 후반 항목이 유실되므로 통째로 둡니다.
+    """
+    lines = [line.strip() for line in (page_text or "").splitlines() if line.strip()]
+    if len(lines) < 6:
+        return False
+    toc_like = 0
+    for line in lines:
+        if _TOC_DOT_LEADER.search(line) or _TOC_COMMAND_ENTRY.match(line):
+            toc_like += 1
+            continue
+        if _PDF_SECTION_HEADING.match(line) and len(line) <= 120 and (
+            "0x" in line.casefold() or ".." in line
+        ):
+            toc_like += 1
+    return toc_like >= 5 and (toc_like / len(lines)) >= 0.35
 
 
 def split_pdf_page_sections(page_text: str) -> list[tuple[str, str]]:
@@ -227,7 +256,11 @@ def split_pdf_page_sections(page_text: str) -> list[tuple[str, str]]:
 
     Page-only chunking cuts a section body away from its title, so queries that
     match the title terms miss the chunk that holds the actual details.
+    목차·명령 목록처럼 짧은 번호 줄이 연속된 페이지는 분리하지 않고 한 단위로 둡니다.
     """
+    if is_toc_or_catalog_page(page_text):
+        return [("", page_text)]
+
     sections: list[tuple[str, str]] = []
     title, lines = "", []
     for line in page_text.splitlines():
@@ -244,11 +277,19 @@ def split_pdf_page_sections(page_text: str) -> list[tuple[str, str]]:
 def extract_document_units(file_path: Path) -> list[dict]:
     """Return independently chunkable units with page and heading information."""
     if file_path.suffix.lower() == ".pdf":
-        return [
-            {"text": text, "page": page_no, "section": section or _section_title(text)}
-            for page_no, page_text in _extract_pdf_pages(file_path)
-            for section, text in split_pdf_page_sections(page_text)
-        ]
+        units = []
+        for page_no, page_text in _extract_pdf_pages(file_path):
+            toc_like = is_toc_or_catalog_page(page_text)
+            for section, text in split_pdf_page_sections(page_text):
+                units.append(
+                    {
+                        "text": text,
+                        "page": page_no,
+                        "section": section or _section_title(text),
+                        "catalog_page": toc_like,
+                    }
+                )
+        return units
 
     text = extract_text_from_file(file_path)
     if not text:
@@ -260,15 +301,36 @@ def extract_document_units(file_path: Path) -> list[dict]:
         for line in text.splitlines():
             heading = re.match(r"^#{1,6}\s+(.+)$", line.strip())
             if heading and current_lines:
-                units.append({"text": "\n".join(current_lines), "page": 0, "section": current_heading})
+                units.append(
+                    {
+                        "text": "\n".join(current_lines),
+                        "page": 0,
+                        "section": current_heading,
+                        "catalog_page": False,
+                    }
+                )
                 current_lines = []
             if heading:
                 current_heading = heading.group(1).strip()[:160]
             current_lines.append(line)
         if current_lines:
-            units.append({"text": "\n".join(current_lines), "page": 0, "section": current_heading})
+            units.append(
+                {
+                    "text": "\n".join(current_lines),
+                    "page": 0,
+                    "section": current_heading,
+                    "catalog_page": False,
+                }
+            )
         return units
-    return [{"text": text, "page": 0, "section": _section_title(text)}]
+    return [
+        {
+            "text": text,
+            "page": 0,
+            "section": _section_title(text),
+            "catalog_page": False,
+        }
+    ]
 
 
 def _split_oversized_sentence(tokenizer, sentence: str, chunk_size: int) -> list[str]:
@@ -321,13 +383,25 @@ def _document_context(file_path: Path, chunk: str, metadata: dict) -> str:
 
 
 def index_file(collection, tokenizer, file_path: Path, chunk_size: int, overlap: int) -> int:
+    """파일 단위로 청크를 만들고 Chroma에 넣습니다. 목차 페이지는 청크 상한을 키웁니다."""
     print(f"  indexing: {file_path.name}")
     units = extract_document_units(file_path)
     chunks = []
     document_metadata = classify_document(file_path)
     for unit in units:
-        for chunk in split_into_chunks(unit["text"], tokenizer, chunk_size, overlap):
-            metadata = {**document_metadata, "page": unit["page"], "section": unit["section"]}
+        unit_chunk_size = chunk_size
+        unit_overlap = overlap
+        if unit.get("catalog_page"):
+            # 목차·명령 목록이 앞/뒤로 갈라지지 않도록 임베딩 청크를 넓게 잡습니다.
+            unit_chunk_size = max(chunk_size, 960)
+            unit_overlap = max(overlap, 160)
+        for chunk in split_into_chunks(unit["text"], tokenizer, unit_chunk_size, unit_overlap):
+            metadata = {
+                **document_metadata,
+                "page": unit["page"],
+                "section": unit["section"],
+                "catalog_page": bool(unit.get("catalog_page")),
+            }
             chunks.append((chunk, metadata))
     if not chunks:
         print("  [skip] no extractable chunk")

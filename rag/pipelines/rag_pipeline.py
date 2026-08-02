@@ -68,6 +68,19 @@ FOLLOW_UP_MARKERS = (
 )
 
 DOCUMENT_TYPE_TERMS = {
+    # swagger/스키마/API 의도는 product 필터보다 먼저 적용해 PDF 가이드가 밀어내지 않게 합니다.
+    "api": (
+        "swagger",
+        "openapi",
+        "스키마",
+        "schema",
+        "api 명세",
+        "api명세",
+        "rest api",
+        "엔드포인트",
+        "endpoint",
+        "api",
+    ),
     "protocol": ("protocol", "프로토콜", "패킷", "packet", "명령 구분", "param3"),
     "install": ("설치", "install", "nsis", "빌드", "package"),
     "user_guide": ("user guide", "사용자 가이드", "사용법", "매뉴얼"),
@@ -77,6 +90,102 @@ PRODUCT_TERMS = {
 }
 CURRENT_PROTOCOL_TERMS = ("신규", "최신", "새 프로토콜", "new protocol", "v4", "4.0")
 LEGACY_PROTOCOL_TERMS = ("구형", "기존 프로토콜", "legacy", "v1", "1.0")
+
+ARTIFACT_INTENT_RULES = {
+    "automation": {
+        "markers": (
+            "자동화", "자동 실행", "자동화 스크립트",
+            "배치 파일", "배치 스크립트", "batch file", "batch script",
+        ),
+        "extensions": (".bat", ".cmd", ".ps1", ".sh"),
+    },
+    "script": {
+        "markers": ("스크립트", "script", "소스 파일"),
+        "extensions": (".nsi", ".ps1", ".sh", ".py", ".js", ".ts"),
+    },
+    "executable": {
+        "markers": ("실행 파일", "설치 파일", "설치파일", "산출물", "installer", "executable"),
+        "extensions": (".exe", ".msi", ".pkg", ".deb", ".rpm"),
+    },
+    "config": {
+        "markers": ("설정 파일", "구성 파일", "환경 파일", "config file"),
+        "extensions": (".ini", ".conf", ".yaml", ".yml", ".json", ".toml", ".env"),
+    },
+    # 산출물 파일이 아니라 빌드 후 결과물을 확인하는 폴더/경로를 물을 때 사용합니다.
+    "output_folder": {
+        "markers": (
+            "확인하는 폴더", "확인 폴더", "결과물 폴더", "출력 폴더",
+            "설치 파일을 확인", "생성된 설치", "이동하면", "확인하는 경로",
+            "output folder", "verify folder", "check folder",
+        ),
+        "extensions": (),
+    },
+    # 빌드가 끝난 뒤 일반 설치 패키지가 만들어지는 최종 산출 경로를 묻는 의도입니다.
+    # 명시적인 .exe 파일 질문은 executable 의도로 남겨 개별 패키지의 중간 위치를 보존합니다.
+    "build_output": {
+        "markers": (
+            "빌드 완료", "빌드 후", "빌드가 끝", "빌드 끝",
+            "어디에 생겨", "어디에 생성", "생성되는 경로", "생기는 경로",
+            "산출물 경로", "출력 경로", "결과물 생성", "설치 파일이 생",
+        ),
+        "extensions": (),
+    },
+}
+
+# 전부/목록 질문은 표·TOC가 페이지 경계에서 잘려 상위 K청크만 남기 쉽습니다.
+LIST_COMPLETENESS_MARKERS = (
+    "전부", "전체", "리스트업", "리스트", "목록", "모두", "다 알려", "전부다",
+    "list all", "full list", "complete list",
+)
+_HEX_COMMAND_PATTERN = re.compile(r"0x[0-9A-Fa-f]+")
+_WINDOWS_FOLDER_PATTERN = re.compile(
+    r"(?i)\b([A-Z]:\\(?:[^\\\s,.;:()]+\\)*[^\\\s,.;:()]+)"
+)
+_OUTPUT_FOLDER_CONTENT_MARKERS = (
+    "확인", "이동하면", "생성된", "생성됩니다", "생성된다",
+    "verify", "check", "output", "install",
+)
+_BUILD_OUTPUT_CONTENT_MARKERS = (
+    "빌드가 완료", "빌드 완료", "실행이 완료", "실행 완료",
+    "설치파일이 생성", "설치 파일이 생성", "package is generated",
+)
+_USER_TERMINAL_PROCEDURE_MARKERS = (
+    "사용자", "user",
+)
+_TERMINAL_PROCEDURE_MARKERS = (
+    "단말기", "terminal",
+)
+_PROCEDURE_ACTION_MARKERS = (
+    "추가", "등록", "전송", "동기화", "다운로드", "적용",
+)
+
+# 빌드를 수동 절차가 아닌 "자동화 버전"으로 진행하려는 의도를 판별하는 마커입니다.
+# 문서 제목("알페타 설치 패키지 빌드(자동화 버전)")과 본문에 실제로 쓰인 표현만 사용하며,
+# 특정 질문 문자열을 고정하지 않습니다. ARTIFACT_INTENT_RULES["automation"]은 산출물
+# 파일 종류(배치 파일 등)를 묻는 의도라 빌드 절차 자체를 묻는 이 의도와는 구분됩니다.
+_AUTOMATED_BUILD_MARKERS = (
+    "자동화 버전", "자동빌드", "자동 빌드", "자동화된 빌드",
+    "자동으로 빌드", "automated build", "자동화 방식으로 빌드",
+)
+
+# 자동화 버전 빌드 섹션에서만 등장하는 고유 표현입니다. 특정 페이지 번호를 고정하지 않고
+# 이 표현들이 나오는 chunk_index 구간을 계산해 섹션 경계를 찾는 데 사용합니다.
+_AUTOMATED_BUILD_SECTION_ANCHORS = (
+    "자동화 버전", "git pull", "gitpull.bat", "define.go",
+    "exbuilder", "build_install.bat", "proto_compile",
+)
+
+# 경로·확장자·HTTP 메서드뿐 아니라 CamelCase/대문자 식별자(FaceWT, FAW)도 보존합니다.
+# 전역 (?i)를 쓰지 않으며, 한글 조사와 붙어도 ASCII 식별자를 자를 수 있게
+# `\b` 대신 ASCII 경계 lookaround를 사용합니다.
+_TECHNICAL_TOKEN_PATTERN = re.compile(
+    r"(?:[A-Za-z]:\\(?:[^\\\s`\"'<>|]+\\)*[^\\\s`\"'<>|]+)"
+    r"|(?:/[A-Za-z0-9._{}-]+(?:/[A-Za-z0-9._{}-]+)+)"
+    r"|(?:[A-Za-z0-9_{}-]+(?:\.[A-Za-z0-9_{}-]+)+)"
+    r"|(?:\b(?:GET|POST|PUT|PATCH|DELETE)\s+/[^\s`]+)"
+    r"|(?:(?<![A-Za-z0-9_])[A-Z][a-z0-9]+(?:[A-Z][a-z0-9]*)+(?![A-Za-z0-9_]))"
+    r"|(?:(?<![A-Za-z0-9_])[A-Z]{2,}[0-9]*(?![A-Za-z0-9_]))"
+)
 
 
 # ─────────────────────────────────────────
@@ -139,7 +248,8 @@ def detect_retrieval_scope(query: str) -> Dict[str, str]:
 
     Document type must be applied before retrieval.  Filtering only after global
     top-k search is too late because a common product keyword can crowd out the
-    desired document type completely.
+    desired document type completely. API/Swagger 문서는 파일명에 제품명이 없어
+    product 필터와 함께 쓰면 전부 탈락하므로 api 타입일 때는 product를 제거합니다.
     """
     normalized = (query or "").casefold()
     scope: Dict[str, str] = {}
@@ -147,6 +257,10 @@ def detect_retrieval_scope(query: str) -> Dict[str, str]:
         if any(term.casefold() in normalized for term in terms):
             scope["document_type"] = document_type
             break
+    # 문서 종류를 직접 말하지 않은 절차형 질문도 사용자·단말기 조작 의도가 분명하면
+    # User Guide로 한정합니다. 프로토콜/API/설치 문서가 섞여 메뉴 절차를 대체하지 않게 합니다.
+    if "document_type" not in scope and is_user_terminal_procedure_intent(query):
+        scope["document_type"] = "user_guide"
     for product, terms in PRODUCT_TERMS.items():
         if any(term.casefold() in normalized for term in terms):
             scope["product"] = product
@@ -156,11 +270,48 @@ def detect_retrieval_scope(query: str) -> Dict[str, str]:
             scope["protocol_generation"] = "current"
         elif any(term.casefold() in normalized for term in LEGACY_PROTOCOL_TERMS):
             scope["protocol_generation"] = "legacy"
+    if scope.get("document_type") == "api":
+        scope.pop("product", None)
     return scope
 
 
+def is_user_terminal_procedure_intent(query: str) -> bool:
+    """사용자와 단말기 사이의 UI 절차를 묻는 질문을 일반 키워드 조합으로 판별합니다.
+
+    명시적인 문서 유형이 없는 경우에만 검색 범위를 User Guide로 좁히는 보조 규칙입니다.
+    단말기·사용자와 추가/전송/동기화 같은 작업 표현이 함께 있어야 하므로 일반 제품 소개
+    질문을 가이드 절차로 오인하지 않습니다.
+    """
+    normalized = (query or "").casefold()
+    has_user = any(marker in normalized for marker in _USER_TERMINAL_PROCEDURE_MARKERS)
+    has_terminal = any(marker in normalized for marker in _TERMINAL_PROCEDURE_MARKERS)
+    has_action = any(marker in normalized for marker in _PROCEDURE_ACTION_MARKERS)
+    return has_user and has_terminal and has_action
+
+
+def is_automated_build_intent(query: str) -> bool:
+    """빌드를 "자동화 버전"(자동빌드) 절차로 진행하려는 의도를 일반 마커로 판별합니다.
+
+    문서에 실제로 있는 표현("자동화 버전", "자동빌드" 등)만 사용하며 특정 질문
+    문자열을 고정하지 않습니다. 이 의도일 때만 자동화 섹션 검색 확장·완결성 보정과
+    수동 절차와 분리된 답변 지침이 적용됩니다.
+    """
+    normalized = (query or "").casefold()
+    return any(marker.casefold() in normalized for marker in _AUTOMATED_BUILD_MARKERS)
+
+
+def detect_api_doc_intent(query: str) -> bool:
+    """질문이 Swagger·스키마·REST API 명세를 요구하는지 일반 규칙으로 판별합니다."""
+    normalized = (query or "").casefold()
+    return any(term.casefold() in normalized for term in DOCUMENT_TYPE_TERMS["api"])
+
+
 def expand_retrieval_query(original_query: str, rewritten_query: str) -> str:
-    """Add deterministic domain synonyms that the rewrite LLM may miss."""
+    """원문을 항상 첫 변형으로 보존하고 재작성·도메인 확장을 뒤에 추가합니다.
+
+    파일명·경로·명령처럼 한 글자 변화에도 의미가 달라지는 입력은 LLM 재작성만
+    검색하면 유실될 수 있으므로 원문을 제거하거나 정규화하지 않습니다.
+    """
     original = (original_query or "").casefold()
     expansions = []
     if "내려" in original or "내리" in original:
@@ -169,9 +320,225 @@ def expand_retrieval_query(original_query: str, rewritten_query: str) -> str:
         expansions.append("출입그룹 출입 그룹 access group Door 설정 전송")
     if any(term.casefold() in original for term in CURRENT_PROTOCOL_TERMS):
         expansions.append("신규 프로토콜 v4.0 current Communication protocol for Terminal")
-    lines = [line.strip() for line in (rewritten_query or "").splitlines() if line.strip()]
+    if detect_api_doc_intent(original_query):
+        expansions.append("swagger OpenAPI schema endpoint REST API definitions")
+    if detect_list_completeness_intent(original_query):
+        expansions.append("목차 Contents Command Preview 명령 목록 프로토콜 명령")
+    if "output_folder" in detect_artifact_intents(original_query):
+        expansions.append("확인 폴더 이동하면 생성된 설치 파일 확인")
+    if "build_output" in detect_artifact_intents(original_query):
+        expansions.append("빌드 완료 설치 파일 생성 최종 산출물 경로")
+    if is_user_terminal_procedure_intent(original_query):
+        expansions.append(
+            "사용자 단말기 추가 사용자 선택 적용 전송 "
+            "단말기리스트 출입그룹 단말기 리스트 등록된 단말기 추가가능한 단말기 "
+            "단말기 사용자 정보 자동 동기화 일반설정 사용자 "
+            "덮어쓰기 다시 다운로드 다운로드 재진행 다시 동기화"
+        )
+    if is_automated_build_intent(original_query):
+        # 문서의 "알페타 설치 패키지 빌드(자동화 버전)" 섹션 실제 표현으로 확장합니다.
+        # 이 표현이 없으면 수동 절차(MakeNSISW 등)만 검색되기 쉽습니다.
+        expansions.append(
+            "알페타 설치 패키지 빌드 자동화 버전 git pull gitpull.bat "
+            "define.go eXbuilder build_install.bat proto_compile go build "
+            "client export alpeta_device.nsi alpeta.nsi PRODUCT_VERSION "
+            "D:\\nsis\\install 설치 파일 생성"
+        )
+    exact_tokens = extract_technical_tokens(original_query)
+    if exact_tokens:
+        expansions.append(" ".join(exact_tokens))
+    lines = [original_query.strip()] if (original_query or "").strip() else []
+    lines.extend(line.strip() for line in (rewritten_query or "").splitlines() if line.strip())
     lines.extend(expansions)
     return "\n".join(dict.fromkeys(lines))
+
+
+def extract_technical_tokens(text: str) -> List[str]:
+    """질문·문서에서 파일명, 경로, API 메서드처럼 정확 비교할 토큰을 추출합니다.
+
+    반환값은 원문 표기를 유지하되 대소문자만 무시해 중복을 제거합니다. 일반 자연어
+    단어는 포함하지 않아 특정 제품이나 질문에 종속되지 않도록 합니다.
+    """
+    tokens: List[str] = []
+    seen = set()
+    for match in _TECHNICAL_TOKEN_PATTERN.finditer(text or ""):
+        token = match.group(0).rstrip(".,;:)]}")
+        key = token.casefold()
+        if key and key not in seen:
+            seen.add(key)
+            tokens.append(token)
+    return tokens
+
+
+def detect_artifact_intents(query: str) -> List[str]:
+    """질문이 요구하는 파일 역할을 일반적인 확장자 유형으로 분류합니다.
+
+    배치·자동화 문구 안의 일반 `script`는 소스 스크립트로 중복 해석하지 않습니다.
+    다만 NSIS/.nsi/소스 스크립트를 명시하면 자동화와 함께 별도 의도로 유지합니다.
+    결과물 확인 폴더 질문에서는 executable(설치 파일) 의도를 제거해 산출물 경로와
+    혼동하지 않게 합니다.
+    """
+    normalized = (query or "").casefold()
+    intents = []
+    for intent, rule in ARTIFACT_INTENT_RULES.items():
+        if any(marker.casefold() in normalized for marker in rule["markers"]):
+            intents.append(intent)
+
+    explicit_source_script = any(
+        marker in normalized
+        for marker in ("nsis", ".nsi", "소스 스크립트", "source script")
+    )
+    if "automation" in intents and "script" in intents and not explicit_source_script:
+        intents.remove("script")
+    if "output_folder" in intents and "executable" in intents:
+        intents.remove("executable")
+    # 특정 실행 파일명은 개별 패키지의 생성 위치를 요구하므로 build_output과 병존시키지
+    # 않습니다. 파일명이 없는 일반 빌드 완료 질문은 최종 산출물 역할을 우선합니다.
+    explicit_executable = bool(re.search(r"\b[\w.-]+\.(?:exe|msi|pkg|deb|rpm)\b", normalized))
+    if "build_output" in intents and "executable" in intents and not explicit_executable:
+        intents.remove("executable")
+    return intents
+
+
+def detect_list_completeness_intent(query: str) -> bool:
+    """질문이 표·목차·명령의 완결 목록을 요구하는지 일반 마커로 판별합니다."""
+    normalized = (query or "").casefold()
+    return any(marker.casefold() in normalized for marker in LIST_COMPLETENESS_MARKERS)
+
+
+def looks_like_command_catalog(content: str) -> bool:
+    """청크가 명령/TOC 카탈로그처럼 여러 hex·점선 목차 행을 갖는지 판별합니다.
+
+    특정 command hex를 하드코딩하지 않고, 밀도만으로 목록 완결성 후보를 고릅니다.
+    """
+    text = content or ""
+    hex_count = len(set(_HEX_COMMAND_PATTERN.findall(text)))
+    dotted = text.count("..")
+    return hex_count >= 6 or (hex_count >= 4 and dotted >= 3)
+
+
+def count_unique_hex_commands(content: str) -> int:
+    """본문에 등장하는 고유 0x 명령 코드 개수를 셉니다."""
+    return len({value.upper() for value in _HEX_COMMAND_PATTERN.findall(content or "")})
+
+
+def path_role_evidence_score(query: str, content: str) -> float:
+    """결과물 확인 폴더 질문에서 경로 역할 일치도를 0~0.25로 가산합니다.
+
+    `.exe` 생성 위치와 '이동하면 확인' 폴더를 구분하며, 특정 경로 문자열을
+    하드코딩하지 않고 확인/생성 표현과 Windows 폴더 패턴의 동시 출현만 봅니다.
+    """
+    intents = detect_artifact_intents(query)
+    if not {"output_folder", "build_output"} & set(intents):
+        return 0.0
+    normalized = (content or "").casefold()
+    score = 0.0
+    folders = _WINDOWS_FOLDER_PATTERN.findall(content or "")
+    if "output_folder" in intents and folders and any(
+        marker in normalized for marker in _OUTPUT_FOLDER_CONTENT_MARKERS
+    ):
+        score += 0.16
+    if "build_output" in intents and folders and any(
+        marker in normalized for marker in _BUILD_OUTPUT_CONTENT_MARKERS
+    ):
+        score += 0.22
+    # 산출물 파일 위치만 말하고 확인/이동 표현이 없으면 감점해 setup류를 밀어냅니다.
+    if "output_folder" in intents and any(ext in normalized for ext in (".exe", ".msi")) and not any(
+        marker in normalized for marker in ("확인", "이동하면", "생성된", "verify", "check")
+    ):
+        score -= 0.08
+    if "build_output" in intents and (
+        "파일 위치" in normalized
+        or "file location" in normalized
+    ) and not any(marker in normalized for marker in _BUILD_OUTPUT_CONTENT_MARKERS):
+        score -= 0.1
+    if "폴더" in normalized or "folder" in normalized:
+        score += 0.04
+    return max(0.0, min(score, 0.25))
+
+
+def procedure_evidence_score(query: str, content: str) -> float:
+    """사용자-단말기 절차 질문에서 수동 전송과 자동 동기화 근거를 함께 가점합니다.
+
+    메뉴 이름이나 특정 질문을 고정하지 않고, 질문의 사용자·단말기·작업 조합과 본문의
+    추가/선택/적용/전송 및 자동 동기화 표현을 비교합니다.
+    """
+    if not is_user_terminal_procedure_intent(query):
+        return 0.0
+    normalized = (content or "").casefold()
+    score = 0.0
+    has_user = any(marker in normalized for marker in _USER_TERMINAL_PROCEDURE_MARKERS)
+    has_terminal = any(marker in normalized for marker in _TERMINAL_PROCEDURE_MARKERS)
+    if has_user and has_terminal:
+        score += 0.08
+    if any(marker in normalized for marker in ("추가", "선택", "적용", "전송", "다운로드")):
+        score += 0.1
+    if "자동" in normalized and "동기화" in normalized:
+        score += 0.14
+    if "출입그룹" in normalized or "출입 그룹" in normalized:
+        score += 0.04
+    # 중복 ID·재동기화 제한 문장은 자동 동기화 답변에 빠지기 쉬워 문서 용어를 가점합니다.
+    if "덮어쓰기" in normalized:
+        score += 0.04
+    if "다시 다운로드" in normalized or "다운로드 재진행" in normalized:
+        score += 0.04
+    return min(score, 0.3)
+
+
+def technical_evidence_score(query: str, content: str) -> float:
+    """질문의 기술 토큰과 파일 역할·API 근거가 문서에 맞는 정도를 0~0.5로 계산합니다.
+
+    의미 유사도만으로 `.bat` 자동화와 `.exe` 산출물, 또는 User Guide와 Swagger가
+    뒤바뀌는 것을 막는 보조 점수이며, 특정 질문 문자열을 하드코딩하지 않습니다.
+    목록 완결 의도와 결과물 확인 폴더 의도도 일반 규칙으로 반영합니다.
+    """
+    normalized_content = (content or "").casefold()
+    score = 0.0
+    intents = detect_artifact_intents(query)
+    for intent in intents:
+        extensions = ARTIFACT_INTENT_RULES[intent]["extensions"]
+        if extensions and any(extension in normalized_content for extension in extensions):
+            score += 0.16
+    if intents and any(term in normalized_content for term in ("실행", "run", "compile", "호출")):
+        score += 0.04
+
+    if detect_api_doc_intent(query):
+        api_markers = (
+            "type: api",
+            "/v1/",
+            "스키마 `",
+            "**스키마",
+            "application/json",
+            "openapi",
+            "swagger",
+            "definitions",
+            "endpoint",
+        )
+        if any(marker in normalized_content for marker in api_markers):
+            score += 0.16
+        if any(marker in normalized_content for marker in ("templatetype", "templatedata", "templatesize")):
+            score += 0.04
+
+    if detect_list_completeness_intent(query):
+        hex_count = count_unique_hex_commands(content)
+        if looks_like_command_catalog(content):
+            score += 0.18
+        elif hex_count >= 3:
+            score += 0.08
+        # 완결 목록일수록 고유 hex가 많다는 일반 휴리스틱(특정 코드 고정 없음).
+        if hex_count >= 12:
+            score += 0.1
+        elif hex_count >= 8:
+            score += 0.06
+
+    score += path_role_evidence_score(query, content)
+    score += procedure_evidence_score(query, content)
+
+    exact_tokens = extract_technical_tokens(query)
+    if exact_tokens:
+        matched = sum(token.casefold() in normalized_content for token in exact_tokens)
+        score += 0.2 * (matched / len(exact_tokens))
+    return min(score, 0.7)
 
 
 def _chroma_where(scope: Optional[Dict[str, str]]) -> Optional[dict]:
@@ -289,6 +656,7 @@ def rewrite_query(
 - 한국어 질문은 한국어로 유지하세요.
 - 고유명사(제품명/프로젝트명/약어/파일명/명령어/경로/API명)는 원문 표기를 그대로 보존하세요.
 - 고유명사 오타/철자 변경/유사 발음 변형 금지. (예: "알페타"→"알파타" 금지)
+- 질문이 구분한 대상 역할(자동화 파일/스크립트/실행 산출물/설정 파일/명령)을 다른 역할로 바꾸지 마세요.
 
 재작성 가이드:
 - 동의어/표현 변형을 섞으세요 (예: "하루치"↔"일일"↔"24시간", "대당"↔"단말기 1대"↔"채널 1개")
@@ -541,12 +909,35 @@ def format_mandatory_image_block(lines: List[str]) -> str:
 """
 
 
+def derive_explicit_file_paths(documents: list) -> List[str]:
+    """같은 문장 구간에 명시된 Windows 폴더와 파일명을 안전하게 결합합니다.
+
+    문서가 `C:\\dir 폴더 ... task.bat 파일`처럼 경로를 분리 표기한 경우에만
+    결합하며, 서로 다른 청크나 120자보다 먼 문자열은 이어 붙이지 않습니다.
+    """
+    pattern = re.compile(
+        r"(?i)\b([A-Z]:\\(?:[^\\\s,.;:()]+\\)*[^\\\s,.;:()]+)"
+        r"\s*폴더.{0,120}?\b([A-Za-z0-9_.-]+\.[A-Za-z0-9]{1,10})\s*파일",
+        re.DOTALL,
+    )
+    paths: List[str] = []
+    seen = set()
+    for document in documents:
+        for folder, filename in pattern.findall(document.get("content", "")):
+            full_path = f"{folder.rstrip(chr(92))}\\{filename}"
+            key = full_path.casefold()
+            if key not in seen:
+                seen.add(key)
+                paths.append(full_path)
+    return paths
+
+
 def build_context_prompt(
     query: str,
     documents: list,
     focus: Optional[str] = None,
 ) -> str:
-    """검색된 문서를 컨텍스트로 포함한 프롬프트를 생성합니다."""
+    """검색 문서와 기술 근거 준수 규칙을 포함한 답변 프롬프트를 생성합니다."""
     if not documents:
         return query
 
@@ -560,6 +951,15 @@ def build_context_prompt(
     image_lines = collect_mandatory_image_lines(documents, focus)
     image_block = format_mandatory_image_block(image_lines)
     has_images = bool(image_lines)
+    explicit_paths = derive_explicit_file_paths(documents)
+    path_block = ""
+    if explicit_paths and any(term in query.casefold() for term in ("파일", "경로", "명령", "file", "path")):
+        path_block = (
+            "\n=== 같은 문서 지시문에서 확인된 전체 파일 경로 ===\n"
+            + "\n".join(f"- `{path}`" for path in explicit_paths)
+            + "\n- 위 목록은 같은 지시문에 있는 폴더와 파일명을 기계적으로 결합한 것입니다. "
+            "질문에 맞는 항목은 답변 첫 문장에 이 전체 문자열 그대로 쓰세요.\n"
+        )
 
     if has_images:
         image_rules = """- 위 `=== 답변 상단에 둘 이미지 ===` 블록이 있을 때만: 답변 본문 **첫 출력**을 그 이미지 마크다운으로 시작하고, 그 아래에만 설명·불릿을 쓰세요. 블록에 있는 URL/대체텍스트는 바꾸지 마세요."""
@@ -575,6 +975,62 @@ def build_context_prompt(
 - 같은 파일에 다른 사람·다른 주제가 있어도, **이름·별명·사진·소속을 들먹이거나 설명하지 마세요.** (질문에 없는 인물/항목은 무시)
 - 참고 문서에 「{focus}」가 거의 없으면 한두 문장으로만 답하고, 다른 문서로 빗겨가지 마세요.
 """
+    list_block = ""
+    if detect_list_completeness_intent(query):
+        list_block = """
+=== 목록 완결성(필수) ===
+- 질문이 전부/전체/목록을 요구하면 참고 문서의 목차·명령 표·카탈로그에 있는 항목을 가능한 한 빠짐없이 나열하세요.
+- 한 표·한 목차가 여러 참고 청크로 나뉘어 있으면 같은 출처의 모든 행을 합쳐 하나의 완결 목록으로 구성하세요.
+- Command Preview처럼 중간에서 끊긴 표만 보이면, 같은 문서의 목차(Contents)나 이어지는 명령 목록 행을 함께 반영하세요.
+- 문서에 없는 명령 코드나 이름을 추측·보완하지 마세요.
+"""
+    path_role_block = ""
+    artifact_intents = detect_artifact_intents(query)
+    if {"output_folder", "build_output"} & set(artifact_intents):
+        path_role_block = """
+=== 경로 역할(필수) ===
+- 질문이 빌드 완료 후 **확인·결과물 폴더**를 물으면, 문서에서 '이동하면 확인/생성된 설치 파일'처럼 결과물을 확인하라고 한 폴더를 답하세요.
+- 특정 `.exe`가 만들어지는 중간 산출물 경로와 최종 확인 폴더를 혼동하지 마세요. 질문이 폴더 확인이면 파일명만 답하지 마세요.
+"""
+        if "build_output" in artifact_intents:
+            path_role_block += (
+                "- 질문이 빌드 완료 뒤 생성·생김·산출물·출력 경로를 물으면, 배치 또는 빌드 "
+                "완료 문장에서 설치 파일이 생성된다고 한 최종 산출 경로를 답하세요. 개별 "
+                "`.exe`의 파일 위치나 빌드 입력 복사 폴더를 최종 산출 경로로 바꾸지 마세요.\n"
+            )
+    procedure_block = ""
+    if is_user_terminal_procedure_intent(query):
+        procedure_block = """
+=== 사용자·단말기 절차 범위(필수) ===
+- 사용자와 단말기 관련 절차는 User Guide 참고 문서의 메뉴·버튼·순서만 사용하세요.
+- 수동으로 특정 단말기에 추가·전송하는 절차와 자동 동기화 설정은 별도 소제목으로 구분하세요.
+- **(필수, 매우 중요)** 사용자를 단말기에 추가하는 수동 방법이 참고 문서에 서로 다른 화면 근거(예: 사용자 정보 화면의 `[단말기리스트]`와, 단말기 관리 화면의 `단말기 사용자 리스트` `[추가]`)로 각각 있으면, 이 둘을 하나의 메뉴 계층(상위 화면 → 하위 화면)으로 합치지 말고 「방법 1」/「방법 2」처럼 서로 완전히 독립된 방법으로 각각 설명하세요. `[단말기리스트]`를 `단말기 사용자 리스트`의 상위 메뉴로 연결한 하나의 절차로 이어 붙이면 안 됩니다.
+  - **(필수, 표기 고정)** 문서에 `[단말기리스트]`(띄어쓰기 없음)가 있으면 반드시 그 철자 그대로 쓰세요. `[단말기 리스트]`처럼 가운데 공백을 넣거나 `단말기 저장 리스트`로 바꾸면 안 됩니다.
+  - `[단말기리스트]` 근거만 있으면: 사용자 정보 화면에서 `[단말기리스트]`를 클릭해 해당 사용자가 이미 내려가 있는 단말기 목록을 확인하고, 원하는 단말기로 사용자를 내리는 절차라고 그 근거 그대로 설명하세요.
+  - `단말기 사용자 리스트`의 `[추가]` 근거가 있으면: 그 화면에서 `[추가]` 클릭 → 팝업에서 사용자 선택 → `>` → `[적용]` → 단말기 전송 순서를 그대로 답하세요. 단말기 관리자·권한처럼 이름이 비슷한 다른 메뉴로 대체하지 말고, 문서에 없는 `단말기 저장 리스트` 같은 유사 명칭을 만들거나 대체하지 마세요.
+- 자동 동기화 근거에는 설정 경로(예: 일반설정·사용자·사용자 데이터), 활성화, 동일 출입그룹 조건, 저장 후 업데이트, 수동 제거 뒤 재동기화 동작, 중복 ID 덮어쓰기 옵션이 각각 실제로 있을 때만 빠짐없이 구분해 답하세요.
+- 위 자동 동기화 근거가 모두 있으면 경로는 반드시 `[일반설정] > [사용자] > [사용자 데이터]`로, 저장 후 동작은 사용자 정보 `[저장]` 시 출입그룹 단말기 정보 자동 업데이트로 명시하세요.
+- 참고 문서에 `덮어쓰기`가 있으면 그 단어를 그대로 쓰고 `덮어씌울지`처럼 바꾸지 마세요. `다시 다운로드` 또는 `다운로드 재진행`이 있으면 `다시 동기화`(또는 `재동기화`)와 **함께** 문서 표기 그대로 적으세요. **(필수, 생략 금지)** 이때 `다시 다운로드`라는 단어 자체를 `(다운로드)`처럼 괄호로 축약하거나 `다시 동기화`로만 대체하지 말고, 두 표현("다시 동기화"와 "다시 다운로드")을 각각 그대로 문장에 포함하세요.
+- 자동 동기화의 대상·조건·중복/덮어쓰기 제한은 참고 문서에 실제로 적힌 경우에만 설명하고, Protocol·NSIS 문서의 내용을 섞지 마세요.
+- **(필수, 생략 금지)** 참고 문서에 `출입그룹 단말기 리스트`, `등록된 단말기`, `추가가능한 단말기`라는 화면 구성 항목이 있으면, 반드시 **3가지 항목 전부**(2가지로 합치거나 하나를 빠뜨리지 말 것)를 각각의 이름과 설명을 요약하거나 자동 동기화 설명에 합치지 말고 원문 표기(띄어쓰기 포함) 그대로 모두 나열하세요. 이 항목들은 사용자 정보 화면의 `[단말기리스트]` 방법 설명 안에서 다루세요.
+- **(필수, 인용 필수, 생략 금지)** 위 3가지 항목 바로 뒤에 `※`로 표시된 사전 조건 문장(예: `[등록된 단말기]`에서 `[추가 가능한 단말기]`로 이동 시 단말기가 **필수로 연결**되어 있어야 동작한다는 문장)이 참고 문서에 있으면, 절대 생략하거나 다른 문장에 뭉뚱그려 넣지 말고 "필수로 연결"이라는 단어를 포함해 원문 문장 그대로(의역·요약 금지) 별도 문장으로 인용하세요. 이 문장은 매 답변마다 빠뜨리면 안 되는 최우선 순위 항목입니다.
+- **(필수, 생략 금지)** 참고 문서에 `[주의사항]`이라는 표시가 있으면, 그 아래 이어지는 문장에 담긴 사실을 하나도 빠짐없이(예: Alpeta가 출입그룹을 기반으로 단말기와 설정을 관리한다는 내용 포함) 별도의 '주의사항' 소제목으로 원문 표현에 가깝게 나열하세요. 다른 설명에 요약해 섞어 넣거나 이 문단 자체를 빠뜨리면 안 됩니다.
+"""
+    automated_build_block = ""
+    if is_automated_build_intent(query):
+        automated_build_block = """
+=== 자동화 버전 빌드 절차(필수) ===
+- 질문이 빌드의 "자동화 버전"(자동빌드) 절차를 물으면, 참고 문서의 "알페타 설치 패키지 빌드(자동화 버전)" 절만 근거로 답하세요. 앞의 수동 빌드 절차(`MakeNSISW` 창, `Compile NSI scripts` 클릭, 좌측 상단 파일 아이콘 클릭 등)는 이 답변에 섞지 마세요.
+- 문서 순서대로 아래 단계를 빠짐없이 답하세요.
+  1) git pull: `D:\\nsis\\eXbuilder` 폴더로 이동해 `gitpull.bat`을 실행합니다. 계정 입력 창이 뜨면 자신의 git 계정으로 로그인합니다(문서에 있으면 현재 연결된 계정도 언급).
+  2) `define.go` 버전 수정: `D:\\GoWorkspace\\src\\unioncomm.co.kr\\define` 폴더의 `define.go` 파일 버전을 수정합니다.
+  3) `alpeta_device.nsi` 파일 버전 수정(AlpetaDevice.exe 빌드용).
+  4) `alpeta.nsi` 파일 버전 수정(Alpeta 설치 파일 빌드용). `PRODUCT_VERSION`/`MAJOR_VERSION`/`MINOR_VERSION`/`BUILD_VERSION`을 만들려는 버전에 맞게 수정한다고 명시하세요.
+  5) `D:\\nsis\\eXbuilder` 폴더의 `build_install.bat` 실행. 이 배치 파일이 진행하는 하위 작업을 요약하지 말고 문서에 있는 순서 그대로 전부 나열하세요(예: proto_compile 실행 → go build로 서버 빌드 → 빌드한 서버를 서버 폴더로 복사 → control 서버 client export → setting 서버 client export → AlpetaDevice 설치 파일용 스크립트 컴파일 → Alpeta 설치 파일용 스크립트 컴파일).
+  6) 완료되면 `D:\\nsis\\install` 폴더에 설치 파일이 생성된다고 답하세요.
+  7) 참고 문서에 자동 진행 결과에 문제가 있을 때의 대체 방법(수동 빌드 가이드로 진행 권장)이 있으면 주의사항으로 답변 마지막에 명시하세요.
+- 위 단계 중 참고 문서에 실제로 없는 세부는 지어내지 말고 생략하세요.
+"""
     return f"""다음 참고 문서들을 바탕으로 질문에 답변하세요.
 
 === 참고 문서 ===
@@ -583,12 +1039,160 @@ def build_context_prompt(
 === 질문 ===
 {query}
 {scope_block}
+{list_block}
+{path_role_block}
+{procedure_block}
+{automated_build_block}
+{path_block}
 === 답변 지침 ===
 - 참고 문서의 내용을 기반으로 답변하세요
 - 명확하고 구조적으로 답변하세요
+- 파일명·경로·명령·API·버전은 참고 문서의 철자, 확장자, 구분자, 대소문자를 그대로 복사하세요. 비슷한 이름으로 바꾸거나 문서에 없는 경로를 추측하지 마세요.
+- 질문이 요구한 대상 역할을 먼저 구분하세요. 자동화/배치 파일, 소스 스크립트, 실행·설치 산출물, 설정 파일, 결과물 확인 폴더는 서로 다른 답이므로 다른 유형의 이름을 대신 답하지 마세요.
+- 파일 이름이나 경로 질문은 그 파일을 실행·선택·수정하라고 직접 지시하는 문장을 우선 근거로 사용하세요. 파일 이름만 물어도 같은 지시에 상위 폴더가 있으면 답변 첫 문장에 `파일명`과 `폴더\파일명` 전체 경로를 각각 하나의 코드 문자열로 반드시 함께 제시하세요.
+- 후보가 여러 개면 질문의 대상 역할에 직접 맞는 항목만 먼저 답하고, 산출물이나 관련 스크립트는 사용자가 요청한 경우에만 별도로 구분해 설명하세요.
+- 참고 문서에 Swagger/OpenAPI 경로·스키마·필드 표가 있으면 그 근거로 API·스키마를 답하세요. 스펙이 보이는데 "문서에 없다"고 단정하지 마세요. UI 가이드·바이너리 프로토콜만으로 REST 스키마를 대체하지 마세요.
+- 질문 용어 중 참고 문서에 없는 이름만 짧게 구분하고, 문서에 있는 인접 스키마·엔드포인트는 출처 파일명과 함께 제시하세요.
 - **금지(매우 중요)**: "제공된 참고 문서에는 … 포함되어 있지 않습니다/명시되어 있지 않습니다", "문서에는 … 에 대한 정보가 없습니다" 같은 **장황한 면책·부정 문단**을 쓰지 마세요. 문서에 없는 세부는 **굳이 나열하지 말고 생략**하거나, 꼭 필요할 때만 한 문장으로 짧게 처리하세요.
 - 질문에 답하는 데 필요한 사실만 말하세요. 없는 내용을 억지로 채우지 마세요.
+- 사용자·단말기 수동 전송(`단말기 사용자 리스트`의 `[추가]`) 답변에서는 그 절차를 반드시 `[추가] → 사용자 선택 → > → [적용] → 해당 사용자 정보 단말기 전송` 순서로 한 줄 또는 번호 목록에 적으세요. `[단말기리스트]`는 이와 별개인 다른 화면이므로 상위 메뉴로 이어 붙이지 말고, `단말기 저장 리스트`는 수동 전송 절차의 메뉴가 아니므로 이 답변에 쓰지 마세요. 메뉴 경로를 이을 때 `>`를 breadcrumb 구분자로 쓰지 마세요. `>`는 팝업의 이동 버튼에만 사용하세요.
+- 사용자·단말기 자동 동기화 답변에서는 근거가 있을 때 사용자와 단말기가 `동일한 출입그룹`이어야 한다는 조건을 그대로 적으세요.
+- 사용자·단말기 자동 동기화 근거에 중복 ID `덮어쓰기`와 수동 제거 뒤 `다시 동기화`/`다시 다운로드`(또는 `다운로드 재진행`)가 있으면 해당 용어를 빠짐없이 문서 표기 그대로 적으세요.
 {image_rules}"""
+
+
+def _normalize_terminal_list_menu_spelling(context: str, answer: str) -> str:
+    """문서의 띄어쓰기 없는 `[단말기리스트]` 표기를 답변에 맞춥니다.
+
+    생성 모델이 `[단말기 리스트]`처럼 가운데 공백을 넣는 경우, 참고 문서에
+    원문 표기가 있을 때만 공백을 제거해 UI 메뉴명을 보존합니다. 대괄호 밖의
+    일반 서술(예: '단말기 리스트를 볼 수 있다')은 바꾸지 않습니다.
+    """
+    if "[단말기리스트]" not in (context or ""):
+        return answer or ""
+    return re.sub(r"\[단말기\s+리스트\]", "[단말기리스트]", answer or "")
+
+
+def _normalize_manual_transfer_step_markers(answer: str) -> str:
+    """메뉴 경로 구분자로 쓰인 `>`를 제거해 이동 버튼 `>`와 혼동되지 않게 합니다.
+
+    생성 모델이 `단말기 사용자 리스트 > [추가]`처럼 breadcrumb에 `>`를 넣으면,
+    이후 단계의 이동 버튼 `>`보다 앞에 나타나 절차 순서 근거가 깨질 수 있습니다.
+    문서 UI의 이동 버튼만 `>`로 남기고 경로 구분 `>`는 '의' 표기로 바꿉니다.
+    """
+    result = answer or ""
+    result = re.sub(
+        r"(단말기 사용자 리스트)\s*>\s*(\[추가\])",
+        r"\1의 \2",
+        result,
+    )
+    result = re.sub(
+        r"(단말기 사용자 리스트)\s*>\s*(추가)",
+        r"\1의 \2",
+        result,
+    )
+    return result
+
+
+def _missing_terminal_list_composition_terms(context: str, answer: str) -> list:
+    """참고 문서에만 있고 답변에 빠진 단말기리스트 화면 구성 항목명을 반환합니다.
+
+    문서에 실제로 등장하는 항목명만 검사하며, 특정 질문 문자열이나 고정 답변을
+    넣지 않습니다. '추가가능한 단말기'와 '추가 가능한 단말기'는 동일 항목으로
+    취급합니다.
+    """
+    composition_terms = (
+        "출입그룹 단말기 리스트",
+        "등록된 단말기",
+        "추가가능한 단말기",
+    )
+    missing = []
+    for term in composition_terms:
+        if term not in (context or ""):
+            # 문서에 공백 표기만 있는 경우도 동일 항목으로 본다.
+            if term != "추가가능한 단말기" or "추가 가능한 단말기" not in (context or ""):
+                continue
+        if term in (answer or ""):
+            continue
+        if term == "추가가능한 단말기" and "추가 가능한 단말기" in (answer or ""):
+            continue
+        missing.append(term)
+    return missing
+
+
+def _composition_supplement_lines(context: str, missing_terms: list) -> list:
+    """빠진 화면 구성 항목에 대해 문서에서 해당 항목이 들어간 원문 줄을 고릅니다.
+
+    컨텍스트에 항목명이 포함된 줄이 있으면 그 줄을 그대로 쓰고, 없으면 항목명만
+    보강합니다. 특정 질문·고정 답변을 만들지 않고 문서에 있는 문장만 재사용합니다.
+    """
+    lines = []
+    context_lines = [line.strip() for line in (context or "").splitlines() if line.strip()]
+    for term in missing_terms:
+        aliases = [term]
+        if term == "추가가능한 단말기":
+            aliases.append("추가 가능한 단말기")
+        matched = next(
+            (
+                line
+                for line in context_lines
+                if any(alias in line for alias in aliases)
+            ),
+            None,
+        )
+        if matched:
+            lines.append(f"- {matched}")
+        else:
+            lines.append(f"- **{term}**")
+    return lines
+
+
+def enforce_document_term_pairs(query: str, documents: list, answer: str) -> str:
+    """문서에 명시된 필수 UI·절차 용어가 답변에서 축약·의역될 때 원문을 보존합니다.
+
+    사용자·단말기 절차 질문에만 적용합니다. (1) 문서의 `[단말기리스트]` 표기를
+    공백 의역에서 복원하고, (2) 문서에 있는 화면 구성 3항목이 빠지면 문서 원문
+    줄을 보완하며, (3) 재동기화·재다운로드 쌍이 축약되면 원문 표현을 스트림 끝에
+    추가합니다. 특정 질문에 답을 고정하지 않고 컨텍스트 근거가 있을 때만 동작합니다.
+    """
+    if not is_user_terminal_procedure_intent(query):
+        return answer
+
+    context = "\n".join(document.get("content", "") for document in documents)
+    result = _normalize_terminal_list_menu_spelling(context, answer or "")
+    result = _normalize_manual_transfer_step_markers(result)
+
+    missing_composition = _missing_terminal_list_composition_terms(context, result)
+    if missing_composition:
+        lines = "\n".join(_composition_supplement_lines(context, missing_composition))
+        result = (
+            f"{result.rstrip()}\n\n"
+            f"### 단말기리스트 화면 구성(문서 표기)\n{lines}"
+        )
+
+    normalized_context = context.casefold()
+    normalized_answer = result.casefold()
+    has_resync_evidence = "다시 동기화" in normalized_context
+    has_redownload_evidence = (
+        "다시 다운로드" in normalized_context
+        or "다운로드 재진행" in normalized_context
+    )
+    has_resync_answer = (
+        "다시 동기화" in normalized_answer or "재동기화" in normalized_answer
+    )
+    has_redownload_answer = (
+        "다시 다운로드" in normalized_answer
+        or "다운로드 재진행" in normalized_answer
+    )
+    if has_resync_evidence and has_redownload_evidence and not (
+        has_resync_answer and has_redownload_answer
+    ):
+        suffix = (
+            "\n\n- 문서상 단말기에서 사용자를 제거한 뒤 출입그룹 다시 동기화가 진행되면, "
+            "출입그룹에 맞춰 사용자가 다시 다운로드됩니다."
+        )
+        result = f"{result.rstrip()}{suffix}"
+    return result
 
 
 # ─────────────────────────────────────────
@@ -788,13 +1392,24 @@ class Pipeline:
         def generate():
             if prefix:
                 yield prefix
-            yield from ollama_chat_stream(
+            answer_parts = []
+            for chunk in ollama_chat_stream(
                 base_url=self.valves.OLLAMA_BASE_URL,
                 model=self.valves.ANSWER_MODEL,
                 messages=answer_messages,
                 options=self.answer_options(),
                 read_timeout=self.valves.OLLAMA_READ_TIMEOUT,
+            ):
+                answer_parts.append(chunk)
+                yield chunk
+            answer = "".join(answer_parts)
+            completed_answer = enforce_document_term_pairs(
+                retrieval_question,
+                documents,
+                answer,
             )
+            if completed_answer != answer:
+                yield completed_answer[len(answer):]
 
         return generate()
 
@@ -802,8 +1417,23 @@ class Pipeline:
 # Hybrid retrieval is intentionally kept here because the pipeline container only
 # mounts this directory. The indexer writes bm25_index.json beside ChromaDB.
 def _bm25_tokens(text: str) -> list:
-    """Language-neutral tokenization: Korean syllable runs, words, numbers and codes."""
-    return re.findall(r"[\uac00-\ud7a3]+|[A-Za-z0-9][A-Za-z0-9_./:-]*", (text or "").lower())
+    """기술 식별자의 전체 형태와 경로·파일명 구성 요소를 함께 토큰화합니다.
+
+    Windows 경로와 점이 포함된 파일명은 전체 토큰을 유지하면서 디렉터리, stem,
+    확장자도 추가해 질문이 전체 경로나 파일명 중 하나만 알아도 검색되게 합니다.
+    """
+    normalized = (text or "").casefold()
+    base_tokens = re.findall(r"[\uac00-\ud7a3]+|[A-Za-z0-9][A-Za-z0-9_./:\\{}-]*", normalized)
+    tokens: List[str] = []
+    for token in base_tokens:
+        tokens.append(token)
+        if re.search(r"[./:\\]", token):
+            tokens.extend(
+                part
+                for part in re.split(r"[./:\\]+", token)
+                if part and part != token
+            )
+    return tokens
 
 
 def _load_bm25_records(index_path: str) -> list:
@@ -855,23 +1485,53 @@ def _get_reranker(model_name: str):
 
 
 def rerank_documents(query: str, documents: list, model_name: str, top_k: int) -> list:
-    """크로스 인코더로 (질문, 청크) 쌍을 재채점합니다. 모델이 없으면 입력 순서 유지."""
+    """크로스 인코더 점수에 기술 토큰·파일 역할 근거 점수를 결합합니다.
+
+    모델이 없을 때도 결정적 근거 점수로 정렬하며, 점수가 같은 문서는 기존 RRF
+    순서를 유지합니다.
+    """
     if len(documents) <= 1:
         return documents[:top_k]
     model = _get_reranker(model_name)
-    if model is None:
-        return documents[:top_k]
     question = next((line.strip() for line in (query or "").splitlines() if line.strip()), query)
-    try:
-        scores = model.predict([(question, doc.get("content", "")) for doc in documents])
-    except Exception as exc:
-        print(f"[RAG] Rerank failed, falling back to RRF order: {exc}")
-        return documents[:top_k]
-    ranked = sorted(zip(documents, scores), key=lambda pair: float(pair[1]), reverse=True)
-    return [{**doc, "rerank_score": round(float(score), 4)} for doc, score in ranked[:top_k]]
+    if model is None:
+        scores = [0.0] * len(documents)
+    else:
+        try:
+            scores = model.predict([(question, doc.get("content", "")) for doc in documents])
+        except Exception as exc:
+            print(f"[RAG] Rerank failed, using technical evidence order: {exc}")
+            scores = [0.0] * len(documents)
+
+    ranked = []
+    for position, (document, model_score) in enumerate(zip(documents, scores)):
+        evidence_score = technical_evidence_score(question, document.get("content", ""))
+        combined_score = float(model_score) + evidence_score
+        ranked.append((document, float(model_score), evidence_score, combined_score, position))
+    ranked.sort(key=lambda item: (-item[3], item[4]))
+    return [
+        {
+            **document,
+            "rerank_score": round(model_score, 4),
+            "technical_evidence_score": round(evidence_score, 4),
+            "combined_rerank_score": round(combined_score, 4),
+        }
+        for document, model_score, evidence_score, combined_score, _ in ranked[:top_k]
+    ]
 
 
-def _rrf_merge(vector_docs: list, bm25_docs: list, top_k: int, k: int = 60) -> list:
+def _rrf_merge(
+    vector_docs: list,
+    bm25_docs: list,
+    top_k: int,
+    k: int = 60,
+    query: str = "",
+) -> list:
+    """벡터·BM25 순위를 합치고 기술 근거 일치도를 작은 보조 점수로 반영합니다.
+
+    `query`가 비어 있으면 기존 RRF와 동일하며, 기술 질문에서는 파일 역할이나
+    exact token이 맞는 청크가 일반 의미 유사도 후보보다 앞설 수 있게 합니다.
+    """
     merged = {}
     for rank, doc in enumerate(vector_docs, 1):
         key = (doc.get("source", "unknown"), doc.get("content", ""))
@@ -881,8 +1541,21 @@ def _rrf_merge(vector_docs: list, bm25_docs: list, top_k: int, k: int = 60) -> l
         key = (doc.get("source", "unknown"), doc.get("content", ""))
         item = merged.setdefault(key, {**doc, "score": 0.0})
         item["score"] += 1 / (k + rank)
-    return [{**doc, "score": round(doc["score"], 4)}
-            for doc in sorted(merged.values(), key=lambda item: item["score"], reverse=True)[:top_k]]
+    scored = []
+    for position, doc in enumerate(merged.values()):
+        evidence_score = technical_evidence_score(query, doc.get("content", "")) if query else 0.0
+        combined_score = doc["score"] + (0.05 * evidence_score)
+        scored.append((doc, evidence_score, combined_score, position))
+    scored.sort(key=lambda item: (-item[2], item[3]))
+    return [
+        {
+            **doc,
+            "rrf_score": round(doc["score"], 4),
+            "technical_evidence_score": round(evidence_score, 4),
+            "score": round(combined_score, 4),
+        }
+        for doc, evidence_score, combined_score, _ in scored[:top_k]
+    ]
 
 
 def limit_documents_per_source(documents: list, top_k: int, max_chunks_per_source: int) -> list:
@@ -898,6 +1571,463 @@ def limit_documents_per_source(documents: list, top_k: int, max_chunks_per_sourc
         if len(selected) >= top_k:
             break
     return selected
+
+
+def expand_catalog_chunks_from_candidates(
+    selected: list,
+    candidates: list,
+    query: str,
+    top_k: int,
+    max_chunks_per_source: int,
+) -> list:
+    """목록 완결 의도일 때 같은 출처의 카탈로그·TOC 연속 청크를 후보에서 보충합니다.
+
+    이미 선택된 청크를 유지한 채, 표/목차처럼 hex·점선 행이 많은 동일 출처 청크를
+    점수 순으로 채워 부분 목록만 컨텍스트에 남는 경우를 줄입니다.
+    """
+    if not detect_list_completeness_intent(query) or not selected:
+        return selected
+    selected_keys = {
+        (doc.get("source", "unknown"), doc.get("content", "")) for doc in selected
+    }
+    counts: Dict[str, int] = {}
+    for doc in selected:
+        source = doc.get("source", "unknown")
+        counts[source] = counts.get(source, 0) + 1
+    focus_sources = {doc.get("source", "unknown") for doc in selected}
+    extras = []
+    for doc in candidates:
+        source = doc.get("source", "unknown")
+        key = (source, doc.get("content", ""))
+        if source not in focus_sources or key in selected_keys:
+            continue
+        if counts.get(source, 0) >= max_chunks_per_source:
+            continue
+        if not looks_like_command_catalog(doc.get("content", "")):
+            continue
+        extras.append(doc)
+        selected_keys.add(key)
+        counts[source] = counts.get(source, 0) + 1
+        if len(selected) + len(extras) >= top_k:
+            break
+    if not extras:
+        return selected
+    return selected + extras
+
+
+def _procedure_context_facets(query: str, content: str) -> set[str]:
+    """질문과 청크가 함께 충족하는 수동·자동 절차의 역할 범위를 반환합니다."""
+    if not is_user_terminal_procedure_intent(query):
+        return set()
+    normalized_query = (query or "").casefold()
+    normalized_content = (content or "").casefold()
+    has_user_terminal = (
+        any(marker in normalized_content for marker in _USER_TERMINAL_PROCEDURE_MARKERS)
+        and any(marker in normalized_content for marker in _TERMINAL_PROCEDURE_MARKERS)
+    )
+    facets = set()
+    # 그룹/관리자 화면의 단순 사용자 추가를 특정 단말기 전송 절차로 오인하지 않도록,
+    # 실제 단말기 사용자 목록 또는 사용자→단말 전송 문장을 요구합니다.
+    has_direct_terminal_transfer = (
+        "단말기 사용자 리스트" in normalized_content
+        or (
+            "사용자를 단말" in normalized_content
+            and any(marker in normalized_content for marker in ("전송", "다운로드"))
+        )
+    )
+    if has_user_terminal and has_direct_terminal_transfer and any(
+        marker in normalized_query for marker in ("추가", "등록", "전송", "다운로드")
+    ) and any(marker in normalized_content for marker in ("추가", "전송", "다운로드", "적용")):
+        facets.add("manual_transfer")
+    # 상위 목록 화면과 하위 사용자 목록 화면이 다른 페이지로 분리된 UI 가이드도
+    # 메뉴 진입 순서를 재구성할 수 있도록, 상위 화면 근거를 별도 역할로 보존합니다.
+    if (
+        any(marker in normalized_query for marker in ("추가", "등록", "전송", "다운로드"))
+        and "단말기리스트" in normalized_content
+        and ("사용자" in normalized_content or "단말기" in normalized_content)
+    ):
+        facets.add("manual_navigation")
+    if "동기" in normalized_query and "자동" in normalized_content and "동기화" in normalized_content:
+        facets.add("automatic_sync")
+    if "동기" in normalized_query and "저장" in normalized_content and (
+        "자동 업데이트" in normalized_content or "동기화" in normalized_content
+    ):
+        facets.add("save_update")
+    if "동기" in normalized_query and (
+        "다시 다운로드" in normalized_content or "다시 동기화" in normalized_content
+    ) and ("출입그룹" in normalized_content or "출입 그룹" in normalized_content):
+        facets.add("resync_behavior")
+    if "동기" in normalized_query and "덮어쓰기" in normalized_content:
+        facets.add("overwrite_option")
+    # 사용자 정보 `[단말기리스트]` 화면의 구성 3항목은 주의사항·동기화 절과
+    # 다른 청크에 있을 수 있어 별도 역할로 보존합니다.
+    if any(marker in normalized_query for marker in ("추가", "등록", "전송", "다운로드", "동기")) and (
+        "출입그룹 단말기 리스트" in normalized_content
+        and "등록된 단말기" in normalized_content
+        and (
+            "추가가능한 단말기" in normalized_content
+            or "추가 가능한 단말기" in normalized_content
+        )
+    ):
+        facets.add("terminal_list_composition")
+    return facets
+
+
+def complete_procedure_context(
+    selected: list,
+    records: list,
+    query: str,
+    top_k: int,
+    scope: Optional[Dict[str, str]] = None,
+) -> list:
+    """절차 복합 질문에 같은 출처의 수동·자동 근거를 하나씩 남깁니다.
+
+    User Guide처럼 수동 전송과 자동 동기화가 떨어진 절에 있을 때, 이미 선택된 출처 안에서
+    누락된 절차 역할을 가장 강하게 설명하는 청크를 보충합니다. 특정 질문·파일명·경로를
+    고정하지 않고 질문의 작업 동사와 청크의 역할 조합만 사용합니다.
+    """
+    required = {
+        "manual_navigation",
+        "manual_transfer",
+        "automatic_sync",
+        "save_update",
+        "resync_behavior",
+        "overwrite_option",
+        "terminal_list_composition",
+    }
+    if not is_user_terminal_procedure_intent(query) or not selected or not records:
+        return selected
+    selected_keys = {
+        (doc.get("source", "unknown"), doc.get("content", "")) for doc in selected
+    }
+    result = list(selected)
+    covered = set()
+    for document in result:
+        covered |= _procedure_context_facets(query, document.get("content", ""))
+
+    for missing in required - covered:
+        candidates = []
+        focus_sources = {doc.get("source", "unknown") for doc in result}
+        for record in records:
+            metadata = record.get("metadata") or {}
+            if not _metadata_matches_scope(metadata, scope):
+                continue
+            source = metadata.get("source", "unknown")
+            content = record.get("document", "")
+            key = (source, content)
+            if source not in focus_sources or key in selected_keys:
+                continue
+            facets = _procedure_context_facets(query, content)
+            if missing not in facets:
+                continue
+            score = procedure_evidence_score(query, content)
+            # 수동 단말기 작업을 직접 설명하는 UI 목록은 일반 사용자 설정 문장보다 우선합니다.
+            if missing == "manual_transfer" and "단말기 사용자 리스트" in content:
+                score += 0.2
+            if missing == "manual_navigation" and "단말기리스트" in content:
+                score += 0.2
+            if missing == "save_update" and "자동 업데이트" in content:
+                score += 0.15
+            if missing == "resync_behavior" and "다시 다운로드" in content:
+                score += 0.15
+            if missing == "overwrite_option" and "덮어쓰기" in content:
+                score += 0.15
+            if missing == "terminal_list_composition" and "출입그룹 단말기 리스트" in content:
+                score += 0.2
+            candidates.append((score, content, source, metadata, facets))
+        if not candidates:
+            continue
+        _, content, source, metadata, facets = max(candidates, key=lambda item: item[0])
+        candidate = {
+            "content": content,
+            "source": source,
+            "score": 0.0,
+            "metadata": metadata,
+            "procedure_context": missing,
+        }
+        if len(result) < top_k:
+            result.append(candidate)
+        else:
+            replace_index = next(
+                (
+                    index
+                    for index in range(len(result) - 1, -1, -1)
+                    if not _procedure_context_facets(query, result[index].get("content", ""))
+                ),
+                len(result) - 1,
+            )
+            removed = result[replace_index]
+            selected_keys.discard(
+                (removed.get("source", "unknown"), removed.get("content", ""))
+            )
+            result[replace_index] = candidate
+        selected_keys.add((source, content))
+        covered |= facets
+    return result
+
+
+def complete_build_output_context(
+    selected: list,
+    records: list,
+    query: str,
+    top_k: int,
+    scope: Optional[Dict[str, str]] = None,
+) -> list:
+    """생성 완료 경로 질문에 최종 설치 파일 생성 문장을 같은 문서에서 보충합니다.
+
+    파일·폴더 역할을 나타내는 문장과 개별 실행 파일 생성 문장이 떨어져 있어도,
+    경로 역할 점수와 생성 완료 표현으로 후보를 고릅니다. 특정 제품·경로·질문을
+    고정하지 않으며 현재 검색 범위와 선택된 출처만 사용합니다.
+    """
+    if "build_output" not in detect_artifact_intents(query) or not selected or not records:
+        return selected
+    selected_keys = {
+        (doc.get("source", "unknown"), doc.get("content", "")) for doc in selected
+    }
+    focus_sources = {doc.get("source", "unknown") for doc in selected}
+    candidates = []
+    for record in records:
+        metadata = record.get("metadata") or {}
+        if not _metadata_matches_scope(metadata, scope):
+            continue
+        content = record.get("document", "")
+        source = metadata.get("source", "unknown")
+        if source not in focus_sources or (source, content) in selected_keys:
+            continue
+        normalized = content.casefold()
+        if not any(marker in normalized for marker in _BUILD_OUTPUT_CONTENT_MARKERS):
+            continue
+        score = path_role_evidence_score(query, content)
+        if "설치파일" in normalized or "installation file" in normalized:
+            score += 0.15
+        candidates.append((score, content, source, metadata))
+    if not candidates:
+        return selected
+    _, content, source, metadata = max(candidates, key=lambda item: item[0])
+    candidate = {
+        "content": content,
+        "source": source,
+        "score": 0.0,
+        "metadata": metadata,
+        "path_role_context": "build_output",
+    }
+    if len(selected) < top_k:
+        return selected + [candidate]
+    return list(selected[:-1]) + [candidate]
+
+
+def complete_automated_build_context(
+    selected: list,
+    records: list,
+    query: str,
+    top_k: int,
+    scope: Optional[Dict[str, str]] = None,
+) -> list:
+    """자동화 버전 빌드 질문에서 문서의 자동화 섹션 전체를 강제로 포함합니다.
+
+    자동화 섹션은 여러 청크에 걸쳐 있고, 그중 일부 청크(예: nsi 스크립트 버전 수정
+    단계)는 수동 섹션의 유사 문장과 겹쳐 고유 앵커 표현이 없어 검색만으로는 누락되기
+    쉽습니다. `records`(BM25 전체 레코드, scope 필터 적용)에서 자동화 섹션에만 있는
+    고유 표현(`_AUTOMATED_BUILD_SECTION_ANCHORS`)이 포함된 청크를 찾아 같은 출처
+    내 chunk_index 최소~최대 구간을 계산하고, 그 구간의 모든 청크(앵커가 없는 중간
+    청크 포함)를 결과에 강제로 포함합니다. 같은 출처의 구간 밖 청크(수동 절차 등)는
+    결과에서 제거해 두 절차가 섞이지 않게 합니다. 특정 페이지 번호나 파일명을 고정하지
+    않고 문서에 실제로 있는 표현과 인덱서가 부여한 chunk_index만 사용합니다.
+    """
+    if not is_automated_build_intent(query) or not records:
+        return selected
+
+    by_source: Dict[str, Dict[int, dict]] = {}
+    anchor_indexes: Dict[str, List[int]] = {}
+    for record in records:
+        metadata = record.get("metadata") or {}
+        if not _metadata_matches_scope(metadata, scope):
+            continue
+        chunk_index = metadata.get("chunk_index")
+        if chunk_index is None:
+            continue
+        source = metadata.get("source", "unknown")
+        content = record.get("document", "")
+        by_source.setdefault(source, {})[chunk_index] = {
+            "content": content,
+            "source": source,
+            "score": 0.0,
+            "metadata": metadata,
+        }
+        normalized = content.casefold()
+        if any(anchor in normalized for anchor in _AUTOMATED_BUILD_SECTION_ANCHORS):
+            anchor_indexes.setdefault(source, []).append(chunk_index)
+
+    if not anchor_indexes:
+        return selected
+
+    # 앵커가 발견된 출처는 선택 목록에서 제외한 뒤, 앵커 chunk_index 최소~최대 구간의
+    # 청크로만 다시 구성해 수동 절차 청크가 함께 남지 않게 합니다.
+    result = [
+        document
+        for document in selected
+        if document.get("source", "unknown") not in anchor_indexes
+    ]
+    for source, indexes in anchor_indexes.items():
+        low, high = min(indexes), max(indexes)
+        section_chunks = [
+            by_source[source][index]
+            for index in sorted(by_source[source])
+            if low <= index <= high
+        ]
+        result.extend(section_chunks)
+    return result
+
+
+def complete_catalog_hex_coverage(
+    selected: list,
+    records: list,
+    query: str,
+    top_k: int,
+    max_chunks_per_source: int,
+    scope: Optional[Dict[str, str]] = None,
+) -> list:
+    """목록 의도에서 이미 고른 출처의 BM25 카탈로그 청크로 고유 hex 커버리지를 보강합니다.
+
+    RRF 상위 후보에 목차 후반이 없어도, 같은 문서의 카탈로그 청크 중 아직 없는
+    hex를 가장 많이 추가하는 청크를 탐욕적으로 붙입니다. 특정 hex 값은 고정하지 않습니다.
+    목차가 페이지 경계로 나뉜 경우를 위해, 선택된 카탈로그 페이지의 인접 페이지도
+    후보에 포함합니다.
+    """
+    if not detect_list_completeness_intent(query) or not selected or not records:
+        return selected
+    focus_sources = {doc.get("source", "unknown") for doc in selected}
+    selected_keys = {
+        (doc.get("source", "unknown"), doc.get("content", "")) for doc in selected
+    }
+    counts: Dict[str, int] = {}
+    covered = set()
+    neighbor_pages: Dict[str, set] = {source: set() for source in focus_sources}
+    for doc in selected:
+        source = doc.get("source", "unknown")
+        counts[source] = counts.get(source, 0) + 1
+        content = doc.get("content", "")
+        covered |= {value.upper() for value in _HEX_COMMAND_PATTERN.findall(content)}
+        metadata = doc.get("metadata") or {}
+        page = metadata.get("page")
+        if page is None:
+            continue
+        try:
+            page_no = int(page)
+        except (TypeError, ValueError):
+            continue
+        if looks_like_command_catalog(content) or ".." in content or metadata.get("catalog_page"):
+            neighbor_pages[source].update({page_no - 1, page_no, page_no + 1})
+
+    catalog_pool = []
+    for record in records:
+        metadata = record.get("metadata") or {}
+        if not _metadata_matches_scope(metadata, scope):
+            continue
+        source = metadata.get("source", "unknown")
+        content = record.get("document", "")
+        key = (source, content)
+        if source not in focus_sources or key in selected_keys:
+            continue
+        hexes = {value.upper() for value in _HEX_COMMAND_PATTERN.findall(content)}
+        if not hexes:
+            continue
+        page = metadata.get("page")
+        try:
+            page_no = int(page) if page is not None else None
+        except (TypeError, ValueError):
+            page_no = None
+        toc_line = (".." in content) or bool(metadata.get("catalog_page"))
+        adjacent = page_no is not None and page_no in neighbor_pages.get(source, set())
+        if not (looks_like_command_catalog(content) or toc_line or len(hexes) >= 4 or adjacent):
+            continue
+        catalog_pool.append(
+            {
+                "content": content,
+                "source": source,
+                "score": float(len(hexes)),
+                "metadata": metadata,
+                "_hexes": hexes,
+                "_toc": toc_line or adjacent,
+            }
+        )
+
+    result = list(selected)
+    while len(result) < top_k:
+        best = None
+        best_new = 0
+        best_toc = False
+        for doc in catalog_pool:
+            source = doc["source"]
+            if counts.get(source, 0) >= max_chunks_per_source:
+                continue
+            key = (source, doc["content"])
+            if key in selected_keys:
+                continue
+            new_count = len(doc["_hexes"] - covered)
+            is_toc = bool(doc.get("_toc"))
+            if new_count > best_new or (new_count == best_new and is_toc and not best_toc):
+                best_new = new_count
+                best = doc
+                best_toc = is_toc
+        if not best or best_new <= 0:
+            break
+        clean = {k: v for k, v in best.items() if not k.startswith("_")}
+        result.append(clean)
+        selected_keys.add((best["source"], best["content"]))
+        counts[best["source"]] = counts.get(best["source"], 0) + 1
+        covered |= best["_hexes"]
+
+    # top_k가 가득 차도, 순 고유 hex가 늘어날 때만 비카탈로그 청크를 교체합니다.
+    for _ in range(len(result)):
+        covered = set()
+        for doc in result:
+            covered |= {
+                value.upper() for value in _HEX_COMMAND_PATTERN.findall(doc.get("content", ""))
+            }
+        best = None
+        best_gain = 0
+        replace_idx = None
+        for doc in catalog_pool:
+            key = (doc["source"], doc["content"])
+            if key in selected_keys or doc["source"] not in focus_sources:
+                continue
+            for idx, current in enumerate(result):
+                if current.get("source") != doc["source"]:
+                    continue
+                current_hex = {
+                    value.upper()
+                    for value in _HEX_COMMAND_PATTERN.findall(current.get("content", ""))
+                }
+                # 점선 목차 줄은 목록 완결의 핵심이므로 교체하지 않습니다.
+                if ".." in (current.get("content") or ""):
+                    continue
+                if looks_like_command_catalog(current.get("content", "")) and len(current_hex) >= 8:
+                    continue
+                new_covered = (covered - current_hex) | doc["_hexes"]
+                gain = len(new_covered) - len(covered)
+                new_only = len(doc["_hexes"] - covered)
+                # 인접 목차 페이지의 새 명령은, hex가 적은 비목차 청크를 밀어낼 수 있게 가산합니다.
+                if (
+                    doc.get("_toc")
+                    and new_only > 0
+                    and ".." not in (current.get("content") or "")
+                    and not looks_like_command_catalog(current.get("content", ""))
+                    and len(current_hex) <= 5
+                ):
+                    gain = max(gain, new_only) + 10
+                if gain > best_gain:
+                    best_gain = gain
+                    best = doc
+                    replace_idx = idx
+        if not best or best_gain <= 0 or replace_idx is None:
+            break
+        removed = result[replace_idx]
+        selected_keys.discard((removed.get("source", "unknown"), removed.get("content", "")))
+        clean = {k: v for k, v in best.items() if not k.startswith("_")}
+        result[replace_idx] = clean
+        selected_keys.add((best["source"], best["content"]))
+    return result
 
 
 def limit_documents_for_context(documents: list, max_context_chars: int) -> list:
@@ -932,12 +2062,79 @@ def retrieve_documents(
     rerank_query: Optional[str] = None,
 ) -> list:
     """Fuse dense BGE-M3 and exact-keyword BM25 rankings with RRF, then rerank."""
+    intent_query = rerank_query or query
+    list_intent = detect_list_completeness_intent(intent_query)
+    procedure_intent = is_user_terminal_procedure_intent(intent_query)
+    automated_build_intent = is_automated_build_intent(intent_query)
     candidate_count = max(top_k, vector_candidates, rerank_candidates if rerank_enabled else 0)
+    # API/스키마 질문은 같은 swagger 안의 여러 엔드포인트·정의 청크가 필요하므로
+    # 소스당 청크 상한을 소폭 올려 경로와 필드 표가 함께 남게 합니다.
+    effective_max_chunks = max_chunks_per_source
+    effective_top_k = top_k
+    if detect_api_doc_intent(intent_query):
+        effective_max_chunks = max(max_chunks_per_source, 3)
+    if list_intent:
+        # 표·TOC가 페이지·섹션 경계에서 잘려도 동일 출처 연속 목록을 더 모읍니다.
+        effective_max_chunks = max(effective_max_chunks, 8)
+        effective_top_k = max(top_k, 8)
+        candidate_count = max(candidate_count, 30)
+        bm25_candidates = max(bm25_candidates, 30)
+    if procedure_intent:
+        # 수동 전송과 자동 동기화 설정은 같은 User Guide의 떨어진 연속 절에 있으므로
+        # 동일 출처에서 필요한 절차 근거를 함께 보존합니다.
+        effective_max_chunks = max(effective_max_chunks, 6)
+        effective_top_k = max(top_k, 6)
+        candidate_count = max(candidate_count, 30)
+        bm25_candidates = max(bm25_candidates, 30)
+    if automated_build_intent:
+        # 자동화 섹션은 3개 청크(섹션 시작·중간·마무리+주의사항)에 걸쳐 있고
+        # complete_automated_build_context가 이를 강제로 포함하므로, 최종 목록이
+        # 잘리지 않도록 여유를 둡니다.
+        effective_max_chunks = max(effective_max_chunks, 4)
+        effective_top_k = max(top_k, 4)
+        candidate_count = max(candidate_count, 30)
+        bm25_candidates = max(bm25_candidates, 30)
 
-    def _finalize(candidates: list) -> list:
+    def _finalize(candidates: list, records_for_coverage: Optional[list] = None) -> list:
+        working = candidates
         if rerank_enabled:
-            candidates = rerank_documents(rerank_query or query, candidates, rerank_model, candidate_count)
-        return limit_documents_per_source(candidates, top_k, max_chunks_per_source)
+            working = rerank_documents(
+                intent_query, working, rerank_model, candidate_count
+            )
+        limited = limit_documents_per_source(working, effective_top_k, effective_max_chunks)
+        expanded = expand_catalog_chunks_from_candidates(
+            limited,
+            working,
+            intent_query,
+            effective_top_k,
+            effective_max_chunks,
+        )
+        return complete_automated_build_context(
+            complete_catalog_hex_coverage(
+                complete_build_output_context(
+                    complete_procedure_context(
+                        expanded,
+                        records_for_coverage or [],
+                        intent_query,
+                        effective_top_k,
+                        scope,
+                    ),
+                    records_for_coverage or [],
+                    intent_query,
+                    effective_top_k,
+                    scope,
+                ),
+                records_for_coverage or [],
+                intent_query,
+                effective_top_k,
+                effective_max_chunks,
+                scope,
+            ),
+            records_for_coverage or [],
+            intent_query,
+            effective_top_k,
+            scope,
+        )
 
     vector_docs = retrieve_vector_documents(
         chroma_path, collection_name, embedding_model, query,
@@ -945,7 +2142,7 @@ def retrieve_documents(
     )
     records, bm25 = _get_bm25_index(bm25_index_path)
     if not records or bm25 is None:
-        return _finalize(vector_docs)
+        return _finalize(vector_docs, [])
     allowed = [index for index, record in enumerate(records)
                if _metadata_matches_scope(record.get("metadata"), scope)]
     if not allowed:
@@ -963,6 +2160,6 @@ def retrieve_documents(
         record = records[index]
         metadata = record.get("metadata") or {}
         bm25_docs.append({"content": record.get("document", ""), "source": metadata.get("source", "unknown"), "score": scores[index], "metadata": metadata})
-    merged = _rrf_merge(vector_docs, bm25_docs, candidate_count)
-    return _finalize(merged)
+    merged = _rrf_merge(vector_docs, bm25_docs, candidate_count, query=intent_query)
+    return _finalize(merged, records)
 

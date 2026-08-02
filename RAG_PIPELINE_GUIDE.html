@@ -121,8 +121,9 @@
     }
 
     .flow-item {
-      min-width: 132px;
-      padding: 14px 12px;
+      flex: 0 0 auto;
+      min-width: 110px;
+      padding: 12px 14px;
       border: 1px solid var(--line);
       border-radius: 10px;
       background: var(--surface);
@@ -131,17 +132,18 @@
 
     .flow-item strong {
       display: block;
-      margin-bottom: 4px;
+      font-size: 14px;
     }
 
     .flow-item small {
       color: var(--muted);
+      font-size: 12px;
     }
 
     .arrow {
-      display: grid;
-      place-items: center;
-      color: var(--accent);
+      display: flex;
+      align-items: center;
+      color: var(--muted);
       font-weight: 700;
     }
 
@@ -149,10 +151,11 @@
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 14px;
+      margin: 18px 0;
     }
 
     .card {
-      padding: 18px;
+      padding: 16px 18px;
       border: 1px solid var(--line);
       border-radius: 12px;
       background: var(--surface);
@@ -162,110 +165,120 @@
       margin-top: 0;
     }
 
-    .card p:last-child {
-      margin-bottom: 0;
-    }
-
     .step {
       display: grid;
       grid-template-columns: 42px 1fr;
       gap: 14px;
-      padding: 18px 0;
-      border-bottom: 1px solid var(--line);
+      margin: 18px 0;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--surface);
     }
 
     .step-number {
-      width: 36px;
-      height: 36px;
-      display: grid;
-      place-items: center;
-      border-radius: 50%;
-      background: var(--accent);
-      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 42px;
+      height: 42px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
       font-weight: 700;
     }
 
     .step h3 {
-      margin: 2px 0 6px;
-    }
-
-    .step p {
-      margin: 0 0 8px;
-    }
-
-    code {
-      padding: 2px 6px;
-      border-radius: 5px;
-      background: var(--code);
-      color: var(--text);
-      font-family: Consolas, "Courier New", monospace;
-      font-size: 0.92em;
-    }
-
-    pre {
-      overflow-x: auto;
-      padding: 16px;
-      border: 1px solid var(--line);
-      border-radius: 10px;
-      background: var(--code);
-      line-height: 1.55;
-    }
-
-    pre code {
-      padding: 0;
-      background: transparent;
+      margin-top: 0;
     }
 
     .badge {
       display: inline-block;
+      margin-left: 6px;
       padding: 2px 8px;
       border-radius: 999px;
       background: var(--accent-soft);
       color: var(--accent);
       font-size: 12px;
-      font-weight: 700;
+      font-weight: 600;
+      vertical-align: middle;
     }
 
-    .non-llm {
+    .badge.non-llm {
       background: var(--surface-soft);
-      color: var(--success);
+      color: var(--muted);
+    }
+
+    pre {
+      overflow-x: auto;
+      padding: 14px 16px;
+      border-radius: 10px;
+      background: var(--code);
+      border: 1px solid var(--line);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.92em;
+    }
+
+    p code, li code {
+      padding: 1px 5px;
+      border-radius: 4px;
+      background: var(--code);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 14px 0 22px;
+      font-size: 14px;
+    }
+
+    th, td {
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: var(--surface-soft);
     }
 
     .memory {
-      margin-top: 38px;
-      padding: 22px;
-      border: 1px solid var(--line);
+      margin-top: 40px;
+      padding: 18px 20px;
       border-radius: 12px;
       background: var(--surface);
-      text-align: center;
-      font-size: 19px;
-      font-weight: 700;
+      border: 1px solid var(--line);
+      color: var(--success);
+      font-weight: 600;
     }
 
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --bg: #14171c;
-        --surface: #1c2128;
-        --surface-soft: #242b35;
-        --text: #e6edf3;
-        --muted: #9da7b3;
-        --line: #343d48;
-        --accent: #70a5ff;
-        --accent-soft: #1d2c46;
-        --code: #222933;
-        --success: #5eead4;
-      }
+    .links {
+      margin: 16px 0 0;
+      padding: 0;
+      list-style: none;
     }
 
-    @media (max-width: 840px) {
+    .links li {
+      margin: 4px 0;
+    }
+
+    .links a {
+      color: var(--accent);
+    }
+
+    @media (max-width: 900px) {
       .layout {
-        display: block;
-        padding: 20px 16px 52px;
+        grid-template-columns: 1fr;
       }
 
       nav {
         position: static;
-        margin-bottom: 28px;
       }
 
       .grid {
@@ -286,17 +299,27 @@
       <a href="#files">주요 파일</a>
       <a href="#indexing">문서 인덱싱</a>
       <a href="#query">질문 처리</a>
+      <a href="#quality">검색 품질 규칙</a>
+      <a href="#eval">평가·회귀</a>
+      <a href="#webui">Open WebUI 연동</a>
+      <a href="#reindex">재인덱싱</a>
       <a href="#llm">LLM의 역할</a>
-      <a href="#operations">운영 시 주의사항</a>
+      <a href="#operations">운영·트러블슈팅</a>
     </nav>
 
     <main>
       <header>
         <h1>RAG Pipeline 구조와 동작 가이드</h1>
-        <p class="lead">Open WebUI, ChromaDB, BM25, 리랭커와 Ollama가 어떻게 연결되는지 쉽게 설명한다.</p>
+        <p class="lead">Open WebUI, ChromaDB, BM25, 리랭커와 Ollama가 어떻게 연결되는지 설명한다. (Markdown과 동기화, 2026-08)</p>
         <div class="summary">
           사용자 질문과 의미가 비슷한 문서 조각을 찾은 다음, 그 조각을 LLM에 참고자료로 제공해 답변하게 하는 시스템이다.
         </div>
+        <ul class="links">
+          <li><a href="README.md">README.md</a> — 빠른 시작·명령</li>
+          <li><a href="RAG_PIPELINE_GUIDE_EASY.md">RAG_PIPELINE_GUIDE_EASY.md</a> — 비전공자용</li>
+          <li><a href="RAG_PIPELINE_GUIDE.md">RAG_PIPELINE_GUIDE.md</a> — Markdown 원본</li>
+          <li><a href="PL_FAILURE_LOG.md">PL_FAILURE_LOG.md</a> — 실패·예방 체크리스트</li>
+        </ul>
       </header>
 
       <section id="overview">
@@ -324,35 +347,38 @@
           </article>
           <article class="card">
             <h3>Indexer</h3>
-            <p>원본 문서를 작은 청크로 나누고 ChromaDB와 BM25 인덱스를 만드는 배치 작업이다.</p>
+            <p>원본 문서를 작은 청크로 나누고 ChromaDB와 BM25 인덱스를 만드는 배치 작업이다. 목차·카탈로그 페이지는 더 큰 청크로 저장한다.</p>
           </article>
           <article class="card">
             <h3>Ollama</h3>
-            <p>Docker 외부 Windows 호스트에서 LLM을 실행한다. 컨테이너에서는 <code>host.docker.internal:11434</code>로 접근한다.</p>
+            <p>Docker 외부 Windows 호스트에서 LLM을 실행한다. 컨테이너에서는 <code>host.docker.internal:11434</code>로 접근한다. qwen3.5는 <code>think:false</code>를 유지한다.</p>
           </article>
         </div>
       </section>
 
       <section id="files">
         <h2>주요 파일</h2>
-        <pre><code>RAG_PipeLine/
+        <pre><code>RAG_MJY/
 ├── docker-compose.yml
 ├── rag/
 │   ├── pipelines/rag_pipeline.py
 │   ├── scripts/index_documents.py
+│   ├── scripts/swagger_yaml_to_md.py
 │   ├── scripts/eval_retrieval.py
 │   ├── scripts/test_rag_regression.py
 │   └── data/
 │       ├── docs/
 │       ├── eval/golden_questions.json
+│       ├── eval/artifacts/ideal_answer_*.md
 │       ├── chroma_db/
 │       └── assets/
 └── ImageServer/</code></pre>
         <ul>
           <li><code>rag_pipeline.py</code>: 질문을 받아 검색하고 답변을 생성한다.</li>
-          <li><code>index_documents.py</code>: 문서를 ChromaDB와 BM25에 저장한다.</li>
+          <li><code>index_documents.py</code>: 문서를 ChromaDB와 BM25에 저장한다. <code>document_type</code>에 <code>api</code> 포함.</li>
+          <li><code>swagger_yaml_to_md.py</code>: Swagger YAML을 md로 변환(스키마 인라인).</li>
           <li><code>eval_retrieval.py</code>: 골든 질문셋으로 검색 품질을 평가한다.</li>
-          <li><code>test_rag_regression.py</code>: 검색과 스트림 회귀를 검사한다.</li>
+          <li><code>test_rag_regression.py</code>: 검색·스트림 회귀 약 60개.</li>
         </ul>
       </section>
 
@@ -365,7 +391,7 @@
           <div class="arrow">→</div>
           <div class="flow-item"><strong>내용 추출</strong><small>페이지·섹션</small></div>
           <div class="arrow">→</div>
-          <div class="flow-item"><strong>청킹</strong><small>480 / 중첩 80토큰</small></div>
+          <div class="flow-item"><strong>청킹</strong><small>480 / TOC≈960</small></div>
           <div class="arrow">→</div>
           <div class="flow-item"><strong>임베딩</strong><small>BAAI/bge-m3</small></div>
           <div class="arrow">→</div>
@@ -375,9 +401,9 @@
         <h3>ChromaDB 저장</h3>
         <p>
           각 문서 청크는 <code>BAAI/bge-m3</code> 모델을 통해 숫자 벡터로 변환된다.
-          의미가 비슷한 문장은 벡터 공간에서도 가까워지기 때문에 단어가 완전히 같지 않아도 검색할 수 있다.
+          메타데이터에는 파일명, 페이지, 섹션, 문서 종류(<code>protocol</code>/<code>install</code>/<code>user_guide</code>/<code>api</code>), 제품, 프로토콜 세대·버전이 들어간다.
         </p>
-        <p>본문과 함께 파일명, 페이지, 섹션, 문서 종류, 제품, 프로토콜 세대와 버전도 메타데이터로 저장한다.</p>
+        <p>목차·명령 카탈로그처럼 짧은 번호/hex 행이 밀집한 PDF 페이지는 섹션을 쪼개지 않고 더 큰 청크로 인덱싱해 “전부 리스트”가 잘리지 않게 한다.</p>
 
         <h3>BM25 인덱스</h3>
         <p>
@@ -385,8 +411,15 @@
           BM25는 API명, 파라미터, 명령어, 버전처럼 정확한 문자열 검색을 보완한다.
         </p>
 
-        <pre><code>docker compose run --rm indexer \
-  python /app/scripts/index_documents.py /app/docs --reset</code></pre>
+        <h3>Swagger md 재생성</h3>
+        <pre><code>docker compose run --rm --no-deps --entrypoint python indexer \
+  /app/scripts/swagger_yaml_to_md.py \
+  --input /app/docs/swagger_kr.yaml \
+  --output /app/docs/swagger_kr.md
+
+docker compose run --rm indexer \
+  python /app/scripts/index_documents.py /app/docs --reset
+docker compose up -d --force-recreate pipelines</code></pre>
       </section>
 
       <section id="query">
@@ -398,8 +431,6 @@
           <div>
             <h3>후속 질문 문맥화 <span class="badge">LLM</span></h3>
             <p>“그거 자세히 설명해줘”처럼 대상이 생략된 질문을 이전 대화를 반영한 독립적인 질문으로 바꾼다.</p>
-            <pre><code>그거 자세히 설명해줘
-→ Alpeta 프로토콜의 Param3을 자세히 설명해줘</code></pre>
           </div>
         </article>
 
@@ -407,7 +438,7 @@
           <div class="step-number">2</div>
           <div>
             <h3>검색 질문 재작성 <span class="badge">LLM</span></h3>
-            <p>질문을 검색에 유리한 2~4개의 표현으로 재작성하고 도메인 동의어나 버전 표현을 추가한다.</p>
+            <p>질문을 검색에 유리한 표현으로 재작성하고, 자동화 빌드·FaceWT·UI 표기 등 의도별 키워드를 확장한다.</p>
           </div>
         </article>
 
@@ -415,10 +446,9 @@
           <div class="step-number">3</div>
           <div>
             <h3>검색 범위 결정 <span class="badge non-llm">규칙 기반</span></h3>
-            <p>질문에 있는 “Alpeta”, “프로토콜”, “신규” 같은 단어로 검색 범위를 제한한다.</p>
+            <p>프로토콜/가이드/설치 키워드로 범위를 제한한다. API 의도에서는 <code>document_type=api</code>와 product 필터 완화를 적용한다. User Guide 절차는 Protocol/NSIS 혼입을 막는다.</p>
             <pre><code>product = alpeta
-document_type = protocol
-protocol_generation = current</code></pre>
+document_type = protocol | user_guide | install | api</code></pre>
           </div>
         </article>
 
@@ -443,8 +473,8 @@ protocol_generation = current</code></pre>
           <div>
             <h3>RRF 병합과 리랭킹 <span class="badge non-llm">LLM 아님</span></h3>
             <p>
-              벡터 검색과 BM25 순위를 RRF로 합친다. 그다음
-              <code>BAAI/bge-reranker-v2-m3</code> CrossEncoder가 질문과 후보를 다시 비교해 정렬한다.
+              벡터와 BM25 순위를 RRF로 합친 뒤
+              <code>BAAI/bge-reranker-v2-m3</code>가 재정렬한다. 기술 토큰·경로 역할·API 근거에 가점을 준다.
             </p>
           </div>
         </article>
@@ -453,7 +483,7 @@ protocol_generation = current</code></pre>
           <div class="step-number">7</div>
           <div>
             <h3>참고 문맥 구성 <span class="badge non-llm">코드 처리</span></h3>
-            <p>출처별 청크 수와 전체 글자 수를 제한하고 질문 초점에 맞는 청크를 참고 문서 블록으로 조립한다.</p>
+            <p>출처별 청크·글자 수 제한, 목록 완결성, 자동화 섹션 구간 강제 포함, 수동 절차 제거 등을 적용해 참고 블록을 만든다.</p>
           </div>
         </article>
 
@@ -461,9 +491,96 @@ protocol_generation = current</code></pre>
           <div class="step-number">8</div>
           <div>
             <h3>최종 답변 생성 <span class="badge">LLM</span></h3>
-            <p>Ollama가 검색된 참고 문서, 질문, 최근 대화를 받아 최종 답변을 스트리밍한다.</p>
+            <p>Ollama가 참고 문서와 질문을 받아 스트리밍한다. 첫 yield 전 긴 동기 작업이 있으면 UI가 무응답처럼 보일 수 있다.</p>
           </div>
         </article>
+      </section>
+
+      <section id="quality">
+        <h2>3. 검색 품질 규칙 (2026-08)</h2>
+
+        <h3>기술 토큰·파일 역할 (NSIS)</h3>
+        <table>
+          <thead>
+            <tr><th>종류</th><th>역할</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>.bat</code></td><td>자동화 실행</td></tr>
+            <tr><td><code>.nsi</code></td><td>빌드 스크립트</td></tr>
+            <tr><td><code>.exe</code></td><td>빌드 산출물</td></tr>
+            <tr><td><code>D:\nsis\install</code></td><td>설치 확인 / 최종 설치 파일 폴더</td></tr>
+            <tr><td><code>D:\nsis\Alpeta\setup</code></td><td>device exe 등 setup 경로</td></tr>
+          </tbody>
+        </table>
+
+        <h3>API / Swagger</h3>
+        <ul>
+          <li>파일명 swagger/openapi/api → <code>document_type=api</code></li>
+          <li>API 의도 시 product 필터 완화, CamelCase(FaceWT 등) 보존</li>
+          <li>Swagger 근거가 있으면 UI/프로토콜로 API 대체 금지</li>
+        </ul>
+
+        <h3>v4 프로토콜 전체 리스트</h3>
+        <ul>
+          <li>TOC/카탈로그 큰 청크 + 목록 완결성 규칙</li>
+          <li>전부/전체/리스트업 의도에서 top-k·소스당 상한 확대</li>
+        </ul>
+
+        <h3>User Guide 절차</h3>
+        <ul>
+          <li><code>[단말기리스트]</code> 방법과 <code>단말기 사용자 리스트</code> 추가 방법을 분리</li>
+          <li>화면 구성 3항목·덮어쓰기·다시 다운로드 등 문서 표기 보존</li>
+        </ul>
+
+        <h3>NSIS 자동화 버전</h3>
+        <ul>
+          <li>1~7단계 완결, <code>build_install.bat</code> 하위 작업 포함</li>
+          <li>결과 <code>D:\nsis\install</code>, MakeNSISW 등 수동 혼입 금지</li>
+        </ul>
+        <p>이상적 답변: <code>rag/data/eval/artifacts/ideal_answer_*.md</code> (facewt, nsis_auto_build, terminal_user_sync)</p>
+      </section>
+
+      <section id="eval">
+        <h2>4. 평가·회귀</h2>
+        <ul>
+          <li>회귀: <code>test_rag_regression.py</code> 약 60개 (모델 불필요)</li>
+          <li>골든: 출처 + <strong>필수 키워드 전부</strong>일 때만 성공</li>
+          <li>품질 변경 후: recreate → Ollama readiness → pipe → eval → regression [PLF-20260802-002]</li>
+        </ul>
+        <pre><code>docker compose run --rm --no-deps --entrypoint python \
+  indexer /app/scripts/test_rag_regression.py
+
+docker compose run --rm --no-deps --entrypoint python \
+  indexer /app/scripts/eval_retrieval.py
+
+docker compose run --rm --no-deps --entrypoint python \
+  indexer /app/scripts/eval_retrieval.py --rerank</code></pre>
+      </section>
+
+      <section id="webui">
+        <h2>5. Open WebUI ↔ Pipelines</h2>
+        <ul>
+          <li>Base URL(컨테이너): <code>http://pipelines:9099</code>, API Key 예시 <code>0p3n-w3bu!</code></li>
+          <li>도우미 모델: <code>rag_pipeline</code></li>
+          <li>DB 복구 후: <code>chat.pinned</code>/<code>meta</code>/<code>folder_id</code>, <code>chat.chat</code> JSON 타입, <code>config.openai.api_base_urls</code> 확인 [PLF-20260802-001]</li>
+          <li>빈 <code>__init__.py</code>를 pipelines 디렉터리에 두지 않기 [PLF-20260801-001]</li>
+          <li>비밀값·전체 로그 덤프 금지</li>
+        </ul>
+      </section>
+
+      <section id="reindex">
+        <h2>6. 재인덱싱이 필요한 경우</h2>
+        <table>
+          <thead>
+            <tr><th>변경</th><th>--reset</th><th>pipelines recreate</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>문서 추가·수정</td><td>권장</td><td>보통 불필요</td></tr>
+            <tr><td>청킹·메타데이터·임베딩·swagger md</td><td>필수</td><td>권장</td></tr>
+            <tr><td>파이프라인 코드만</td><td>불필요</td><td>필수</td></tr>
+          </tbody>
+        </table>
+        <pre><code>docker compose up -d --force-recreate pipelines</code></pre>
       </section>
 
       <section id="llm">
@@ -486,6 +603,7 @@ protocol_generation = current</code></pre>
               <li>키워드 검색: BM25</li>
               <li>순위 병합: RRF</li>
               <li>재정렬: BGE CrossEncoder</li>
+              <li>역할·절차·목록 규칙: 코드</li>
             </ul>
           </article>
         </div>
@@ -503,10 +621,13 @@ protocol_generation = current</code></pre>
         <h2>운영 시 기억할 사항</h2>
         <ol>
           <li>문서를 추가하거나 수정하면 인덱서를 다시 실행한다.</li>
-          <li>임베딩 모델 변경 시 <code>--reset</code>으로 전체 재인덱싱한다.</li>
-          <li>청킹이나 메타데이터 분류 규칙 변경 시에도 재인덱싱한다.</li>
-          <li>검색 로직 변경 후 회귀 테스트와 골든 질문셋 평가를 실행한다.</li>
+          <li>임베딩·청킹·메타데이터 변경 시 <code>--reset</code> 재인덱싱한다.</li>
+          <li>검색 로직 변경 후 회귀(약 60개)와 골든 평가를 실행한다. 평가는 출처+필수 키워드. [PLF-20260801-002]</li>
           <li>pipelines와 indexer의 <code>chromadb</code> 버전을 동일하게 유지한다.</li>
+          <li>답변이 점만 보이면 qwen <code>think:false</code>·빈 content를 확인한다. [PLF-20260801-001]</li>
+          <li>도우미가 안 보이면 pipelines URL·chat 스키마·config를 확인한다. [PLF-20260802-001]</li>
+          <li>품질 작업 전후 기준선·pipe 원문을 artifacts에 남긴다. [PLF-20260801-003]</li>
+          <li>PL 작업 전 <code>PL_FAILURE_LOG.md</code> 활성 예방 체크리스트를 읽는다.</li>
         </ol>
 
         <pre><code># 검색 회귀 테스트

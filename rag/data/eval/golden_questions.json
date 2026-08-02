@@ -33,5 +33,90 @@
     "question": "얼굴 정보 조회 API의 응답 스키마 구조 알려줘",
     "expected_source": "swagger_kr.md",
     "expected_keywords": ["TemplateType"]
+  },
+  {
+    "question": "nsis로 알페타 설치하는 자동화 파일 이름이 뭐야?",
+    "expected_source": "NSIS 알페타 설치 패키지 빌드 매뉴얼_V2.1.pdf",
+    "expected_keywords": ["build_install.bat", "D:\\nsis\\eXbuilder\\build_install.bat"]
+  },
+  {
+    "question": "알페타 device 설치 패키지를 수동 빌드할 때 선택하는 NSIS 스크립트 파일은?",
+    "expected_source": "NSIS 알페타 설치 패키지 빌드 매뉴얼_V2.1.pdf",
+    "expected_keywords": ["alpeta_device.nsi"]
+  },
+  {
+    "question": "AlpetaDevice.exe 설치 파일이 생성되는 경로는?",
+    "expected_source": "NSIS 알페타 설치 패키지 빌드 매뉴얼_V2.1.pdf",
+    "expected_keywords": ["D:\\nsis\\Alpeta\\setup"]
+  },
+  {
+    "question": "서버 파일을 빌드할 때 실행하는 배치 파일 이름은?",
+    "expected_source": "NSIS 알페타 설치 패키지 빌드 매뉴얼_V2.1.pdf",
+    "expected_keywords": ["build.bat"]
+  },
+  {
+    "question": "미디어서버에 스트림 추가하는 API의 HTTP 메서드와 요청 경로는?",
+    "expected_source": "api.md",
+    "expected_keywords": ["POST /stream/{STREAM_ID}/add"]
+  },
+  {
+    "question": "alpeta swagger에서 FAW 또는 FaceWT 관련한 스키마 구조와 사용하는 API 명세 줘",
+    "expected_source": "swagger_kr.md",
+    "expected_keywords": [
+      "FaceWTInfo",
+      "TemplateType",
+      "TemplateData",
+      "/v1/users/{id}/faceWTInfo",
+      "/v1/terminals/{id}/scan/facewt"
+    ]
+  },
+  {
+    "question": "v4.0 프로토콜 전부 리스트업해줘",
+    "expected_source": "Communication protocol for Terminal v4.0_Re19.pdf",
+    "expected_keywords": ["0x010A", "0x010B", "0x010C", "출입그룹", "스냅샷"]
+  },
+  {
+    "question": "alpeta 빌드 완료 후에 설치 파일을 확인하는 폴더는?",
+    "expected_source": "NSIS 알페타 설치 패키지 빌드 매뉴얼_V2.1.pdf",
+    "expected_keywords": ["D:\\nsis\\install"]
+  },
+  {
+    "question": "alpeta 빌드 완료 후에 설치 파일이 어디에 생겨?",
+    "expected_source": "NSIS 알페타 설치 패키지 빌드 매뉴얼_V2.1.pdf",
+    "expected_keywords": ["D:\\nsis\\install", "설치파일이 생성"]
+  },
+  {
+    "question": "alpeta에서 사용자를 단말기에 어떻게 추가해? 그리고 자동동기화는 어떻게 해?",
+    "expected_source": "Alpeta User Guide.pdf",
+    "expected_keywords": [
+      "단말기 사용자 리스트",
+      "사용자를 선택",
+      "적용",
+      "자동 동기화",
+      "동일한 출입그룹",
+      "덮어쓰기",
+      "다시 다운로드",
+      "출입그룹 단말기 리스트",
+      "등록된 단말기",
+      "추가가능한 단말기",
+      "필수로 연결",
+      "출입그룹 기반으로 단말기와 설정"
+    ]
+  },
+    {
+    "question": "alpeta 자동빌드하려면 어떻게 하면돼?",
+    "expected_source": "NSIS 알페타 설치 패키지 빌드 매뉴얼_V2.1.pdf",
+    "expected_keywords": [
+      "gitpull.bat",
+      "define.go",
+      "alpeta_device.nsi",
+      "alpeta.nsi",
+      "eXbuilder",
+      "build_install.bat",
+      "proto_compile",
+      "PRODUCT_VERSION",
+      "D:\\nsis\\install",
+      "자동화 버전"
+    ]
   }
 ]

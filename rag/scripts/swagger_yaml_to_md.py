@@ -290,10 +290,14 @@ def convert(input_path: Path, output_path: Path) -> None:
 
 
 def main() -> None:
+    """CLI 진입점. 컨테이너에서는 /app/docs, 로컬에서는 rag/data/docs를 기본 경로로 씁니다."""
     here = Path(__file__).resolve().parent
     rag_root = here.parent
-    default_in = rag_root / "data" / "docs" / "swagger_kr.yaml"
-    default_out = rag_root / "data" / "docs" / "swagger_kr.md"
+    local_docs = rag_root / "data" / "docs"
+    container_docs = Path("/app/docs")
+    docs_dir = container_docs if container_docs.exists() else local_docs
+    default_in = docs_dir / "swagger_kr.yaml"
+    default_out = docs_dir / "swagger_kr.md"
 
     ap = argparse.ArgumentParser(description="Swagger 2.0 YAML → Markdown")
     ap.add_argument("--input", type=Path, default=default_in)
