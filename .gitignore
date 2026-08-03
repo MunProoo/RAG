@@ -39,3 +39,7 @@ Desktop.ini
 *.tmp
 *.temp
 .cache/
+
+# Indexed source documents (keep folder, ignore contents)
+rag/data/docs/*
+!rag/data/docs/.gitkeep
