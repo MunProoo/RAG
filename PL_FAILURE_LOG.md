@@ -35,10 +35,148 @@
 - [PLF-20260802-003] 새 이슈의 Pipe probe/골든 항목을 추가할 때, 기존 probe 스크립트의 `QUESTIONS`/골든 파일에 있는 과거(이미 PASS된) 질문 키를 재사용하거나 그대로 두지 말고, 이번 작업의 실제 신규 질문 문자열이 `QUESTIONS`와 `golden_questions.json`에 새 키로 존재하는지, 그 raw 답변·assertion 파일이 이번 실행에서 새로 생성됐는지(타임스탬프·내용) 확인한다.
 - [PLF-20260803-001] 지연 최적화 시 `OLLAMA_NUM_PREDICT`를 과도하게 낮추면 `reason=length`로 절차/표 답변이 중간에 끊겨 UI에서 “답변 안 됨”처럼 보인다. pipe/SSE assertion에 `reason=stop`(또는 충분한 본문)과 non-status 본문을 포함한다.
 - [PLF-20260803-001] 진행 상태 문구를 일반 문자열로 yield하면 Open WebUI가 `delta.content`로 저장해 status가 본문에 섞이거나 최종 답변처럼 보인다. status는 `event.type=status` dict로 분리하고, e2e에서 `legacy_status_in_content=false`를 확인한다.
+- [PLF-20260803-002] 「표로」후속 문맥화/MediaServer 표 enforce는 **최근 대화 주제가 미디어 서버 스펙일 때만** 적용한다. FaceWT/스키마/API 후속 「표로」에 MediaServer 표를 강제하면 안 된다. Case A(스키마→표로)와 Case B(미디어→표로) history pipe를 함께 회귀한다.
+- [PLF-20260803-003] `is_media_server_spec_intent`인 단독 질문(예: `미디어서버 스펙 알려줘`)은 `len≤12` 후속 오탐·API 주제 가드에 의해 FaceWT/UG 문맥으로 덮어쓰지 않는다. solo MediaServer pipe와 FaceWT/MediaServer 「표로」후속을 함께 회귀한다.
+- [PLF-20260803-004] 「정리/표도/알아보기 편하게/표를 활용/보기 쉽게」같은 **일반 재포맷 후속**은 최근 사용자 주제(자동빌드·API·미디어 등)로 문맥화한다. 마커는 `표 활용`(공백)만이 아니라 **`표를 활용`·`보기 쉽게`** 등 실제 UI 문구 변형을 포함해야 한다. 주제 불명이면 확인 요청. S1·`표를 활용해서 더 보기 쉽게 해줘`·S4와 S2/S3/S5를 함께 회귀한다.
+- [PLF-20260803-004] 복수 인물 질문(`박준언, 방인재에 대해…`)은 단일 `extract_query_focus`만으로 intent를 끄지 말고 **이름 목록 추출** 후 Test.md 근거만 답하게 한다. MediaServer/UG 혼입·「없다」오진 금지.
 
 ## 실패 이력
 
+### PLF-20260803-004: 자동빌드 후 「정리/표」후속이 UG 무관 주제로 환각
+
+- 상태: 해결·예방 확인
+- 분류: 구현 / 검색 품질
+- 최초 발생: 2026-08-03
+- 최근 재발: 2026-08-03 (문구 변형 `표를 활용해서 더 보기 쉽게 해줘`; 동 루프에서 복수 인물 intent 실패도 수정)
+- 재발 횟수: 2
+- 적용 범위: `is_follow_up_question`, `recent_user_follow_up_topic`, `rule_contextualize_follow_up`, 재포맷 마커, `extract_person_names`
+- 관련: PLF-20260803-002/003
+
+#### 실패 내용
+
+- 작업 목표: `alpeta 자동빌드…` 후 재포맷 후속 → NSIS 자동화 절차 표/정리
+- 실패한 수용 기준: S1 — UG 검색·카드·건강이력 등 무관 답; 재발 시 UG 사용자·그룹 관리 표
+- 근거: 사용자 스크린샷; `24_baseline_diagnose.json` — `표를 활용해서…`에 `is_follow_up=false`, marker hits `[]`
+- 부가(동 루프): `박준언, 방인재에 대해 알려줘` — `person_intent=false`(단일 focus 정규식), 방인재 누락·MediaServer 혼입
+
+#### 원인
+
+- 직접 원인: (1) 재포맷 마커가 `표 활용`/`읽기 쉽게`에 한정되어 `표를 활용`/`보기 쉽게` 미매칭 (2) 복수 인물 질문이 `[가-힣]{2,4}` 단일 focus에 걸려 person intent 실패
+- 근본 원인: 후속/인물 감지가 **일부 문구·단일 이름**만 가정하고 UI에 나오는 실제 변형·복수 나열을 계약으로 두지 않음
+- 원인 확신도: 높음
+
+#### 해결
+
+- 마커에 `표를 활용`/`보기 쉽게` 추가; `extract_person_names` + Test.md 다중 주입/필터
+- S-build/S-people pipe + regression
+- 외부 차단: 없음
+
+#### 재발 방지 확인
+
+- [x] `알아보기 편하게 정리해서 적어줘 표도 활용하고` (23_)
+- [x] **`표를 활용해서 더 보기 쉽게 해줘`** history pipe — NSIS, UG 금지 (`24_post_pipe_*`)
+- [x] `박준언, 방인재에 대해 알려줘` — 1994+1996, 무관 혼입 없음
+- [x] S2/S3/S5/S4 유지; regression exit 0
+
+#### 검증 이력
+
+- 검증 일자: 2026-08-03
+- 결과: verifier **PASS** (23_ 루프 및 24_ 재발 수정)
+- 근거: 24_ S-build/S-people pass; regression 89/89; recreate+Ollama 200
+
+---
+
+### PLF-20260803-003: 단독 「미디어서버 스펙 알려줘」가 후속 오탐으로 UG/FaceWT 문맥에 덮임
+
+- 상태: 해결·예방 확인
+- 분류: 구현 / 검색 품질
+- 최초 발생: 2026-08-03
+- 최근 재발: 2026-08-03
+- 재발 횟수: 1
+- 적용 범위: `is_follow_up_question`, `rule_contextualize_follow_up` (PLF-20260803-002 FaceWT 가드의 부작용)
+- 관련: PLF-20260803-002
+
+#### 실패 내용
+
+- 작업 목표: `"미디어서버 스펙 알려줘"` → MediaServer_Specs_New.md 4구간 표
+- 실패한 수용 기준: A — UI가 UG만 출처로 “스펙 없다”+단말기 절차 설명
+- 관찰: history 있는 채팅에서 단독 미디어 질문이 후속으로 처리됨
+- 근거: `22_baseline_diagnose.json` — len=12, `is_follow_up=true`; Step0이 UG/FaceWT 스키마 표로 문맥화. retrieval top은 MediaServer였음(H4 아님)
+
+#### 원인
+
+- 직접 원인: (1) `len(q)<=12`가 완전 미디어 스펙 질문을 후속 오탐 (2) API 주제 가드가 후속 「스펙」을 FaceWT 스키마 표 질문으로 덮어씀
+- 근본 원인: FaceWT 「표로」가드(002)와 짧은 질문 후속 휴리스틱이 **이미 media intent인 단독 질문**을 예외로 두지 않음
+- 원인 확신도: 높음
+
+#### 해결
+
+- media intent면 `is_follow_up_question` → False
+- `rule_contextualize_follow_up`에서 현재 질문이 media intent면 API 덮어쓰기 금지
+- 외부 차단: 없음
+
+#### 재발 방지 확인
+
+- [x] `"미디어서버 스펙 알려줘"` pipe — MediaServer 4구간 (`22_post_pipe_mediaserver_solo_spec`)
+- [x] FaceWT/MediaServer 「표로」후속 동시 PASS (`22_post_pipe_facewt_*`, `*_mediaserver_followup_*`)
+- [x] `test_mediaserver_solo_spec_not_follow_up_or_api_hijack` + regression exit 0
+
+#### 검증 이력
+
+- 검증 일자: 2026-08-03
+- 결과: verifier **PASS**
+- 근거: solo/Case A/B pass; regression 85/85; recreate+Ollama 200
+
+---
+
+### PLF-20260803-002: FaceWT/스키마 「표로」후속이 MediaServer 스펙 표로 강제됨
+
+
+- 상태: 해결·예방 확인
+- 분류: 구현 / 검색 품질
+- 최초 발생: 2026-08-03
+- 최근 재발: 2026-08-03
+- 재발 횟수: 1
+- 적용 범위: `rag/pipelines/rag_pipeline.py`(`rule_contextualize_follow_up`, MediaServer enforce), follow-up 「표로」
+
+#### 실패 내용
+
+- 작업 목표: MediaServer 「표로」후속 품질(20_) 이후, FaceWT 스키마 대화에서 「표로」후속이 swagger 표를 유지
+- 실패한 수용 기준: (회귀) 후속이 MediaServer_Specs 카메라 구간 표를 출력
+- 관찰된 증상: FaceWT Q 후 `스키마 구조는 표로 해서 읽기 쉽게 다시 알려줘` → 출처 MediaServer_Specs_New.md
+- 재현: FaceWT history + 해당 후속 문자열로 `Pipeline.pipe()`
+- 근거: 사용자 스크린샷; `rule_contextualize_follow_up`이 media 마커+표/스펙 시 MediaServer 고정 질문으로 변환
+
+#### 원인
+
+- 직접 원인: MediaServer 표 후속 규칙·LIST 「표로」확장이 주제 가드 없이(또는 최근 API 주제 미우선으로) 스키마 후속에도 적용
+- 근본 원인: 「표로」를 MediaServer 전용 완결 신호로 취급하고 최근 대화 주제(API vs media)를 분리하지 않음
+- 원인 확신도: 높음(코드·Case A/B pipe)
+
+#### 해결
+
+- `recent_user_follow_up_topic` 가드: API/스키마 → FaceWT 스키마 표 문맥화; media일 때만 MediaServer 고정
+- 「표로」단독 MediaServer 강제 제거; Case A/B/C pipe + 단위 테스트
+- 외부 차단: 없음
+
+#### 재발 방지 확인
+
+- [x] Case A: 후속 문자열 history pipe — swagger FaceWT, MediaServer/카메라 구간 없음 (`21_post_pipe_facewt_schema_table_followup`)
+- [x] Case B: MediaServer 「스펙을 표로」— 4구간 유지
+- [x] `test_bare_table_marker_alone_does_not_force_mediaserver` 등 회귀
+- [x] 신규 probe/golden에 실제 후속 문자열 (PLF-20260802-003)
+
+#### 검증 이력
+
+- 검증 일자: 2026-08-03
+- 결과: verifier **PASS**
+- 근거: Case A/B pass; regression 84/84 exit 0; recreate+Ollama 200
+- 후속 재발: 동일 가드가 단독 MediaServer 질문을 API 문맥으로 덮어씀 → **PLF-20260803-003**으로 분리 기록·수정 후 Case A/B 재확인 PASS
+
+---
+
 ### PLF-20260803-001: 지연 최적화 후 status content 혼입·NUM_PREDICT 과소로 UI가 빈/깨진 답변처럼 보임
+
 
 - 상태: 해결·예방 확인
 - 분류: 구현 / 성능 / 환경

@@ -647,8 +647,9 @@ class TechnicalEvidenceTests(unittest.TestCase):
                 {"source": "Alpeta User Guide.pdf", "score": 0.9, "content": automatic},
             ],
         )
-        self.assertIn("수동으로 특정 단말기에 추가·전송", prompt)
-        self.assertIn("독립된 방법으로 각각 설명", prompt)
+        self.assertIn("서로 다른 메뉴 3경로", prompt)
+        self.assertIn("「사용자 관리」", prompt)
+        self.assertIn("「단말기 사용자 확장」", prompt)
         self.assertNotIn("[단말기리스트] → [단말기 사용자 리스트]", prompt)
         self.assertIn("단말기 저장 리스트", prompt)
         self.assertIn("Protocol·NSIS 문서", prompt)
@@ -855,8 +856,8 @@ class TechnicalEvidenceTests(unittest.TestCase):
         self.assertIn("MakeNSISW", prompt)
         self.assertIn("수동 빌드 절차", prompt)
 
-    def test_user_terminal_prompt_requires_dual_method_split_and_caution_enumeration(self):
-        """사용자·단말기 절차 지침이 독립된 두 방법 구분과 주의사항 전체 나열을 요구합니다."""
+    def test_user_terminal_prompt_requires_three_path_split_and_caution_enumeration(self):
+        """사용자·단말기 절차 지침이 수동 3경로 메뉴 구분과 주의사항 나열을 요구합니다."""
         question = "alpeta에서 사용자를 단말기에 어떻게 추가해? 그리고 자동동기화는 어떻게 해?"
         prompt = rag_pipeline.build_context_prompt(
             question,
@@ -868,12 +869,16 @@ class TechnicalEvidenceTests(unittest.TestCase):
                 }
             ],
         )
-        self.assertIn("방법 1」/「방법 2」", prompt)
+        self.assertIn("서로 다른 메뉴 3경로", prompt)
+        self.assertIn("「사용자 관리」", prompt)
+        self.assertIn("「단말기 사용자 관리」", prompt)
+        self.assertIn("「단말기 사용자 확장」", prompt)
         self.assertIn("표기 고정", prompt)
         self.assertIn("`출입그룹 단말기 리스트`", prompt)
         self.assertIn("`등록된 단말기`", prompt)
         self.assertIn("`추가가능한 단말기`", prompt)
         self.assertIn("[주의사항]", prompt)
+        self.assertIn("단말기 사용자 정보 자동 동기화 사용", prompt)
 
     def test_document_term_pair_completion_preserves_redownload_word(self):
         """재동기화 답변이 재다운로드를 괄호로 축약하면 문서 표현을 보완합니다."""
@@ -963,6 +968,80 @@ class TechnicalEvidenceTests(unittest.TestCase):
         )
         joined = "\n".join(doc["content"] for doc in completed)
         self.assertIn("출입그룹 단말기 리스트", joined)
+
+    def test_procedure_context_completes_three_manual_path_facets(self):
+        """수동 추가 3경로(확장 포함) 청크가 빠지면 같은 가이드에서 보충합니다."""
+        question = "alpeta에서 사용자를 단말기에 어떻게 추가해? 그리고 자동동기화는 어떻게 해?"
+        selected = [
+            {
+                "source": "Alpeta User Guide.pdf",
+                "content": "사용자 정보 저장 시 변경 사항을 업데이트합니다.",
+                "score": 1.0,
+                "metadata": {"source": "Alpeta User Guide.pdf", "document_type": "user_guide"},
+            }
+        ]
+        records = [
+            {
+                "document": (
+                    "사용자 관리에서 [단말기리스트]를 클릭하면 출입그룹 단말기 리스트, "
+                    "등록된 단말기, 추가가능한 단말기를 확인할 수 있습니다."
+                ),
+                "metadata": {"source": "Alpeta User Guide.pdf", "document_type": "user_guide"},
+            },
+            {
+                "document": (
+                    "단말기 사용자 관리의 단말기 사용자 리스트에서 추가 후 > 와 "
+                    "[적용]으로 단말 전송합니다."
+                ),
+                "metadata": {"source": "Alpeta User Guide.pdf", "document_type": "user_guide"},
+            },
+            {
+                "document": (
+                    "단말기 사용자 확장에서 N:N으로 전송하고 작업리스트로 진행을 확인합니다."
+                ),
+                "metadata": {"source": "Alpeta User Guide.pdf", "document_type": "user_guide"},
+            },
+            {
+                "document": (
+                    "단말기 사용자 정보 자동 동기화 사용. 동일한 출입그룹, 덮어쓰기."
+                ),
+                "metadata": {"source": "Alpeta User Guide.pdf", "document_type": "user_guide"},
+            },
+        ]
+        completed = rag_pipeline.complete_procedure_context(
+            selected,
+            records,
+            question,
+            top_k=8,
+            scope={"document_type": "user_guide"},
+        )
+        joined = "\n".join(document["content"] for document in completed)
+        self.assertIn("단말기리스트", joined)
+        self.assertIn("단말기 사용자 관리", joined)
+        self.assertIn("단말기 사용자 확장", joined)
+        self.assertIn("자동 동기화", joined)
+
+    def test_enforce_three_paths_appends_missing_menu_names(self):
+        """3경로 근거가 있는데 메뉴명이 빠진 답변을 문서 사실로 보강합니다."""
+        question = "alpeta에서 사용자를 단말기에 어떻게 추가해? 그리고 자동동기화는 어떻게 해?"
+        documents = [
+            {
+                "content": (
+                    "사용자 관리 [단말기리스트] 출입그룹 단말기 리스트. "
+                    "단말기 사용자 관리 단말기 사용자 리스트 추가 적용 전송. "
+                    "단말기 사용자 확장 N:N 전송 작업리스트. "
+                    "단말기 사용자 정보 자동 동기화 사용 동일한 출입그룹 덮어쓰기."
+                )
+            }
+        ]
+        incomplete = "사용자를 단말기에 추가하고 자동 동기화할 수 있습니다."
+        completed = rag_pipeline.enforce_document_term_pairs(
+            question, documents, incomplete
+        )
+        self.assertTrue(rag_pipeline._has_standalone_user_management_menu(completed))
+        self.assertIn("단말기 사용자 관리", completed)
+        self.assertIn("단말기 사용자 확장", completed)
+        self.assertIn("단말기 사용자 정보 자동 동기화", completed)
 
 
 class EvaluationContractTests(unittest.TestCase):
@@ -1276,6 +1355,385 @@ class FollowUpContextTests(unittest.TestCase):
                 "http://ollama", "model", "그거 수정하는 API는?", self.HISTORY,
             )
         self.assertEqual(condensed, "그거 수정하는 API는?")
+
+    def test_spec_table_follow_up_marker_and_rule_contextualize(self):
+        """미디어 서버 스펙 주제의 표 후속만 MediaServer 전체 표 질문으로 고정됩니다."""
+        history = [
+            {"role": "user", "content": "미디어 서버 스펙 알려줘"},
+            {"role": "assistant", "content": "MediaServer_Specs_New.md 표를 참고하세요."},
+        ]
+        self.assertTrue(rag_pipeline.is_follow_up_question("스펙을 표로 알려줘", history))
+        # 미디어 서버+스펙이 이미 있으면 후속 문맥화가 필요 없는 독립 질문입니다.
+        self.assertFalse(
+            rag_pipeline.is_follow_up_question("미디어 서버 스펙을 표로 알려줘", history)
+        )
+        ruled = rag_pipeline.rule_contextualize_follow_up("스펙을 표로 알려줘", history)
+        self.assertIn("미디어 서버", ruled)
+        self.assertIn("전체 표", ruled)
+        with patch.object(rag_pipeline, "ollama_chat") as mocked:
+            condensed = rag_pipeline.condense_question(
+                "http://ollama", "model", "스펙을 표로 알려줘", history,
+            )
+            mocked.assert_not_called()
+        self.assertEqual(condensed, ruled)
+
+    def test_mediaserver_solo_spec_not_follow_up_or_api_hijack(self):
+        """「미디어서버 스펙 알려줘」는 len<=12여도 UG/FaceWT history 후속으로 오탐되지 않습니다."""
+        question = "미디어서버 스펙 알려줘"
+        self.assertEqual(len(question), 12)
+        self.assertTrue(rag_pipeline.is_media_server_spec_intent(question))
+        ug_history = [
+            {
+                "role": "user",
+                "content": "사용자를 단말기에 수동으로 넣는 방법과 자동동기화 알려줘",
+            },
+            {
+                "role": "assistant",
+                "content": "Alpeta User Guide.pdf 기준 수동 3경로와 자동동기화가 있습니다.",
+            },
+        ]
+        facewt_history = [
+            {
+                "role": "user",
+                "content": (
+                    "alpeta swagger에서 FAW 또는 FaceWT 관련한 "
+                    "스키마 구조와 사용하는 API 명세 줘"
+                ),
+            },
+            {
+                "role": "assistant",
+                "content": "swagger_kr.md의 FaceWTInfo 스키마를 참고하세요.",
+            },
+        ]
+        self.assertFalse(rag_pipeline.is_follow_up_question(question, ug_history))
+        self.assertFalse(rag_pipeline.is_follow_up_question(question, facewt_history))
+        self.assertIsNone(
+            rag_pipeline.rule_contextualize_follow_up(question, facewt_history)
+        )
+        self.assertIsNone(
+            rag_pipeline.rule_contextualize_follow_up(question, ug_history)
+        )
+
+    def test_facewt_schema_table_follow_up_not_mediaserver(self):
+        """FaceWT/스키마 후속 「표로」는 스키마 표로 문맥화되고 MediaServer로 고정되지 않습니다."""
+        follow_up = "스키마 구조는 표로 해서 읽기 쉽게 다시 알려줘"
+        history = [
+            {
+                "role": "user",
+                "content": (
+                    "alpeta swagger에서 FAW 또는 FaceWT 관련한 "
+                    "스키마 구조와 사용하는 API 명세 줘"
+                ),
+            },
+            {
+                "role": "assistant",
+                "content": (
+                    "swagger_kr.md의 FaceWTInfo 스키마와 "
+                    "/v1/users/{id}/faceWTInfo API를 참고하세요."
+                ),
+            },
+        ]
+        self.assertTrue(rag_pipeline.is_follow_up_question(follow_up, history))
+        self.assertEqual(rag_pipeline.recent_user_follow_up_topic(history), "api")
+        ruled = rag_pipeline.rule_contextualize_follow_up(follow_up, history)
+        self.assertIsNotNone(ruled)
+        self.assertIn("FaceWT", ruled)
+        self.assertIn("스키마", ruled)
+        self.assertIn("표로", ruled)
+        self.assertIn("FaceWTInfo", ruled)
+        self.assertNotIn("미디어 서버", ruled)
+        self.assertFalse(rag_pipeline.is_media_server_spec_intent(ruled))
+        self.assertTrue(rag_pipeline.detect_api_doc_intent(ruled))
+        with patch.object(rag_pipeline, "ollama_chat") as mocked:
+            condensed = rag_pipeline.condense_question(
+                "http://ollama", "model", follow_up, history,
+            )
+            mocked.assert_not_called()
+        self.assertEqual(condensed, ruled)
+
+    def test_table_follow_up_prefers_api_topic_over_incidental_media(self):
+        """히스토리에 media 문자열이 섞여도 최근 API 주제면 MediaServer로 고정하지 않습니다."""
+        follow_up = "스키마 구조는 표로 해서 읽기 쉽게 다시 알려줘"
+        history = [
+            {
+                "role": "user",
+                "content": "alpeta swagger에서 FaceWT 스키마 구조와 API 명세 줘",
+            },
+            {
+                "role": "assistant",
+                "content": (
+                    "FaceWTInfo 스키마입니다. (참고: MediaServer 스트림 API와는 별개)"
+                ),
+            },
+        ]
+        ruled = rag_pipeline.rule_contextualize_follow_up(follow_up, history)
+        self.assertIsNotNone(ruled)
+        self.assertIn("스키마", ruled)
+        self.assertNotIn("미디어 서버", ruled)
+        self.assertFalse(rag_pipeline.is_media_server_spec_intent(ruled))
+
+    def test_bare_table_marker_alone_does_not_force_mediaserver(self):
+        """「표로」단독은 MediaServer를 강제하지 않고, 주제 없으면 확인 요청 대상입니다."""
+        self.assertIsNone(
+            rag_pipeline.rule_contextualize_follow_up("표로 알려줘", [])
+        )
+        self.assertTrue(
+            rag_pipeline.is_ambiguous_reformat_request("표로 알려줘", [])
+        )
+        history = [
+            {"role": "user", "content": "출입그룹 등록 방법 알려줘"},
+            {"role": "assistant", "content": "User Guide를 참고하세요."},
+        ]
+        self.assertEqual(
+            rag_pipeline.recent_user_follow_up_topic(history), "general"
+        )
+        ruled = rag_pipeline.rule_contextualize_follow_up("표로 알려줘", history)
+        self.assertIsNotNone(ruled)
+        self.assertIn("출입그룹", ruled)
+        self.assertNotIn("미디어 서버", ruled)
+        self.assertFalse(
+            rag_pipeline.is_ambiguous_reformat_request("표로 알려줘", history)
+        )
+
+    def test_nsis_autobuild_reformat_follow_up_contextualize(self):
+        """자동빌드 대화 후 정리/표 후속은 NSIS 자동화 절차 질문으로 문맥화됩니다."""
+        follow_up = "알아보기 편하게 정리해서 적어줘 표도 활용하고"
+        history = [
+            {
+                "role": "user",
+                "content": "alpeta 자동빌드하려면 어떻게 하면돼?",
+            },
+            {
+                "role": "assistant",
+                "content": (
+                    "NSIS 매뉴얼 자동화 버전: gitpull.bat, define.go, "
+                    "alpeta.nsi, build_install.bat, D:\\nsis\\install 순입니다."
+                ),
+            },
+        ]
+        self.assertTrue(rag_pipeline.is_reformat_follow_up_intent(follow_up))
+        self.assertTrue(rag_pipeline.is_follow_up_question(follow_up, history))
+        self.assertEqual(
+            rag_pipeline.recent_user_follow_up_topic(history), "automated_build"
+        )
+        self.assertFalse(
+            rag_pipeline.is_ambiguous_reformat_request(follow_up, history)
+        )
+        ruled = rag_pipeline.rule_contextualize_follow_up(follow_up, history)
+        self.assertIsNotNone(ruled)
+        self.assertIn("자동빌드", ruled)
+        self.assertIn("자동화", ruled)
+        self.assertIn("표", ruled)
+        self.assertTrue(rag_pipeline.is_automated_build_intent(ruled))
+        self.assertNotIn("미디어 서버", ruled)
+        with patch.object(rag_pipeline, "ollama_chat") as mocked:
+            condensed = rag_pipeline.condense_question(
+                "http://ollama", "model", follow_up, history,
+            )
+            mocked.assert_not_called()
+        self.assertEqual(condensed, ruled)
+
+    def test_nsis_table_pyoreul_hwalyong_follow_up_markers(self):
+        """「표를 활용해서 더 보기 쉽게」후속은 마커로 follow-up·NSIS 문맥화됩니다."""
+        follow_up = "표를 활용해서 더 보기 쉽게 해줘"
+        history = [
+            {
+                "role": "user",
+                "content": "alpeta 자동빌드하려면 어떻게 하면돼?",
+            },
+            {
+                "role": "assistant",
+                "content": (
+                    "NSIS 자동화: gitpull.bat, define.go, build_install.bat, "
+                    "D:\\nsis\\install"
+                ),
+            },
+        ]
+        self.assertIn("표를 활용", follow_up)
+        self.assertIn("보기 쉽게", follow_up)
+        self.assertNotIn("표 활용", follow_up)
+        self.assertNotIn("읽기 쉽게", follow_up)
+        self.assertTrue(rag_pipeline.is_reformat_follow_up_intent(follow_up))
+        self.assertTrue(rag_pipeline.is_follow_up_question(follow_up, history))
+        self.assertEqual(
+            rag_pipeline.recent_user_follow_up_topic(history), "automated_build"
+        )
+        self.assertFalse(
+            rag_pipeline.is_ambiguous_reformat_request(follow_up, history)
+        )
+        ruled = rag_pipeline.rule_contextualize_follow_up(follow_up, history)
+        self.assertIsNotNone(ruled)
+        self.assertIn("자동빌드", ruled)
+        self.assertTrue(rag_pipeline.is_automated_build_intent(ruled))
+        self.assertNotIn("미디어 서버", ruled)
+
+    def test_ambiguous_reformat_no_history_needs_clarification(self):
+        """history 없는 정리/표 후속은 주제 불명으로 확인 요청 대상입니다."""
+        follow_up = "알아보기 편하게 정리해서 적어줘 표도 활용하고"
+        self.assertTrue(rag_pipeline.is_reformat_follow_up_intent(follow_up))
+        self.assertTrue(
+            rag_pipeline.is_ambiguous_reformat_request(follow_up, [])
+        )
+        self.assertFalse(rag_pipeline.is_follow_up_question(follow_up, []))
+        self.assertIsNone(
+            rag_pipeline.rule_contextualize_follow_up(follow_up, [])
+        )
+        similar = "표로 정리해줘"
+        self.assertTrue(rag_pipeline.is_ambiguous_reformat_request(similar, []))
+
+    def test_person_profile_question_is_not_follow_up(self):
+        """인물 질문은 짧아도 이전 스펙 대화의 후속으로 오인하지 않습니다."""
+        history = [
+            {"role": "user", "content": "미디어 서버 스펙 알려줘"},
+            {"role": "assistant", "content": "48GB 권장"},
+        ]
+        self.assertFalse(
+            rag_pipeline.is_follow_up_question("박준언에 대해 알려줘", history)
+        )
+
+
+class MediaServerAndPersonIntentTests(unittest.TestCase):
+    """미디어 서버 표·인물 프로필 의도/보강 회귀."""
+
+    def test_media_server_spec_intent_and_not_api_scope(self):
+        """미디어 서버 스펙 표 질문은 API 스코프로 오분류되지 않습니다."""
+        question = "미디어 서버 카메라 대수별 권장 스펙 전체 표로 알려줘"
+        self.assertTrue(rag_pipeline.is_media_server_spec_intent(question))
+        self.assertTrue(rag_pipeline.detect_list_completeness_intent(question))
+        self.assertFalse(rag_pipeline.detect_api_doc_intent(question))
+        self.assertEqual(rag_pipeline.detect_retrieval_scope(question), {})
+
+    def test_api_schema_table_expansion_skips_protocol_toc(self):
+        """API 스키마 표 질문은 프로토콜 목차 확장이 아니라 스키마 필드 확장을 씁니다."""
+        query = (
+            "FaceWT/FAW 스키마 FaceWTInfo TemplateType TemplateData "
+            "필드 구조를 마크다운 표로 읽기 쉽게 다시 알려줘"
+        )
+        self.assertTrue(rag_pipeline.is_api_schema_table_intent(query))
+        expanded = rag_pipeline.expand_retrieval_query(query, query)
+        self.assertIn("FaceWTInfo", expanded)
+        self.assertIn("TemplateType", expanded)
+        self.assertNotIn("Command Preview", expanded)
+        self.assertNotIn("프로토콜 명령", expanded)
+        self.assertFalse(rag_pipeline.is_media_server_spec_intent(query))
+
+    def test_bare_api_term_still_detects_explicit_api_questions(self):
+        """명시적 API 질문은 단독 api 토큰 없이도 감지됩니다."""
+        self.assertTrue(
+            rag_pipeline.detect_api_doc_intent("미디어서버에 스트림 추가하는 API 알려줘")
+        )
+        self.assertTrue(
+            rag_pipeline.detect_api_doc_intent("얼굴 정보 조회 API의 응답 스키마 구조 알려줘")
+        )
+
+    def test_enforce_mediaserver_table_appends_missing_ranges(self):
+        """일부 구간만 있는 답변에 문서 표가 보강됩니다."""
+        context = (
+            "| 카메라(스트림) 수 | CPU 권장 | RAM 권장 | 네트워크 권장 | HDD 권장(30일) |\n"
+            "| --- | --- | --- | --- | --- |\n"
+            "| 10 ~ 24 | 6코어 | 16GB | 1Gbps | 4TB |\n"
+            "| 25 ~ 49 | 8코어 | 32GB | 2.5Gbps | 6TB |\n"
+            "| 50 ~ 79 | 12코어 | 48GB | 2.5Gbps | 8TB |\n"
+            "| 80 ~ 100 | 16코어 | 64GB | 2.5Gbps+ | 12TB |\n"
+        )
+        docs = [{"source": "MediaServer_Specs_New.md", "content": context, "score": 1.0}]
+        answer = "- 10~24: 16GB\n- 50~79: 48GB"
+        enforced = rag_pipeline.enforce_mediaserver_spec_table(
+            "미디어 서버 스펙을 표로 알려줘", docs, answer
+        )
+        self.assertIn("25 ~ 49", enforced)
+        self.assertIn("80 ~ 100", enforced)
+        self.assertIn("64GB", enforced)
+
+    def test_person_profile_intent_and_prompt_keeps_name(self):
+        """박준언 질문은 프로필 의도이며 프롬프트에 이름 보존 지침이 있습니다."""
+        question = "박준언에 대해 알려줘"
+        self.assertTrue(rag_pipeline.is_person_profile_intent(question))
+        self.assertEqual(rag_pipeline.extract_query_focus(question), "박준언")
+        self.assertEqual(rag_pipeline.extract_person_names(question), ["박준언"])
+        prompt = rag_pipeline.build_context_prompt(
+            question,
+            [{
+                "source": "Test.md",
+                "score": 1.0,
+                "content": "## 박준언\n- SW1팀 연동파트\n- 1994년생\n",
+            }],
+            focus="박준언",
+        )
+        self.assertIn("인물 프로필", prompt)
+        self.assertIn("박준언", prompt)
+        self.assertIn("박준연", prompt)  # 오타 금지 안내 문구
+
+    def test_multi_person_profile_names_complete_and_filter(self):
+        """복수 인물 질문은 두 이름을 모두 의도·주입·필터·프롬프트에 반영합니다."""
+        question = "박준언, 방인재에 대해 알려줘"
+        self.assertEqual(
+            rag_pipeline.extract_query_focus(question), "박준언, 방인재"
+        )
+        self.assertEqual(
+            rag_pipeline.extract_person_names(question),
+            ["박준언", "방인재"],
+        )
+        self.assertTrue(rag_pipeline.is_person_profile_intent(question))
+        selected = [{
+            "source": "MediaServer_Specs_New.md",
+            "content": "카메라(스트림) 수 10 ~ 24 48GB",
+            "score": 0.2,
+            "metadata": {"source": "MediaServer_Specs_New.md"},
+        }]
+        records = [
+            {
+                "document": "## 박준언\n- SW1팀 연동파트 - 1994년생\n",
+                "metadata": {"source": "Test.md"},
+            },
+            {
+                "document": "## 방인재\n- SW1팀 코어파트 - 1996년생 - 헬스\n",
+                "metadata": {"source": "Test.md"},
+            },
+        ]
+        completed = rag_pipeline.complete_person_profile_context(
+            selected, records, question, top_k=4
+        )
+        contents = "\n".join(d.get("content") or "" for d in completed)
+        self.assertIn("박준언", contents)
+        self.assertIn("방인재", contents)
+        self.assertIn("1994", contents)
+        self.assertIn("1996", contents)
+        filtered = rag_pipeline.filter_documents_by_focus(
+            completed,
+            "박준언, 방인재",
+            top_k=4,
+            person_names=["박준언", "방인재"],
+        )
+        filtered_body = "\n".join(d.get("content") or "" for d in filtered)
+        self.assertIn("박준언", filtered_body)
+        self.assertIn("방인재", filtered_body)
+        self.assertNotIn("카메라(스트림)", filtered_body)
+        prompt = rag_pipeline.build_context_prompt(
+            question, filtered, focus="박준언, 방인재"
+        )
+        self.assertIn("박준언", prompt)
+        self.assertIn("방인재", prompt)
+        self.assertIn("모두", prompt)
+        self.assertIn("없다", prompt)
+
+    def test_person_profile_complete_injects_named_chunk(self):
+        """top-k에 이름이 없어도 records에서 프로필 청크를 주입합니다."""
+        selected = [{
+            "source": "swagger_kr.md",
+            "content": "POST /v1/tna/setting/payment",
+            "score": 0.1,
+            "metadata": {"source": "swagger_kr.md"},
+        }]
+        records = [{
+            "document": "## 박준언\n- 1994년생\n",
+            "metadata": {"source": "Test.md"},
+        }]
+        completed = rag_pipeline.complete_person_profile_context(
+            selected, records, "박준언에 대해 알려줘", top_k=4
+        )
+        self.assertTrue(any(d.get("source") == "Test.md" for d in completed))
+        self.assertTrue(any("1994" in (d.get("content") or "") for d in completed))
 
 
 class SwaggerSchemaInlineTests(unittest.TestCase):

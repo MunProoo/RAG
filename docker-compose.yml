@@ -109,20 +109,21 @@ services:
       - BM25_INDEX_PATH=/app/chroma_db/bm25_index.json
       - TOP_K=4
       - MAX_CHUNKS_PER_SOURCE=2
-      # 지연 최적화: 문서 컨텍스트 축소. NUM_PREDICT는 length 조기절단 방지 여유 유지
-      - MAX_CONTEXT_CHARS=2800
-      - OLLAMA_NUM_CTX=4096
+      # 절차 3경로 품질용 컨텍스트. NUM_PREDICT는 length 조기절단 방지 여유 유지
+      - MAX_CONTEXT_CHARS=5600
+      # 절차 3경로 답변은 프롬프트가 길어 생성 여유를 위해 ctx 확대(품질 우선)
+      - OLLAMA_NUM_CTX=8192
       - OLLAMA_NUM_PREDICT=768
       - OLLAMA_READ_TIMEOUT=600
       - OLLAMA_KEEP_ALIVE=30m
       - REWRITE_MODEL=qwen3.5:4b
       - ANSWER_MODEL=qwen3.5:4b
-      - VECTOR_CANDIDATES=12
-      - BM25_CANDIDATES=12
-      # 리랭크는 유지하되 크로스인코더는 끄고 근거 점수만 사용(검색 ≤625ms)
+      - VECTOR_CANDIDATES=16
+      - BM25_CANDIDATES=16
+      # 리랭크는 유지하되 크로스인코더는 끄고 근거 점수만 사용(절차 의도는 코드에서 후보 확대)
       - RERANK_ENABLED=true
       - RERANK_MODEL=BAAI/bge-reranker-v2-m3
-      - RERANK_CANDIDATES=8
+      - RERANK_CANDIDATES=12
       - RERANK_NEURAL=false
       # false로 두면 LLM 질문 재작성을 생략해 응답 지연이 줄어듭니다.
       - USE_QUERY_REWRITE=false

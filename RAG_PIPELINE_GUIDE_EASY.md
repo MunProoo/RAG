@@ -24,7 +24,7 @@
 | 이름 | 쉬운 말 |
 |------|---------|
 | Docker Desktop | 도우미·화면·검색 DB를 한꺼번에 켜 주는 상자 |
-| Ollama (Windows) | 답을 쓰는 AI 엔진 (PC에서 실행) |
+| Ollama | 답을 쓰는 AI 엔진 (`docker compose`의 `ollama` GPU 서비스, 주소 `http://ollama:11434`) |
 | Open WebUI | 채팅 화면 (`http://localhost:8080`) |
 | Pipelines | 문서 검색 + 답변을 연결하는 뒷단 |
 | 문서 폴더 | `rag/data/docs` 에 넣는 PDF·Markdown 등 |
@@ -37,8 +37,8 @@
 
 ### 1단계. PC 준비
 
-1. Windows에서 **Ollama**를 실행합니다.
-2. **Docker Desktop**을 실행합니다.
+1. **Docker Desktop**을 실행합니다. (답변용 Ollama는 compose의 `ollama` 서비스로 함께 뜹니다. 호스트에서 따로 Ollama를 켜 두면 포트 11434가 겹칠 수 있으니, 그때는 호스트 Ollama를 끄세요.)
+2. 예전에 받아 둔 모델 폴더(`%USERPROFILE%\.ollama`)는 compose가 그대로 쓰므로 **삭제하지 마세요**.
 
 ### 2단계. 서비스 켜기
 
@@ -70,6 +70,11 @@ docker compose run --rm indexer python /app/scripts/index_documents.py /app/docs
    - PC 브라우저에서 직접: `http://localhost:9099`  
    - API Key 예시: `0p3n-w3bu!`
 3. 평소처럼 질문합니다.
+
+**이어서 물을 때(「표로」「정리해줘」「보기 쉽게」)**  
+바로 앞 질문의 주제(자동빌드, 미디어 서버 스펙, API 스키마 등)를 이어서 표·요약으로 다시 정리합니다.  
+앞 주제가 없으면 “무엇을 정리할지 알려 달라”고 묻고, 엉뚱한 다른 문서 내용으로 채우지 않습니다.  
+「미디어서버 스펙 알려줘」처럼 주제 단어가 이미 들어 있는 짧은 질문은, 이전 대화와 섞지 않고 그 질문 그대로 답합니다.
 
 ### 5단계. (개발자가 코드를 고친 뒤)
 

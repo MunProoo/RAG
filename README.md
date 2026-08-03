@@ -200,7 +200,7 @@ Open WebUI 버전에 따라 “관리자→Pipelines” 메뉴가 없을 수 있
 
 ## RAG 파이프라인(`rag/pipelines/rag_pipeline.py`) 요약
 
-- **후속 질문 문맥화**: "그거", "해당" 같은 지시어나 아주 짧은 질문이 감지되면, 최근 대화(2턴)를 반영해 혼자 봐도 이해되는 독립형 질문으로 변환한 뒤 검색·범위 필터·초점 추출·리랭킹에 사용합니다. 감지될 때만 LLM을 추가 호출하며, 실패 시 원본 질문으로 폴백합니다.
+- **후속 질문 문맥화**: "그거"/"해당"뿐 아니라 「표로」「정리해줘」「표를 활용해서」「보기 쉽게」처럼 **주제 없이 재포맷만 요청**하면 최근 사용자 주제로 문맥화한 뒤 검색합니다. MediaServer 스펙·FaceWT/스키마·NSIS 자동빌드는 **주제별 가드**로 서로 덮어쓰지 않습니다. 이전 주제가 없으면 확인을 요청하고 무관 문서로 채우지 않습니다. 「미디어서버 스펙 알려줘」처럼 **주제가 이미 있는 짧은 단독 질문**은 후속으로 오인하지 않습니다(`CONTEXTUALIZE_FOLLOW_UP=true`, 규칙 문맥화 우선).
 - **기술 토큰·역할**: `.bat`/`.nsi`/`.exe`와 경로 역할(`D:\nsis\install` vs `D:\nsis\Alpeta\setup`)을 구분해 검색·답변에 반영합니다.
 - **API 스코프**: Swagger/FaceWT 등 API 질문은 `document_type=api` 중심으로 검색하고, User Guide·Protocol로 API를 대체하지 않습니다.
 - **목록·자동화 절차**: v4 전부 리스트 완결성, NSIS 자동화 버전 1~7단계 완결(수동 혼입 금지), User Guide 단말기 이중 방법·UI 표기 보존.
@@ -247,8 +247,8 @@ Open WebUI는 설정을 DB에 저장하는 경우가 많아, **예전에 켜 둔
 
 | 변수 | 기본값 | 설명 |
 |------|--------|------|
-| `OLLAMA_BASE_URL` | `http://host.docker.internal:11434` (컨테이너 기준) | Windows 호스트 Ollama 주소 |
-| `REWRITE_MODEL` | `qwen3.5:4b` | 질문 재작성용 모델 |
+| `OLLAMA_BASE_URL` | `http://ollama:11434` (`docker-compose` GPU 서비스) | compose `ollama` 컨테이너. 예전 호스트 전용 값은 `host.docker.internal:11434` |
+| `REWRITE_MODEL` | `qwen3.5:4b` | 질문 재작성·문맥화용 모델 |
 | `ANSWER_MODEL` | `qwen3.5:4b` | 최종 답변용 모델 |
 | `CHROMA_PATH` | `/app/chroma_db` (컨테이너 기준) | ChromaDB 저장 경로 |
 | `CHROMA_COLLECTION` | `rag_documents` | 컬렉션 이름 |
@@ -256,15 +256,17 @@ Open WebUI는 설정을 DB에 저장하는 경우가 많아, **예전에 켜 둔
 | `TOP_K` | `5` (`docker-compose`에서는 `4`) | 검색 청크 수 |
 | `MIN_SCORE` | `0.3` | 최소 관련도 점수 (0~1) |
 | `MAX_CHUNKS_PER_SOURCE` | `2` | 한 출처가 최종 컨텍스트에서 차지할 최대 청크 수 |
-| `MAX_CONTEXT_CHARS` | `12000` | 답변 모델에 전달할 검색 문맥의 최대 문자 수 |
+| `MAX_CONTEXT_CHARS` | `5600` (`docker-compose` 품질용) | 답변 모델에 전달할 검색 문맥의 최대 문자 수 |
 | `OLLAMA_NUM_CTX` | `8192` | Ollama 답변 모델 컨텍스트 창 크기 |
-| `OLLAMA_NUM_PREDICT` | `2048` | 한 답변의 최대 생성 토큰 수 |
+| `OLLAMA_NUM_PREDICT` | `768` (`docker-compose`) | 한 답변의 최대 생성 토큰(과소 시 `reason=length` 절단 주의) |
 | `OLLAMA_READ_TIMEOUT` | `600` | 긴 스트림 응답에 적용할 읽기 타임아웃(초) |
-| `RERANK_ENABLED` | `true` | 크로스 인코더 리랭커 사용 여부(로드 실패 시 자동 폴백) |
-| `RERANK_MODEL` | `BAAI/bge-reranker-v2-m3` | 리랭커 모델(첫 사용 시 다운로드) |
-| `RERANK_CANDIDATES` | `20` | 리랭커에 전달할 RRF 후보 수 |
-| `USE_QUERY_REWRITE` | `true` | `false`면 LLM 질문 재작성을 생략(원본 질문+규칙 확장만 사용, 지연 감소) |
-| `CONTEXTUALIZE_FOLLOW_UP` | `true` | 후속 질문("그거 자세히", "해당 API 수정은?")을 이전 대화를 반영한 독립형 질문으로 바꿔 검색 |
+| `OLLAMA_KEEP_ALIVE` | `30m` | 모델 언로드 방지 |
+| `RERANK_ENABLED` | `true` | 리랭크 사용 |
+| `RERANK_NEURAL` | `false` (`docker-compose`) | `false`면 크로스인코더 대신 evidence-only 리랭크(지연↓) |
+| `RERANK_MODEL` | `BAAI/bge-reranker-v2-m3` | neural 리랭커 모델(첫 사용 시 다운로드) |
+| `RERANK_CANDIDATES` | `8`~`12` (`docker-compose`) | 리랭커/후보 수 |
+| `USE_QUERY_REWRITE` | `false` (`docker-compose`) | `false`면 LLM 질문 재작성을 생략(원본+규칙 확장, 지연 감소) |
+| `CONTEXTUALIZE_FOLLOW_UP` | `true` | 후속·재포맷 질문을 이전 주제 반영 독립형으로 바꿔 검색(규칙 가드+LLM) |
 
 ## 파일 구조
 
@@ -308,6 +310,6 @@ RAG_MJY/
 - **답이 점만 보이거나 비어 보일 때**: qwen3.5는 `think:false` 없이 호출하면 content가 비는 경우가 있습니다.
 - **도우미가 목록에 없을 때**: OpenAI Base URL·DB `config`·chat 스키마를 확인하세요. [PLF-20260802-001]
 - **답변이 끊길 때**: pipelines 로그의 `[RAG] Ollama stream completed`에서 `reason=length`인지 확인하세요. `length`면 `OLLAMA_NUM_PREDICT` 또는 `OLLAMA_NUM_CTX`를 올리되, VRAM 사용량도 함께 확인하세요.
-- **Ollama 접근이 안 될 때**: 컨테이너에서 호스트로 접근하는 주소는 일반적으로 `host.docker.internal`입니다(Windows Docker Desktop 기준).
+- **Ollama 접근이 안 될 때**: 기본은 compose GPU 서비스 `http://ollama:11434`입니다. 호스트 Ollama만 쓸 때는 `host.docker.internal:11434`이며, 포트 충돌 시 호스트 Ollama를 중지하세요.
 - **로컬로 파이프라인만 테스트**: `rag/` 디렉터리에서 `python scripts/test_pipeline.py` (Ollama가 로컬에서 떠 있어야 함).
 - **PL 개발**: 작업 전 `PL_FAILURE_LOG.md` 예방 체크리스트를 수용 기준에 포함하고, 비밀값·토큰·전체 로그 덤프는 남기지 않습니다.

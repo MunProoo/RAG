@@ -5,6 +5,19 @@
 
 ## [Unreleased]
 
+### 후속 문맥·MediaServer·인물 검색 정확도 (2026-08-03)
+
+d280a2f 이후 품질·문맥·검색 회귀를 정리했습니다. 재인덱싱은 **불필요**(청크 ~1592 유지). 코드 반영: `docker compose up -d --force-recreate pipelines`. regression 최종 약 **89/89**.
+
+1. **사용자→단말기 3경로** (`19_*`): 「사용자 관리」「단말기 사용자 관리」「단말기 사용자 확장」+ 자동동기화를 구분. 한 줄기로 뭉개지 않음.
+2. **MediaServer 전체 표** (`20_*`): §1-2 카메라 구간 10~24 / 25~49 / 50~79 / 80~100(48GB·64GB). 후속 「스펙을 표로」·Test.md 박준언(1994) 검색 보강.
+3. **주제 가드** (`21_*`, PLF-20260803-002): FaceWT/스키마 「표로」후속이 MediaServer 스펙 표로 하드코딩되지 않음. Case A(swagger) / Case B(MediaServer) 동시 유지.
+4. **「미디어서버 스펙 알려줘」** (`22_*`, PLF-20260803-003): `len≤12` 후속 오탐·API 주제 덮어쓰기 수정. 단독 미디어 질문은 후속으로 오인하지 않음.
+5. **일반 후속 프로세스** (`23_ideal_followup_process.md`, PLF-20260803-004): 주제 부족 → 이전 사용자 질문 / 있으면 그 주제(재포맷·표) / 없으면 확인 요청·무관 문서 채움 금지. NSIS 자동빌드 「정리/표도」후속 포함.
+6. **「표를 활용해서 더 보기 쉽게 해줘」+ 복수 인물** (`24_*`): NSIS 자동빌드 표/단계 후속 마커(`표를 활용`·`보기 쉽게`). `박준언, 방인재에 대해 알려줘` → Test.md 1994+1996, MediaServer/UG 혼입 금지.
+7. **compose**: `MAX_CONTEXT_CHARS=5600`, `OLLAMA_NUM_CTX=8192`, `OLLAMA_NUM_PREDICT=768`, `RERANK_NEURAL=false` 유지, GPU `http://ollama:11434`, `CONTEXTUALIZE_FOLLOW_UP=true`.
+8. 근거: `rag/data/eval/artifacts/19_*`~`24_*` ideal·post_summary·주요 pipe JSON/answer. 실패 학습: `PL_FAILURE_LOG.md` PLF-002/003/004.
+
 ### 응답 지연 목표(80%)·GPU Ollama·품질 가드레일 (2026-08-03)
 
 성능 목표(TTFT 2초 / 일반 5–8초 / 긴 설명 10–15초 / 검색 500ms / 동시 10–20명)의 **최소 80%**를 warm 단독 기준으로 맞추고, 기존 답변 품질(단말기 사용자 관리 등)은 유지했습니다.

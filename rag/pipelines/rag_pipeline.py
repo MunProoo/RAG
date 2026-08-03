@@ -94,10 +94,41 @@ FOLLOW_UP_MARKERS = (
     "해당", "위에", "위의", "방금", "아까", "앞서", "그럼", "그러면",
     "그 api", "이 api", "그 방법", "이 방법", "더 자세히", "자세히 좀",
     "예시", "예제", "다른 것도", "나머지",
+    # 이전 턴 스펙/표를 가리키는 짧은 후속 표현
+    "표로", "표도", "그 표", "스펙을", "스펙 표", "사양을",
+    # 주제 명사 없이 재포맷·정리만 요청하는 일반 후속
+    "정리해서", "정리해줘", "정리해 줘", "알아보기 편하게",
+    "요약해", "요약해서", "가독성", "다시 알려줘", "다시 정리",
+    # 「표 활용」(공백)과 「표를 활용」(을) 둘 다 잡습니다. 「보기 쉽게」는
+    # 「읽기 쉽게」와 별도 표현이라 함께 둡니다.
+    "읽기 쉽게", "보기 쉽게", "표 활용", "표를 활용", "표로 정리",
+)
+
+# 주제 키워드 없이 재포맷·정리·표만 요청하는지 판별할 때 씁니다.
+_REFORMAT_FOLLOW_UP_MARKERS = (
+    "정리해서", "정리해줘", "정리해 줘", "정리해",
+    "알아보기 편하게", "표도", "표로", "표 활용", "표를 활용", "표로 정리",
+    "요약해", "요약해서", "가독성", "다시 알려줘", "다시 정리",
+    "읽기 쉽게", "보기 쉽게",
+)
+
+# 재포맷 질문에 이미 검색 주제가 포함돼 있는지 볼 때 쓰는 일반 명사/제품 표기입니다.
+_RETRIEVAL_TOPIC_NOUNS = (
+    "alpeta", "알페타", "nsis", "빌드", "swagger", "스키마", "schema",
+    "미디어", "mediaserver", "프로토콜", "출입", "단말기", "사용자",
+    "facewt", "faw", "api", "설치", "자동빌드", "자동화",
+)
+
+# 주제 불명 재포맷 요청에 무관 문서로 채우지 않고 확인을 요청할 때 씁니다.
+_AMBIGUOUS_REFORMAT_CLARIFICATION = (
+    "정리하거나 표로 만들 주제를 알 수 없습니다. "
+    "무엇을 정리할지(예: 자동빌드 절차, API 스키마, 미디어 서버 스펙)를 "
+    "확인해 주세요. 문서에서 임의로 다른 내용을 채워 넣지 않겠습니다."
 )
 
 DOCUMENT_TYPE_TERMS = {
     # swagger/스키마/API 의도는 product 필터보다 먼저 적용해 PDF 가이드가 밀어내지 않게 합니다.
+    # 단독 "api"는 "스펙/표" 질문과 오분류되기 쉬워 제외하고, 명시적 API 표현만 둡니다.
     "api": (
         "swagger",
         "openapi",
@@ -108,7 +139,9 @@ DOCUMENT_TYPE_TERMS = {
         "rest api",
         "엔드포인트",
         "endpoint",
-        "api",
+        "api ",
+        " api",
+        "/v1/",
     ),
     "protocol": ("protocol", "프로토콜", "패킷", "packet", "명령 구분", "param3"),
     "install": ("설치", "install", "nsis", "빌드", "package"),
@@ -165,6 +198,40 @@ ARTIFACT_INTENT_RULES = {
 LIST_COMPLETENESS_MARKERS = (
     "전부", "전체", "리스트업", "리스트", "목록", "모두", "다 알려", "전부다",
     "list all", "full list", "complete list",
+    # 카메라 대수별 스펙 표 등 완결 표 요구
+    "표로", "전체 표", "스펙 표", "권장 스펙", "사양 표",
+)
+
+# 미디어 서버 하드웨어 스펙(표) 질문. API/스키마·User Guide와 구분합니다.
+_MEDIA_SERVER_MARKERS = (
+    "미디어 서버", "미디어서버", "mediaserver", "media server",
+)
+# 후속 「표로」문맥화 시 최근 주제가 API/스키마인지 판별하는 히스토리 마커.
+_API_SCHEMA_HISTORY_MARKERS = (
+    "swagger", "openapi", "스키마", "schema",
+    "facewt", "faw", "api 명세", "api명세",
+    "엔드포인트", "endpoint", "/v1/", "rest api",
+)
+# 히스토리에서 스키마 표 문맥화에 쓸 주제 라벨(표시용 정규화).
+_SCHEMA_SUBJECT_LABELS = (
+    (r"(?i)\bFaceWT\b", "FaceWT"),
+    (r"(?i)\bFAW\b", "FAW"),
+    (r"(?i)\bUserFaceWT\b", "UserFaceWT"),
+)
+# MediaServer_Specs_New.md §1-2 표의 필수 카메라 대수 구간
+_MEDIA_SERVER_TABLE_RANGES = (
+    ("10", "24"),
+    ("25", "49"),
+    ("50", "79"),
+    ("80", "100"),
+)
+_MEDIA_SERVER_TABLE_ANCHORS = (
+    "카메라(스트림) 수",
+    "10 ~ 24",
+    "50 ~ 79",
+    "80 ~ 100",
+    "48GB",
+    "64GB",
 )
 _HEX_COMMAND_PATTERN = re.compile(r"0x[0-9A-Fa-f]+")
 _WINDOWS_FOLDER_PATTERN = re.compile(
@@ -244,10 +311,13 @@ def is_openwebui_internal_task(user_message: str) -> bool:
 def extract_query_focus(query: str) -> Optional[str]:
     """
     질문에서 '누구/무엇에 대해' 형태의 핵심 대상(고유명사)을 추출합니다.
-    추출 실패 시 None.
+    추출 실패 시 None. 복수 인물이면 '박준언, 방인재'처럼 원문 구간을 그대로 둡니다.
     """
     q = (query or "").strip()
     if not q:
+        return None
+    # 사용자·단말기 절차/메뉴 질문은 초점 필터가 절차 청크를 잘라낼 수 있어 제외합니다.
+    if is_user_terminal_procedure_intent(q) or is_terminal_user_management_intent(q):
         return None
     patterns = [
         r"^(.{2,40}?)\s*(?:에\s*대해|에\s*관해|에\s*대해서|대해\s*설명|대해\s*알려|에\s*대해\s*알려|에\s*대해\s*설명)",
@@ -263,13 +333,52 @@ def extract_query_focus(query: str) -> Optional[str]:
     return None
 
 
+def extract_person_names(query: str) -> List[str]:
+    """질문 초점 구간에서 2~4자 한글 인물명을 순서 유지·중복 없이 추출합니다.
+
+    「박준언, 방인재에 대해」처럼 쉼표·와·과·및로 이어진 복수 이름을 각각 분리합니다.
+    인물 프로필 의도·검색 보강·초점 필터에서 단일 이름 가정 대신 이 목록을 씁니다.
+    """
+    focus = extract_query_focus(query)
+    if not focus:
+        return []
+    parts = re.split(r"\s*[,，/·]\s*|\s+와\s+|\s+과\s+|\s+및\s+", focus.strip())
+    names: List[str] = []
+    seen = set()
+    for part in parts:
+        name = part.strip()
+        if re.fullmatch(r"[가-힣]{2,4}", name) and name not in seen:
+            seen.add(name)
+            names.append(name)
+    return names
+
+
 def filter_documents_by_focus(
     documents: list,
     focus: Optional[str],
     top_k: int,
+    person_names: Optional[List[str]] = None,
 ) -> list:
-    """질문 초점 문자열이 본문에 등장하는 청크만 남깁니다(없으면 원본 유지)."""
-    if not documents or not focus or len(focus) < 2:
+    """질문 초점 문자열이 본문에 등장하는 청크만 남깁니다(없으면 원본 유지).
+
+    person_names가 있으면 이름 중 하나라도 포함된 청크를 남깁니다(복수 인물).
+    인물 프로필 의도에서 초점 이름이 하나도 없으면 빈 목록을 반환하지 않고
+    원본을 유지하되, 이름 포함 청크가 있으면 그것만 남깁니다.
+    """
+    if not documents:
+        return documents
+    names = [n for n in (person_names or []) if n and len(n) >= 2]
+    if names:
+        filtered = [
+            d
+            for d in documents
+            if any(name in (d.get("content") or "") for name in names)
+        ]
+        if not filtered:
+            return documents
+        filtered = sorted(filtered, key=lambda x: x.get("score", 0), reverse=True)
+        return filtered[: max(top_k, len(names) + 1)]
+    if not focus or len(focus) < 2:
         return documents
     filtered = [d for d in documents if focus in (d.get("content") or "")]
     if not filtered:
@@ -285,7 +394,12 @@ def detect_retrieval_scope(query: str) -> Dict[str, str]:
     top-k search is too late because a common product keyword can crowd out the
     desired document type completely. API/Swagger 문서는 파일명에 제품명이 없어
     product 필터와 함께 쓰면 전부 탈락하므로 api 타입일 때는 product를 제거합니다.
+    미디어 서버 스펙 표 질문은 API/스키마 필터로 빗나가지 않게 합니다.
     """
+    if is_media_server_spec_intent(query):
+        return {}
+    if is_person_profile_intent(query):
+        return {}
     normalized = (query or "").casefold()
     scope: Dict[str, str] = {}
     for document_type, terms in DOCUMENT_TYPE_TERMS.items():
@@ -361,9 +475,69 @@ def is_automated_build_intent(query: str) -> bool:
 
 
 def detect_api_doc_intent(query: str) -> bool:
-    """질문이 Swagger·스키마·REST API 명세를 요구하는지 일반 규칙으로 판별합니다."""
+    """질문이 Swagger·스키마·REST API 명세를 요구하는지 일반 규칙으로 판별합니다.
+
+    미디어 서버 하드웨어 스펙/표 질문은 API로 오분류하지 않습니다.
+    """
+    if is_media_server_spec_intent(query):
+        return False
     normalized = (query or "").casefold()
-    return any(term.casefold() in normalized for term in DOCUMENT_TYPE_TERMS["api"])
+    if any(term.casefold() in normalized for term in DOCUMENT_TYPE_TERMS["api"]):
+        return True
+    # 단독 토큰 API(대소문자)만 추가로 허용합니다.
+    return bool(re.search(r"(?i)(?<![a-z])api(?![a-z])", query or ""))
+
+
+def is_media_server_spec_intent(query: str) -> bool:
+    """미디어 서버 카메라 대수별 하드웨어 스펙·표를 묻는지 판별합니다.
+
+    API/스키마·User Guide 카메라 설정과 구분하기 위해 미디어 서버 표기와
+    스펙/표/대수 표현이 함께 있을 때만 참으로 둡니다. 스트림 추가 API처럼
+    REST 호출 질문은 제외합니다.
+    """
+    normalized = (query or "").casefold()
+    has_server = any(marker in normalized for marker in _MEDIA_SERVER_MARKERS)
+    if not has_server:
+        return False
+    # REST/스키마 질문은 하드웨어 스펙 표 의도가 아닙니다.
+    if any(
+        marker in normalized
+        for marker in (
+            "api", "swagger", "openapi", "스키마", "schema",
+            "엔드포인트", "endpoint", "/stream", "/v1/",
+        )
+    ):
+        return False
+    hardware_markers = (
+        "스펙", "사양", "권장", "ram", "cpu", "표",
+        "카메라 대", "대수", "gb", "코어",
+    )
+    return any(marker in normalized for marker in hardware_markers)
+
+
+def is_person_profile_intent(query: str) -> bool:
+    """인물 소개·누구 질문을 프로필 검색 의도로 판별합니다.
+
+    extract_person_names로 잡은 한글 이름(2~4자)이 하나 이상일 때만 참이며,
+    「박준언, 방인재」처럼 복수 초점도 포함합니다. 단말기/사용자 절차 질문과는
+    겹치지 않게 합니다.
+    """
+    if is_user_terminal_procedure_intent(query) or is_terminal_user_management_intent(query):
+        return False
+    return bool(extract_person_names(query))
+
+
+def looks_like_mediaserver_spec_table(content: str) -> bool:
+    """청크가 MediaServer 카메라 대수별 권장 스펙 표를 포함하는지 판별합니다."""
+    text = content or ""
+    anchor_hits = sum(1 for anchor in _MEDIA_SERVER_TABLE_ANCHORS if anchor in text)
+    if anchor_hits >= 2:
+        return True
+    range_hits = 0
+    for low, high in _MEDIA_SERVER_TABLE_RANGES:
+        if re.search(rf"{low}\s*[~～\-–—]\s*{high}", text):
+            range_hits += 1
+    return range_hits >= 2 and ("GB" in text or "코어" in text)
 
 
 def expand_retrieval_query(original_query: str, rewritten_query: str) -> str:
@@ -382,8 +556,35 @@ def expand_retrieval_query(original_query: str, rewritten_query: str) -> str:
         expansions.append("신규 프로토콜 v4.0 current Communication protocol for Terminal")
     if detect_api_doc_intent(original_query):
         expansions.append("swagger OpenAPI schema endpoint REST API definitions")
+    if is_media_server_spec_intent(original_query):
+        expansions.append(
+            "MediaServer_Specs_New 카메라 수별 권장 스펙 표 "
+            "10 ~ 24 25 ~ 49 50 ~ 79 80 ~ 100 48GB 64GB"
+        )
+    if is_person_profile_intent(original_query):
+        names = extract_person_names(original_query)
+        if names:
+            # 이름만으로는 BM25가 약해지고 '알려줘'가 절차 문서를 끌어오므로
+            # 초점 이름(복수 포함)과 프로필 앵커를 앞에 강하게 둡니다.
+            expansions.insert(
+                0, f"{' '.join(names)} 프로필 년생 SW1팀 Test.md"
+            )
+            lines_prefix = list(names)
+        else:
+            lines_prefix = []
+    else:
+        lines_prefix = []
     if detect_list_completeness_intent(original_query):
-        expansions.append("목차 Contents Command Preview 명령 목록 프로토콜 명령")
+        if is_media_server_spec_intent(original_query):
+            expansions.append("카메라(스트림) 수 CPU 권장 RAM 권장 HDD 권장")
+        elif detect_api_doc_intent(original_query):
+            # 「표로」스키마 후속이 프로토콜 목차 확장으로 빗나가지 않게 합니다.
+            expansions.append(
+                "FaceWTInfo FAW properties TemplateType TemplateSize TemplateData "
+                "definitions schema fields type description"
+            )
+        else:
+            expansions.append("목차 Contents Command Preview 명령 목록 프로토콜 명령")
     if "output_folder" in detect_artifact_intents(original_query):
         expansions.append("확인 폴더 이동하면 생성된 설치 파일 확인")
     if "build_output" in detect_artifact_intents(original_query):
@@ -396,11 +597,15 @@ def expand_retrieval_query(original_query: str, rewritten_query: str) -> str:
             "서버로 가져오기 단말로 내려보내기 단말기에서만"
         )
     elif is_user_terminal_procedure_intent(original_query):
+        # 수동 추가 3메뉴(사용자 관리·단말기 사용자 관리·단말기 사용자 확장)와
+        # 자동동기화 절이 떨어진 페이지에 있어 메뉴명·조작 표현을 함께 확장합니다.
         expansions.append(
-            "사용자 단말기 추가 사용자 선택 적용 전송 "
-            "단말기리스트 출입그룹 단말기 리스트 등록된 단말기 추가가능한 단말기 "
-            "단말기 사용자 정보 자동 동기화 일반설정 사용자 "
-            "덮어쓰기 다시 다운로드 다운로드 재진행 다시 동기화"
+            "사용자 관리 단말기리스트 출입그룹 단말기 리스트 "
+            "등록된 단말기 추가가능한 단말기 "
+            "단말기 사용자 관리 단말기 사용자 리스트 추가 적용 전송 "
+            "단말기 사용자 확장 N:N 전송 작업리스트 "
+            "단말기 사용자 정보 자동 동기화 일반설정 사용자 데이터 "
+            "덮어쓰기 다시 다운로드 다운로드 재진행 다시 동기화 자동 업데이트"
         )
     if is_automated_build_intent(original_query):
         # 문서의 "알페타 설치 패키지 빌드(자동화 버전)" 섹션 실제 표현으로 확장합니다.
@@ -414,7 +619,9 @@ def expand_retrieval_query(original_query: str, rewritten_query: str) -> str:
     exact_tokens = extract_technical_tokens(original_query)
     if exact_tokens:
         expansions.append(" ".join(exact_tokens))
-    lines = [original_query.strip()] if (original_query or "").strip() else []
+    lines = list(lines_prefix)
+    if (original_query or "").strip():
+        lines.append(original_query.strip())
     lines.extend(line.strip() for line in (rewritten_query or "").splitlines() if line.strip())
     lines.extend(expansions)
     return "\n".join(dict.fromkeys(lines))
@@ -525,10 +732,10 @@ def path_role_evidence_score(query: str, content: str) -> float:
 
 
 def procedure_evidence_score(query: str, content: str) -> float:
-    """사용자-단말기 절차 질문에서 수동 전송과 자동 동기화 근거를 함께 가점합니다.
+    """사용자-단말기 절차 질문에서 3경로 메뉴·자동 동기화 근거를 가점합니다.
 
-    메뉴 이름이나 특정 질문을 고정하지 않고, 질문의 사용자·단말기·작업 조합과 본문의
-    추가/선택/적용/전송 및 자동 동기화 표현을 비교합니다.
+    「사용자 관리」「단말기 사용자 관리」「단말기 사용자 확장」과 자동동기화 표현이
+    있는 청크를 올리고, 질문의 추가/동기화 작업과 무관한 청크는 낮게 둡니다.
     """
     if not is_user_terminal_procedure_intent(query):
         return 0.0
@@ -549,7 +756,16 @@ def procedure_evidence_score(query: str, content: str) -> float:
         score += 0.04
     if "다시 다운로드" in normalized or "다운로드 재진행" in normalized:
         score += 0.04
-    return min(score, 0.3)
+    # 3경로 메뉴명·확장 조작은 한 경로로 뭉개지지 않도록 강하게 가점합니다.
+    if "단말기리스트" in normalized or "[단말기리스트]" in (content or ""):
+        score += 0.06
+    if "단말기 사용자 관리" in normalized:
+        score += 0.08
+    if "단말기 사용자 확장" in normalized or "n:n" in normalized:
+        score += 0.1
+    if "작업리스트" in normalized:
+        score += 0.04
+    return min(score, 0.45)
 
 
 def terminal_user_mgmt_evidence_score(query: str, content: str) -> float:
@@ -625,7 +841,7 @@ def technical_evidence_score(query: str, content: str) -> float:
         if any(marker in normalized_content for marker in ("templatetype", "templatedata", "templatesize")):
             score += 0.04
 
-    if detect_list_completeness_intent(query):
+    if detect_list_completeness_intent(query) and not is_media_server_spec_intent(query):
         hex_count = count_unique_hex_commands(content)
         if looks_like_command_catalog(content):
             score += 0.18
@@ -640,12 +856,67 @@ def technical_evidence_score(query: str, content: str) -> float:
     score += path_role_evidence_score(query, content)
     score += procedure_evidence_score(query, content)
     score += terminal_user_mgmt_evidence_score(query, content)
+    score += mediaserver_spec_evidence_score(query, content)
+    score += person_profile_evidence_score(query, content)
 
     exact_tokens = extract_technical_tokens(query)
     if exact_tokens:
         matched = sum(token.casefold() in normalized_content for token in exact_tokens)
         score += 0.2 * (matched / len(exact_tokens))
     return min(score, 0.7)
+
+
+def mediaserver_spec_evidence_score(query: str, content: str) -> float:
+    """미디어 서버 스펙 표 질문에서 §1-2 표 청크를 가점하고 다른 문서를 감점합니다."""
+    if not is_media_server_spec_intent(query):
+        return 0.0
+    text = content or ""
+    normalized = text.casefold()
+    score = 0.0
+    if looks_like_mediaserver_spec_table(text):
+        score += 0.35
+    if "mediaserver_specs" in normalized or "카메라(스트림) 수" in text:
+        score += 0.12
+    for low, high in _MEDIA_SERVER_TABLE_RANGES:
+        if re.search(rf"{low}\s*[~～\-–—]\s*{high}", text):
+            score += 0.04
+    if "48gb" in normalized or "64gb" in normalized:
+        score += 0.06
+    # User Guide 카메라 등록·API 스키마는 스펙 표를 대체하면 안 됩니다.
+    if "단말기리스트" in text or "swagger" in normalized or "/v1/" in normalized:
+        score -= 0.2
+    return max(0.0, min(score, 0.5))
+
+
+def person_profile_evidence_score(query: str, content: str) -> float:
+    """인물 프로필 질문에서 이름·년생·Test.md 청크를 가점합니다.
+
+    복수 인물 질문이면 이름 중 하나라도 본문에 있으면 가점합니다.
+    """
+    if not is_person_profile_intent(query):
+        return 0.0
+    names = extract_person_names(query)
+    text = content or ""
+    score = 0.0
+    matched = [name for name in names if name in text]
+    if matched:
+        score += 0.35
+        if any(re.search(rf"##\s*{re.escape(name)}", text) for name in matched):
+            score += 0.15
+        if "년생" in text or re.search(r"19\d{2}|20\d{2}", text):
+            score += 0.1
+        if "프로필" in text or "SW1팀" in text:
+            score += 0.08
+    # 단말기 절차·API·미디어 스펙은 인물 답으로 쓰면 환각 위험이 큽니다.
+    if (
+        "단말기리스트" in text
+        or "고유아이디" in text
+        or "/v1/" in text
+        or "mediaserver" in text.casefold()
+        or "카메라(스트림)" in text
+    ):
+        score -= 0.25
+    return max(0.0, min(score, 0.55))
 
 
 def _chroma_where(scope: Optional[Dict[str, str]]) -> Optional[dict]:
@@ -858,18 +1129,257 @@ def rewrite_query(
 def is_follow_up_question(query: str, chat_history: list) -> bool:
     """이전 대화 없이는 이해하기 어려운 후속 질문인지 감지합니다.
 
-    검색은 현재 질문 문자열만 사용하므로, 지시어("그거", "해당")나 아주 짧은
-    질문("왜?", "예시는?")은 문맥을 되살려 주지 않으면 검색이 실패합니다.
+    검색은 현재 질문 문자열만 사용하므로, 지시어("그거", "해당")·재포맷
+    ("정리해서", "표도")나 아주 짧은 질문("왜?", "예시는?")은 문맥을 되살려
+    주지 않으면 검색이 실패합니다. 인물 프로필 단독 질문과 미디어 서버 스펙
+    단독 질문(「미디어서버 스펙 알려줘」)은 짧아도 후속으로 보지 않습니다.
     """
     if not chat_history:
         return False
     q = (query or "").strip()
     if not q:
         return False
+    # 이름이 분명한 인물 질문은 이전 스펙 대화와 섞이지 않게 독립 질문으로 둡니다.
+    if is_person_profile_intent(q):
+        return False
+    # 미디어 서버+스펙이 이미 질문에 있으면 UG/FaceWT history로 문맥화하지 않습니다.
+    # len<=12 휴리스틱이 「미디어서버 스펙 알려줘」를 후속으로 오탐하던 경로를 차단합니다.
+    if is_media_server_spec_intent(q):
+        return False
     normalized = q.casefold()
     if any(marker in normalized for marker in FOLLOW_UP_MARKERS):
         return True
     return len(q) <= 12
+
+
+def is_api_schema_table_intent(query: str) -> bool:
+    """API/스키마 필드를 표로 재정리해 달라는 질문인지 판별합니다.
+
+    MediaServer 하드웨어 스펙 표와 구분하며, swagger 스키마 표 프롬프트·검색
+    확장에만 사용합니다.
+    """
+    if is_media_server_spec_intent(query) or not detect_api_doc_intent(query):
+        return False
+    normalized = (query or "").casefold()
+    asks_table = any(marker in normalized for marker in ("표", "table"))
+    asks_schema = any(
+        marker in normalized
+        for marker in ("스키마", "schema", "facewt", "faw", "properties", "필드")
+    )
+    return asks_table and asks_schema
+
+
+def history_suggests_api_schema_topic(history_text: str) -> bool:
+    """압축 대화에 Swagger·스키마·FaceWT/FAW API 주제가 있는지 판별합니다."""
+    normalized = (history_text or "").casefold()
+    return any(marker in normalized for marker in _API_SCHEMA_HISTORY_MARKERS)
+
+
+def history_suggests_media_spec_topic(history_text: str) -> bool:
+    """압축 대화가 미디어 서버 하드웨어 스펙 주제인지 판별합니다.
+
+    서버 표기만 우연히 섞인 경우(예: swagger MediaServer API)는 제외하고,
+    스펙/표/대수 등 하드웨어 표현이 함께 있을 때만 참으로 둡니다.
+    """
+    normalized = (history_text or "").casefold()
+    has_server = any(marker in normalized for marker in _MEDIA_SERVER_MARKERS)
+    if not has_server:
+        return False
+    hardware_markers = (
+        "스펙", "사양", "권장", "ram", "cpu", "표",
+        "카메라", "대수", "gb", "코어",
+    )
+    return any(marker in normalized for marker in hardware_markers)
+
+
+def history_suggests_automated_build_topic(history_text: str) -> bool:
+    """압축 대화가 NSIS 자동화 버전(자동빌드) 절차 주제인지 판별합니다."""
+    return is_automated_build_intent(history_text or "")
+
+
+def is_reformat_follow_up_intent(query: str) -> bool:
+    """주제 명사 없이 재포맷·정리·표·요약만 요청하는 후속인지 판별합니다.
+
+    「알아보기 편하게 정리해서… 표도」처럼 검색 주제가 비어 있는 표현을
+    후속으로 잡기 위해 사용합니다.
+    """
+    normalized = (query or "").casefold()
+    return any(marker in normalized for marker in _REFORMAT_FOLLOW_UP_MARKERS)
+
+
+def query_has_retrieval_topic(query: str) -> bool:
+    """질문에 이미 검색 가능한 주제(제품·API·빌드 등)가 있는지 판별합니다.
+
+    주제 불명 재포맷(확인 요청)과 단독 완결 질문을 구분할 때 씁니다.
+    """
+    q = (query or "").strip()
+    if not q:
+        return False
+    if (
+        is_automated_build_intent(q)
+        or is_media_server_spec_intent(q)
+        or detect_api_doc_intent(q)
+        or is_person_profile_intent(q)
+        or is_user_terminal_procedure_intent(q)
+        or is_terminal_user_management_intent(q)
+    ):
+        return True
+    normalized = q.casefold()
+    return any(noun in normalized for noun in _RETRIEVAL_TOPIC_NOUNS)
+
+
+def latest_substantive_user_question(chat_history: list) -> Optional[str]:
+    """재포맷-only가 아닌 가장 최근 사용자 질문을 반환합니다.
+
+    연속 정리 요청만 쌓인 경우 더 이전 실질 주제를 찾기 위해 순수 재포맷
+    턴은 건너뜁니다.
+    """
+    for message in reversed(chat_history or []):
+        if message.get("role") != "user":
+            continue
+        content = str(message.get("content", "")).strip()
+        if not content:
+            continue
+        if is_reformat_follow_up_intent(content) and not query_has_retrieval_topic(
+            content
+        ):
+            continue
+        if len(content) < 6:
+            continue
+        return content
+    return None
+
+
+def is_ambiguous_reformat_request(query: str, chat_history: list) -> bool:
+    """재포맷만 있고 현재·이전 주제를 특정할 수 없으면 True입니다.
+
+    True이면 검색으로 무관 문서를 채우지 말고 확인 요청으로 답해야 합니다.
+    """
+    if not is_reformat_follow_up_intent(query):
+        return False
+    if query_has_retrieval_topic(query):
+        return False
+    topic = recent_user_follow_up_topic(chat_history)
+    if topic in ("api", "media", "automated_build", "general"):
+        return False
+    return True
+
+
+def extract_schema_subject_labels(chat_history: list) -> list:
+    """대화에서 FaceWT/FAW 등 스키마 주제 라벨을 순서 유지·중복 없이 추출합니다."""
+    history_raw = _compact_history(chat_history)
+    labels = []
+    seen = set()
+    for pattern, label in _SCHEMA_SUBJECT_LABELS:
+        if label in seen:
+            continue
+        if re.search(pattern, history_raw or ""):
+            labels.append(label)
+            seen.add(label)
+    return labels
+
+
+def recent_user_follow_up_topic(chat_history: list) -> Optional[str]:
+    """최근 사용자 주제를 api|media|automated_build|general|None 으로 반환합니다.
+
+    API/스키마와 미디어·자동빌드가 겹치면 API를 우선합니다. 순수 재포맷 턴은
+    건너뛰고 그 이전 실질 질문을 봅니다. MediaServer 표 고정은 media일 때만,
+    NSIS 자동화 표/정리는 automated_build일 때만 적용합니다.
+    """
+    for message in reversed(chat_history or []):
+        if message.get("role") != "user":
+            continue
+        content = str(message.get("content", "")).strip()
+        if not content:
+            continue
+        # 주제 없는 재포맷 턴만 있으면 더 이전 사용자 질문을 봅니다.
+        if is_reformat_follow_up_intent(content) and not query_has_retrieval_topic(
+            content
+        ):
+            continue
+        normalized = content.casefold()
+        api_topic = history_suggests_api_schema_topic(normalized) or detect_api_doc_intent(
+            content
+        )
+        media_topic = history_suggests_media_spec_topic(normalized)
+        build_topic = history_suggests_automated_build_topic(
+            normalized
+        ) or is_automated_build_intent(content)
+        if api_topic:
+            return "api"
+        if build_topic:
+            return "automated_build"
+        if media_topic or any(marker in normalized for marker in _MEDIA_SERVER_MARKERS):
+            return "media"
+        if len(content) >= 8:
+            return "general"
+        return None
+    return None
+
+
+def rule_contextualize_follow_up(question: str, chat_history: list) -> Optional[str]:
+    """규칙으로 후속 질문을 독립형 검색 질문으로 바꿉니다.
+
+    「표로」단독으로 MediaServer를 강제하지 않습니다. 최근 사용자 주제가
+    API/스키마이면 스키마 표, 미디어 서버 스펙이면 카메라 대수별 표,
+    자동빌드이면 NSIS 자동화 절차 표/정리, 그 외 실질 주제면 이전 질문을
+    재포맷 요청과 결합합니다. 주제 불명이면 None(확인 요청 경로).
+    현재 질문에 미디어 서버 스펙 의도가 이미 있으면 API 주제 가드로 덮어쓰지 않습니다.
+    """
+    if not chat_history:
+        return None
+    history_text = _compact_history(chat_history).casefold()
+    q = (question or "").strip()
+    q_cf = q.casefold()
+    asks_reformat = any(
+        marker in q_cf
+        for marker in ("표", "스펙", "사양", "권장", "정리", "요약", "가독성", "알아보기 편")
+    )
+    if not asks_reformat:
+        return None
+    # 「미디어서버 스펙 알려줘」처럼 단독 미디어 의도가 있으면 FaceWT/API
+    # 최근 주제로 스키마 표 질문에 뺏기지 않게 원문을 유지합니다.
+    if is_media_server_spec_intent(q):
+        return None
+    # 이미 자동빌드 주제가 질문에 있으면 덮어쓰지 않습니다.
+    if is_automated_build_intent(q) and query_has_retrieval_topic(q):
+        return None
+
+    topic = recent_user_follow_up_topic(chat_history)
+    q_mentions_schema = any(
+        marker in q_cf
+        for marker in ("스키마", "schema", "facewt", "faw", "api")
+    )
+    api_in_history = history_suggests_api_schema_topic(history_text)
+    media_in_history = history_suggests_media_spec_topic(history_text)
+
+    # 최근 주제가 API/스키마이거나, 후속이 스키마를 명시하면 MediaServer 고정 금지.
+    if topic == "api" or (q_mentions_schema and api_in_history):
+        labels = extract_schema_subject_labels(chat_history)
+        subject = "/".join(labels) if labels else "관련"
+        if any(label in {"FaceWT", "FAW", "UserFaceWT"} for label in labels):
+            return (
+                f"{subject} 스키마 FaceWTInfo TemplateType TemplateSize TemplateData "
+                "필드 구조를 마크다운 표로 읽기 쉽게 다시 알려줘"
+            )
+        return f"{subject} 스키마 구조를 표로 읽기 쉽게 다시 알려줘"
+
+    # NSIS 자동화(자동빌드) 주제의 정리/표 후속.
+    if topic == "automated_build":
+        return "alpeta 자동빌드(자동화 버전) 절차를 표로 알아보기 쉽게 정리해줘"
+
+    # 미디어 서버 스펙 주제일 때만 전체 표 검색 질문으로 고정합니다.
+    if topic == "media" or (media_in_history and not api_in_history):
+        return "미디어 서버 카메라 대수별 권장 스펙 전체 표로 알려줘"
+
+    # 일반 실질 주제 + 재포맷 후속: 이전 사용자 질문을 문맥화합니다.
+    if topic == "general" and is_reformat_follow_up_intent(q):
+        prev = latest_substantive_user_question(chat_history)
+        if prev:
+            base = prev.rstrip("?？.。 ").strip()
+            if base:
+                return f"{base} 내용을 표로 알아보기 쉽게 정리해줘"
+    return None
 
 
 def _compact_history(chat_history: list, max_turns: int = 4, max_chars: int = 500) -> str:
@@ -897,7 +1407,13 @@ def condense_question(
     """최근 대화를 반영해 혼자 봐도 이해되는 독립형 질문으로 다시 씁니다.
 
     실패하거나 결과가 이상하면(빈 값·과도한 길이) 원본 질문으로 폴백합니다.
+    API/스키마·미디어 서버·자동빌드 재포맷 후속은 주제 가드 규칙 변환을
+    LLM보다 먼저 적용합니다.
     """
+    ruled = rule_contextualize_follow_up(question, chat_history)
+    if ruled:
+        return ruled
+
     history_text = _compact_history(chat_history)
     if not history_text:
         return question
@@ -907,6 +1423,7 @@ def condense_question(
 
 규칙(매우 중요):
 - 출력은 완성된 질문 한 줄만. 설명/머리말/따옴표/마크다운 금지.
+- 한국어로 작성하세요. 중국어·영어 잡음 금지.
 - 지시어("그거", "해당", "위에서" 등)를 대화에 나온 실제 대상으로 바꾸세요.
 - 고유명사(제품명/API명/스키마명/파일명)는 원문 표기를 그대로 보존하고, 대화에 없는 정보를 지어내지 마세요.
 - 마지막 질문이 이전 대화와 무관하면 마지막 질문을 그대로 출력하세요."""
@@ -927,13 +1444,19 @@ def condense_question(
                 {"role": "user", "content": user_message},
             ],
             stream=False,
+            options={"num_ctx": 2048, "num_predict": 96},
         )
-    except Exception as exc:
-        print(f"[RAG] 질문 문맥화 실패, 원본 질문 사용: {exc}")
+    except Exception as exc:  # noqa: BLE001
+        print(f"[RAG] contextualize failed, using original: {exc}")
         return question
 
-    condensed = next((line.strip() for line in condensed.splitlines() if line.strip()), "")
-    if not condensed or len(condensed) > 300:
+    condensed = (condensed or "").strip().splitlines()[0].strip().strip("\"'`")
+    if not condensed or len(condensed) > 240:
+        return question
+    # 한자 위주 출력은 검색을 망가뜨리므로 원문으로 폴백합니다.
+    han_chars = len(re.findall(r"[\u4e00-\u9fff]", condensed))
+    hangul_chars = len(re.findall(r"[\uac00-\ud7a3]", condensed))
+    if han_chars >= 3 and hangul_chars == 0:
         return question
     return condensed
 
@@ -1054,13 +1577,26 @@ def extract_images_for_focus(content: str, focus: str) -> List[str]:
     return extract_markdown_images(window)
 
 
-def collect_mandatory_image_lines(documents: list, focus: Optional[str]) -> List[str]:
-    """검색된 청크에서 답변에 실을 이미지 마크다운 줄을 수집합니다."""
+def collect_mandatory_image_lines(
+    documents: list,
+    focus: Optional[str],
+    person_names: Optional[List[str]] = None,
+) -> List[str]:
+    """검색된 청크에서 답변에 실을 이미지 마크다운 줄을 수집합니다.
+
+    person_names가 있으면 각 인물 구간의 이미지를 순서대로 모읍니다.
+    """
     lines: List[str] = []
     seen: set[str] = set()
+    names = [n for n in (person_names or []) if n] or ([focus] if focus else [])
     for doc in documents:
         body = doc.get("content") or ""
-        imgs = extract_images_for_focus(body, focus) if focus else extract_markdown_images(body)
+        if names:
+            imgs: List[str] = []
+            for name in names:
+                imgs.extend(extract_images_for_focus(body, name))
+        else:
+            imgs = extract_markdown_images(body)
         for im in imgs:
             if im not in seen:
                 seen.add(im)
@@ -1121,7 +1657,10 @@ def build_context_prompt(
         )
 
     context_str = "\n\n".join(context_parts)
-    image_lines = collect_mandatory_image_lines(documents, focus)
+    person_names = extract_person_names(query) if is_person_profile_intent(query) else []
+    image_lines = collect_mandatory_image_lines(
+        documents, focus, person_names=person_names or None
+    )
     image_block = format_mandatory_image_block(image_lines)
     has_images = bool(image_lines)
     explicit_paths = derive_explicit_file_paths(documents)
@@ -1140,7 +1679,17 @@ def build_context_prompt(
         image_rules = """- 위에 이미지 블록이 **없으면** 참고 문서에 추출된 `![...](URL)` 이미지가 없는 것입니다. 이미지 마크다운이나 URL을 **지어내지 마세요**. 사용자가 사진·도식을 물었을 때만 "검색된 문서에는 관련 이미지가 없습니다"처럼 **한 문장**으로만 답하고, 그 외에는 이미지 유무를 길게 언급하지 마세요."""
 
     scope_block = ""
-    if focus:
+    if person_names:
+        names_label = "·".join(person_names)
+        scope_block = f"""
+=== 답변 범위(필수) ===
+- 사용자 질문이 지정한 인물은 「{names_label}」입니다.
+- 질문에 나온 인물 **각각**에 대해 소속·출생연도(있으면)·프로필만 답하세요.
+- 같은 파일의 **다른 인물**(질문에 없는 이름)은 들먹이거나 설명하지 마세요.
+- 카메라 설정·VMS·MediaServer·단말기 절차 등 무관 문서로 빗나가지 마세요.
+- 참고 문서에 해당 인물 정보가 있으면 「없다」고 단정하지 마세요.
+"""
+    elif focus:
         scope_block = f"""
 === 답변 범위(필수) ===
 - 사용자 질문의 핵심 대상은 「{focus}」입니다.
@@ -1149,13 +1698,43 @@ def build_context_prompt(
 - 참고 문서에 「{focus}」가 거의 없으면 한두 문장으로만 답하고, 다른 문서로 빗겨가지 마세요.
 """
     list_block = ""
-    if detect_list_completeness_intent(query):
-        list_block = """
+    if detect_list_completeness_intent(query) and not is_media_server_spec_intent(query):
+        if is_api_schema_table_intent(query):
+            list_block = """
+=== API 스키마 표(필수) ===
+- 근거는 swagger/OpenAPI 스키마·필드 표만 사용하세요. MediaServer 카메라 대수·RAM 스펙 표로 대체하지 마세요.
+- FaceWT/FAW 등 요청된 스키마의 필드명·타입·설명을 **마크다운 표**(| 필드 | 타입 | 설명 |)로 재정리하세요.
+- `FaceWTInfo`가 있으면 TemplateType, TemplateSize, TemplateData 등 문서 필드를 빠짐없이 포함하세요.
+- 에러 코드 나열만으로 스키마 구조 표를 대체하지 마세요. 스키마 정의 청크가 있으면 그걸 우선하세요.
+"""
+        else:
+            list_block = """
 === 목록 완결성(필수) ===
 - 질문이 전부/전체/목록을 요구하면 참고 문서의 목차·명령 표·카탈로그에 있는 항목을 가능한 한 빠짐없이 나열하세요.
 - 한 표·한 목차가 여러 참고 청크로 나뉘어 있으면 같은 출처의 모든 행을 합쳐 하나의 완결 목록으로 구성하세요.
 - Command Preview처럼 중간에서 끊긴 표만 보이면, 같은 문서의 목차(Contents)나 이어지는 명령 목록 행을 함께 반영하세요.
 - 문서에 없는 명령 코드나 이름을 추측·보완하지 마세요.
+"""
+    mediaserver_block = ""
+    if is_media_server_spec_intent(query):
+        mediaserver_block = """
+=== 미디어 서버 스펙 표(필수) ===
+- 근거는 `MediaServer_Specs_New.md` §1-2 표만 사용하세요. User Guide·swagger·API 스키마·AreaID 표로 대체하지 마세요.
+- 카메라 대수 구간 **네 행 전부**를 마크다운 표 또는 동등한 목록으로 빠짐없이 적으세요:
+  10~24 / 25~49 / 50~79 / 80~100 (공백·틸드 표기 허용)
+- 각 행에 CPU·RAM·네트워크·HDD를 포함하고, 50~79의 **48GB**, 80~100의 **64GB**를 명시하세요.
+- "스펙 표가 없다"고 단정하지 마세요. 참고 문서에 표가 있으면 그 행을 그대로 재구성하세요.
+- 12줄 제한에 맞추려 표 행을 생략하지 마세요.
+"""
+    person_block = ""
+    if person_names:
+        names_label = "·".join(person_names)
+        person_block = f"""
+=== 인물 프로필(필수) ===
+- 질문에 나온 인물({names_label})을 **모두** 답하세요. 한 명만 답하고 나머지가 「없다」고 하지 마세요.
+- 이름을 「박준연」처럼 비슷한 다른 표기로 바꾸지 마세요.
+- Test.md 등 프로필 문서의 소속·출생연도·프로필 이미지 마크다운을 그대로 사용하세요.
+- 단말기 수동추가·출입그룹·고유아이디·카메라 설정·VMS·MediaServer 스펙으로 치환하지 마세요.
 """
     path_role_block = ""
     artifact_intents = detect_artifact_intents(query)
@@ -1182,17 +1761,16 @@ def build_context_prompt(
 - Protocol·NSIS·Swagger 내용을 섞지 마세요.
 """
     elif is_user_terminal_procedure_intent(query):
-        # 지연 최적화: 회귀 테스트가 요구하는 핵심 문구는 유지하되 장문 서술은 압축.
+        # 품질 우선: 수동 추가 3메뉴 경로와 자동동기화를 메뉴명으로 구분하도록 강제.
         procedure_block = """
 === 사용자·단말기 절차 범위(필수) ===
-- User Guide 메뉴/버튼만 사용. 수동으로 특정 단말기에 추가·전송하는 절차와 자동 동기화는 소제목으로 분리.
-- 수동 근거가 `[단말기리스트]`와 `단말기 사용자 리스트` `[추가]`로 나뉘면 「방법 1」/「방법 2」처럼 독립된 방법으로 각각 설명(계층 합치기 금지).
-- 표기 고정: `[단말기리스트]`(공백 금지). `단말기 저장 리스트`로 바꾸지 마세요. `덮어쓰기` 유지.
-- 자동동기화 경로: `[일반설정] > [사용자] > [사용자 데이터]`. `다시 동기화`와 `다시 다운로드`를 둘 다 포함.
-- `[단말기리스트]` 안에 `출입그룹 단말기 리스트`, `등록된 단말기`, `추가가능한 단말기` 3항목과 `필수로 연결` ※문장, `[주의사항]`을 빠짐없이.
-- 사용자·단말기 수동 전송(`단말기 사용자 리스트`의 `[추가]`) 답변에서는 그 절차를 반드시 `[추가] → 사용자 선택 → > → [적용] → 해당 사용자 정보 단말기 전송` 순서로 한 줄 또는 번호 목록에 적으세요. `[단말기리스트]`는 이와 별개인 다른 화면이므로 상위 메뉴로 이어 붙이지 말고, `단말기 저장 리스트`는 수동 전송 절차의 메뉴가 아니므로 이 답변에 쓰지 마세요. 메뉴 경로를 이을 때 `>`를 breadcrumb 구분자로 쓰지 마세요. `>`는 팝업의 이동 버튼에만 사용하세요.
-- 사용자·단말기 자동 동기화 답변에서는 근거가 있을 때 사용자와 단말기가 `동일한 출입그룹`이어야 한다는 조건을 그대로 적으세요.
-- 사용자·단말기 자동 동기화 근거에 중복 ID `덮어쓰기`와 수동 제거 뒤 `다시 동기화`/`다시 다운로드`(또는 `다운로드 재진행`)가 있으면 해당 용어를 빠짐없이 문서 표기 그대로 적으세요.
+- User Guide 메뉴/버튼만 사용. 수동 추가와 자동 동기화는 소제목으로 분리.
+- 수동으로 사용자를 단말에 넣는 방법은 문서상 **서로 다른 메뉴 3경로**입니다. 아래 메뉴명을 **각각 경로 소제목**으로 구분해 설명하세요. 한 줄기로 합치거나 「사용자 정보」「사용자 데이터」만으로 대체하지 마세요.
+  1) 「사용자 관리」: `[단말기리스트]` 클릭 → 사용자 다운로드. 화면 구성 `출입그룹 단말기 리스트`/`등록된 단말기`/`추가가능한 단말기`와 `필수로 연결` ※·`[주의사항]`을 포함.
+  2) 「단말기 사용자 관리」: `단말기 사용자 리스트`의 `[추가] → 사용자 선택 → > → [적용] → 단말 전송` 순서. `[단말기리스트]`와 계층으로 이어 붙이지 마세요.
+  3) 「단말기 사용자 확장」: 여러 대(**N:N**) 전송, `[전송]`, **작업리스트**로 진행 확인.
+- 표기 고정: `[단말기리스트]`(공백 금지). `단말기 저장 리스트`를 수동 전송 메뉴로 쓰지 마세요. `덮어쓰기` 유지. 메뉴 경로 breadcrumb에 `>`를 쓰지 말고, `>`는 팝업 이동 버튼에만 사용.
+- 자동동기화(별도 소제목): `[일반설정] > [사용자] > [사용자 데이터]`의 **단말기 사용자 정보 자동 동기화 사용**, `동일한 출입그룹`, `덮어쓰기`, 저장 시 자동 업데이트, `다시 동기화`와 `다시 다운로드`(또는 `다운로드 재진행`).
 - Protocol·NSIS 문서 내용을 섞지 마세요.
 """
     automated_build_block = ""
@@ -1219,6 +1797,8 @@ def build_context_prompt(
 {query}
 {scope_block}
 {list_block}
+{mediaserver_block}
+{person_block}
 {path_role_block}
 {procedure_block}
 {automated_build_block}
@@ -1384,14 +1964,187 @@ def enforce_terminal_user_mgmt_menu_name(
     return f"{result.rstrip()}\n\n" + "\n".join(parts)
 
 
+def _enforce_three_manual_paths(context: str, answer: str) -> str:
+    """컨텍스트에 3경로 근거가 있는데 답변에 메뉴명·핵심 힌트가 없으면 문서 사실로 보강합니다.
+
+    생성기가 한 경로로 뭉갤 때 UI 품질이 떨어지므로, 근거가 있는 경로만 말미에
+    메뉴명 단위로 보완합니다. 문서에 없는 사실은 추가하지 않습니다.
+    """
+    result = answer or ""
+    parts: List[str] = []
+    has_path1_menu = _has_standalone_user_management_menu(result)
+    path1_hint = (
+        "단말기리스트" in result
+        or "단말기 리스트" in result
+        or "출입그룹 단말기 리스트" in result
+        or "등록된 단말기" in result
+    )
+    # 컨텍스트 표기가 '단말기 리스트'처럼 공백형일 수 있고, 모델이 힌트만 쓴 경우도
+    # 메뉴명 보강이 필요하므로 답변 힌트까지 근거로 봅니다.
+    path1_evidence = (
+        _has_standalone_user_management_menu(context)
+        or "단말기리스트" in context
+        or "단말기 리스트" in context
+        or "출입그룹 단말기 리스트" in context
+        or path1_hint
+    )
+    if path1_evidence and (not has_path1_menu or not path1_hint):
+        hint = (
+            "`[단말기리스트]`와 출입그룹 단말기 리스트/등록된 단말기/추가가능한 단말기"
+        )
+        parts.append(f"- 경로1 「사용자 관리」: {hint}")
+
+    has_path2_menu = "단말기 사용자 관리" in result
+    path2_hint = (
+        ("적용" in result and (">" in result or "추가" in result))
+        or ("단말기 사용자 리스트" in result and "적용" in result)
+    )
+    path2_evidence = (
+        "단말기 사용자 관리" in context
+        or ("단말기 사용자 리스트" in context and "적용" in context)
+        or has_path2_menu
+        or ("단말기 사용자 리스트" in result and "적용" in result)
+        or "단말기 사용자 리스트" in context
+    )
+    if path2_evidence and (not has_path2_menu or not path2_hint):
+        parts.append(
+            "- 경로2 「단말기 사용자 관리」: 단말기 사용자 리스트에서 "
+            "`[추가] → 사용자 선택 → > → [적용] → 단말 전송`"
+        )
+
+    has_path3_menu = "단말기 사용자 확장" in result
+    path3_hint = (
+        "N:N" in result
+        or "n:n" in result.casefold()
+        or "작업리스트" in result
+    )
+    path3_evidence = (
+        "단말기 사용자 확장" in context
+        or "N:N" in context
+        or "작업리스트" in context
+        or has_path3_menu
+        or path3_hint
+    )
+    if path3_evidence and (not has_path3_menu or not path3_hint):
+        extend_bits = []
+        if "N:N" in context or "n:n" in context.casefold() or "N:N" in result:
+            extend_bits.append("N:N 전송")
+        if "작업리스트" in context or "작업리스트" in result:
+            extend_bits.append("작업리스트로 진행 확인")
+        if not extend_bits:
+            extend_bits.append("여러 단말로 사용자 전송")
+        parts.append(
+            "- 경로3 「단말기 사용자 확장」: " + ", ".join(extend_bits)
+        )
+
+    # 약한 「자동 동기화」만으로는 부족해 문서 옵션명 전체를 우선합니다.
+    sync_name_ok = "단말기 사용자 정보 자동 동기화" in result
+    sync_fact_ok = "출입그룹" in result or "덮어쓰기" in result
+    sync_evidence = (
+        "단말기 사용자 정보 자동 동기화" in context
+        or ("자동" in context and "동기화" in context)
+    )
+    if sync_evidence and not (sync_name_ok and sync_fact_ok):
+        sync_bits = ["단말기 사용자 정보 자동 동기화 사용"]
+        if "동일한 출입그룹" in context or (
+            "동일" in context and "출입그룹" in context
+        ):
+            sync_bits.append("동일한 출입그룹 조건")
+        elif "출입그룹" in context:
+            sync_bits.append("출입그룹 조건")
+        if "덮어쓰기" in context:
+            sync_bits.append("덮어쓰기")
+        parts.append("- 자동동기화: " + ", ".join(sync_bits))
+
+    if not parts:
+        return result
+    return (
+        f"{result.rstrip()}\n\n### 수동 추가 3경로·자동동기화(문서 메뉴 구분)\n"
+        + "\n".join(parts)
+    )
+
+
+def _answer_has_camera_range(answer: str, low: str, high: str) -> bool:
+    """답변에 카메라 대수 구간(숫자 사이 잡음 허용)이 있는지 판별합니다."""
+    return bool(
+        re.search(
+            rf"{low}\s*(?:대)?\s*[~～\-–—]\s*{high}",
+            answer or "",
+        )
+    )
+
+
+def extract_mediaserver_spec_table(context: str) -> str:
+    """참고 문서에서 카메라 대수별 권장 스펙 마크다운 표를 추출합니다.
+
+    표 헤더와 4개 데이터 행이 보이면 그 블록을 반환하고, 없으면 빈 문자열을
+    반환합니다. 모델이 일부 행만 쓸 때 enforce에서 원문을 붙일 때 사용합니다.
+    """
+    lines = (context or "").splitlines()
+    start = None
+    for idx, line in enumerate(lines):
+        if "카메라" in line and "CPU" in line and "|" in line:
+            start = idx
+            break
+    if start is None:
+        return ""
+    block = [lines[start]]
+    for line in lines[start + 1 :]:
+        if not line.strip():
+            if len(block) >= 5:
+                break
+            continue
+        if "|" not in line:
+            break
+        block.append(line)
+        if len(block) >= 6:
+            break
+    text = "\n".join(block)
+    if not looks_like_mediaserver_spec_table(text):
+        return ""
+    return text.strip()
+
+
+def enforce_mediaserver_spec_table(query: str, documents: list, answer: str) -> str:
+    """미디어 서버 스펙 답변에 4구간 표가 빠지면 문서 원문 표를 보강합니다.
+
+    참고 컨텍스트에 §1-2 표가 있을 때만 동작하며, 이미 네 구간이 모두 있으면
+    원문을 유지합니다. User Guide/API로 빗나간 짧은 답도 표가 컨텍스트에 있으면
+    표를 덧붙입니다.
+    """
+    if not is_media_server_spec_intent(query):
+        return answer or ""
+    context = "\n".join(document.get("content", "") for document in documents)
+    table = extract_mediaserver_spec_table(context)
+    if not table:
+        return answer or ""
+    result = answer or ""
+    missing = [
+        f"{low}~{high}"
+        for low, high in _MEDIA_SERVER_TABLE_RANGES
+        if not _answer_has_camera_range(result, low, high)
+    ]
+    needs_ram = ("48GB" not in result.replace(" ", "") and "48gb" not in result.casefold()) or (
+        "64GB" not in result.replace(" ", "") and "64gb" not in result.casefold()
+    )
+    if not missing and not needs_ram:
+        return result
+    return (
+        f"{result.rstrip()}\n\n### 카메라 수별 권장 스펙(문서 표)\n{table}"
+    )
+
+
 def enforce_document_term_pairs(query: str, documents: list, answer: str) -> str:
     """문서에 명시된 필수 UI·절차 용어가 답변에서 축약·의역될 때 원문을 보존합니다.
 
     사용자·단말기 절차 질문에만 적용합니다. (1) 문서의 `[단말기리스트]` 표기를
     공백 의역에서 복원하고, (2) 문서에 있는 화면 구성 3항목이 빠지면 문서 원문
     줄을 보완하며, (3) 재동기화·재다운로드 쌍이 축약되면 원문 표현을 스트림 끝에
-    추가합니다. 특정 질문에 답을 고정하지 않고 컨텍스트 근거가 있을 때만 동작합니다.
+    추가하고, (4) 수동 3경로 메뉴명이 누락되면 근거가 있을 때만 보강합니다.
+    미디어 서버 스펙 표 질문은 4구간 표 완결을 별도로 보강합니다.
     """
+    if is_media_server_spec_intent(query):
+        return enforce_mediaserver_spec_table(query, documents, answer)
     if is_terminal_user_management_intent(query):
         return enforce_terminal_user_mgmt_menu_name(query, documents, answer)
     if not is_user_terminal_procedure_intent(query):
@@ -1431,6 +2184,7 @@ def enforce_document_term_pairs(query: str, documents: list, answer: str) -> str
             "출입그룹에 맞춰 사용자가 다시 다운로드됩니다."
         )
         result = f"{result.rstrip()}{suffix}"
+    result = _enforce_three_manual_paths(context, result)
     return result
 
 
@@ -1577,6 +2331,23 @@ class Pipeline:
                 # non-stream 연결 유지용 최소 신호(본문 assertion에서 제거 가능)
                 yield "\n"
 
+            # 주제 없는 재포맷(정리/표)만 오면 무관 문서 검색·환각 채움을 막고 확인을 요청합니다.
+            if is_ambiguous_reformat_request(user_message, chat_history):
+                print("[Step 0] 주제 불명 재포맷 → 확인 요청 (검색 생략)")
+                if stream:
+                    yield _AMBIGUOUS_REFORMAT_CLARIFICATION
+                    yield _status_event("", done=True)
+                else:
+                    yield _AMBIGUOUS_REFORMAT_CLARIFICATION
+                _log_timing(
+                    "pipe_wall_clock",
+                    time.perf_counter() - pipe_started,
+                    answer_chars=len(_AMBIGUOUS_REFORMAT_CLARIFICATION),
+                    docs=0,
+                    ambiguous_reformat=True,
+                )
+                return
+
             retrieval_question = user_message
             if self.valves.CONTEXTUALIZE_FOLLOW_UP and is_follow_up_question(
                 user_message, chat_history
@@ -1595,6 +2366,18 @@ class Pipeline:
                 )
                 if retrieval_question != user_message:
                     print(f"[Step 0] 후속 질문 감지 → 문맥 반영 질문: {retrieval_question}")
+                # 문맥화 후에도 주제가 비면 원문 검색으로 환각하지 않고 확인을 요청합니다.
+                if (
+                    is_reformat_follow_up_intent(user_message)
+                    and not query_has_retrieval_topic(retrieval_question)
+                ):
+                    print("[Step 0] 문맥화 실패·주제 불명 → 확인 요청 (검색 생략)")
+                    if stream:
+                        yield _AMBIGUOUS_REFORMAT_CLARIFICATION
+                        yield _status_event("", done=True)
+                    else:
+                        yield _AMBIGUOUS_REFORMAT_CLARIFICATION
+                    return
 
             if self.valves.USE_QUERY_REWRITE:
                 rewritten_query = rewrite_query(
@@ -1635,29 +2418,38 @@ class Pipeline:
             print(f"[Step 2] 검색된 문서: {len(documents)}개")
 
             focus = extract_query_focus(retrieval_question)
-            if focus:
+            person_names = extract_person_names(retrieval_question)
+            if focus or person_names:
                 before = len(documents)
                 documents = filter_documents_by_focus(
-                    documents, focus, self.valves.TOP_K
+                    documents,
+                    focus,
+                    self.valves.TOP_K,
+                    person_names=person_names or None,
                 )
+                label = "·".join(person_names) if person_names else focus
                 print(
-                    f"[Step 2b] 질문 초점: 「{focus}」 → 초점 포함 청크만 사용 "
+                    f"[Step 2b] 질문 초점: 「{label}」 → 초점 포함 청크만 사용 "
                     f"({before} → {len(documents)}개)"
                 )
 
             ctx_limit_started = time.perf_counter()
-            documents = limit_documents_for_context(
-                documents, self.valves.MAX_CONTEXT_CHARS
-            )
+            # 절차 3경로+동기화는 청크가 많아 품질 우선으로 컨텍스트 예산을 확보합니다.
+            context_budget = self.valves.MAX_CONTEXT_CHARS
+            if is_user_terminal_procedure_intent(retrieval_question):
+                context_budget = max(context_budget, 5600)
+            if is_media_server_spec_intent(retrieval_question):
+                context_budget = max(context_budget, 4800)
+            documents = limit_documents_for_context(documents, context_budget)
             _log_timing(
                 "context_budget",
                 time.perf_counter() - ctx_limit_started,
                 docs=len(documents),
-                max_chars=self.valves.MAX_CONTEXT_CHARS,
+                max_chars=context_budget,
             )
             print(
                 f"[Step 2c] 답변 컨텍스트: {len(documents)}개 청크, "
-                f"최대 {self.valves.MAX_CONTEXT_CHARS}자"
+                f"최대 {context_budget}자"
             )
 
             context_prompt = build_context_prompt(
@@ -1674,14 +2466,50 @@ class Pipeline:
             print(f"[Step 3] 답변 생성 중... (모델: {self.valves.ANSWER_MODEL})")
             if stream:
                 yield _status_event("답변 생성 중...")
-            system_message = (
-                "당신은 친절하고 정확한 AI 어시스턴트입니다. 주어진 참고 문서를 바탕으로 답변하세요. "
-                "이전 대화에 나온 다른 인물·추측은 무시하고, 이번 사용자 질문과 참고 문서만 따르세요. "
-                "질문에 특정 인물·주제가 있으면 그 범위를 벗어난 인물 이름·설명을 쓰지 마세요. "
-                "답변 말미에 '문서에는 … 없습니다' 식의 긴 면책 문장을 반복하지 마세요. "
-                "필수 메뉴·경로·버튼명·API 식별자는 문서 철자 그대로 쓰고 글자 사이 공백을 넣지 마세요. "
-                "서론·반복·추측 금지. 가능하면 12줄 이내 불릿으로 작성하세요."
-            )
+            if is_user_terminal_procedure_intent(retrieval_question):
+                system_message = (
+                    "당신은 친절하고 정확한 AI 어시스턴트입니다. 주어진 참고 문서를 바탕으로 답변하세요. "
+                    "이전 대화에 나온 다른 인물·추측은 무시하고, 이번 사용자 질문과 참고 문서만 따르세요. "
+                    "필수 메뉴·경로·버튼명은 문서 철자 그대로 쓰고 글자 사이 공백을 넣지 마세요. "
+                    "URL·링크·참고 번호 각주를 지어내지 마세요. "
+                    "서론·반복·추측 금지. 수동 추가 3메뉴 경로와 자동동기화를 소제목으로 구분해 작성하세요."
+                )
+            elif is_media_server_spec_intent(retrieval_question):
+                system_message = (
+                    "당신은 친절하고 정확한 AI 어시스턴트입니다. MediaServer_Specs_New.md 표를 근거로 답하세요. "
+                    "카메라 대수 네 구간(10~24, 25~49, 50~79, 80~100)과 48GB·64GB를 빠짐없이 표로 작성하세요. "
+                    "User Guide·swagger·API 스키마로 대체하지 마세요. 서론·면책·추측 금지."
+                )
+            elif is_api_schema_table_intent(retrieval_question):
+                system_message = (
+                    "당신은 친절하고 정확한 AI 어시스턴트입니다. swagger 스키마 정의만 근거로 답하세요. "
+                    "FaceWT/FAW 스키마 필드를 마크다운 표(| 필드 | 타입 | 설명 |)로 재정리하세요. "
+                    "FaceWTInfo의 TemplateType·TemplateSize·TemplateData를 포함하세요. "
+                    "MediaServer 카메라 대수/RAM 스펙 표나 에러코드 나열로 대체하지 마세요. 서론·면책 금지."
+                )
+            elif is_person_profile_intent(retrieval_question):
+                names = extract_person_names(retrieval_question)
+                names_hint = (
+                    f"질문에 나온 인물({ '·'.join(names) })을 모두 답하세요. "
+                    if len(names) > 1
+                    else ""
+                )
+                system_message = (
+                    "당신은 친절하고 정확한 AI 어시스턴트입니다. 참고 문서의 인물 프로필만으로 답하세요. "
+                    f"{names_hint}"
+                    "이름 철자를 바꾸지 마세요. 단말기 등록·카메라·MediaServer나 질문에 없는 인물로 빗나가지 마세요. "
+                    "문서에 있는 인물을 「없다」고 하지 마세요. "
+                    "프로필 이미지 마크다운이 있으면 답변 맨 위에 그대로 두세요. 서론·면책 금지."
+                )
+            else:
+                system_message = (
+                    "당신은 친절하고 정확한 AI 어시스턴트입니다. 주어진 참고 문서를 바탕으로 답변하세요. "
+                    "이전 대화에 나온 다른 인물·추측은 무시하고, 이번 사용자 질문과 참고 문서만 따르세요. "
+                    "질문에 특정 인물·주제가 있으면 그 범위를 벗어난 인물 이름·설명을 쓰지 마세요. "
+                    "답변 말미에 '문서에는 … 없습니다' 식의 긴 면책 문장을 반복하지 마세요. "
+                    "필수 메뉴·경로·버튼명·API 식별자는 문서 철자 그대로 쓰고 글자 사이 공백을 넣지 마세요. "
+                    "서론·반복·추측 금지. 가능하면 12줄 이내 불릿으로 작성하세요."
+                )
             answer_messages = [
                 {"role": "system", "content": system_message},
                 *chat_history[-4:],  # 최근 2턴 유지
@@ -1914,12 +2742,15 @@ def expand_catalog_chunks_from_candidates(
     top_k: int,
     max_chunks_per_source: int,
 ) -> list:
-    """목록 완결 의도일 때 같은 출처의 카탈로그·TOC 연속 청크를 후보에서 보충합니다.
+    """목록 완결 의도일 때 같은 출처의 카탈로그·TOC·스펙 표 연속 청크를 후보에서 보충합니다.
 
-    이미 선택된 청크를 유지한 채, 표/목차처럼 hex·점선 행이 많은 동일 출처 청크를
-    점수 순으로 채워 부분 목록만 컨텍스트에 남는 경우를 줄입니다.
+    이미 선택된 청크를 유지한 채, 표/목차처럼 hex·점선 행이 많은 동일 출처 청크나
+    미디어 서버 스펙 표 청크를 점수 순으로 채워 부분 목록만 컨텍스트에 남는 경우를
+    줄입니다.
     """
-    if not detect_list_completeness_intent(query) or not selected:
+    list_intent = detect_list_completeness_intent(query)
+    media_intent = is_media_server_spec_intent(query)
+    if (not list_intent and not media_intent) or not selected:
         return selected
     selected_keys = {
         (doc.get("source", "unknown"), doc.get("content", "")) for doc in selected
@@ -1929,6 +2760,12 @@ def expand_catalog_chunks_from_candidates(
         source = doc.get("source", "unknown")
         counts[source] = counts.get(source, 0) + 1
     focus_sources = {doc.get("source", "unknown") for doc in selected}
+    if media_intent:
+        focus_sources = {
+            source
+            for source in focus_sources
+            if "mediaserver" in source.casefold()
+        } or focus_sources
     extras = []
     for doc in candidates:
         source = doc.get("source", "unknown")
@@ -1937,7 +2774,11 @@ def expand_catalog_chunks_from_candidates(
             continue
         if counts.get(source, 0) >= max_chunks_per_source:
             continue
-        if not looks_like_command_catalog(doc.get("content", "")):
+        content = doc.get("content", "")
+        if media_intent:
+            if not looks_like_mediaserver_spec_table(content):
+                continue
+        elif not looks_like_command_catalog(content):
             continue
         extras.append(doc)
         selected_keys.add(key)
@@ -1949,8 +2790,184 @@ def expand_catalog_chunks_from_candidates(
     return selected + extras
 
 
+def complete_mediaserver_spec_context(
+    selected: list,
+    records: list,
+    query: str,
+    top_k: int,
+    scope: Optional[Dict[str, str]] = None,
+) -> list:
+    """미디어 서버 스펙 질문에 §1-2 표 청크를 동일 문서에서 강제로 포함합니다.
+
+    UG/API 청크가 top-k를 차지해도 MediaServer_Specs_New.md 표 행이 컨텍스트에
+    남도록 우선 삽입하고, 표가 아닌 이질 출처는 뒤로 미룹니다.
+    """
+    if not is_media_server_spec_intent(query) or not records:
+        return selected
+    selected_keys = {
+        (doc.get("source", "unknown"), doc.get("content", "")) for doc in selected
+    }
+    table_docs = []
+    for record in records:
+        metadata = record.get("metadata") or {}
+        if not _metadata_matches_scope(metadata, scope):
+            continue
+        source = metadata.get("source", "unknown")
+        if "mediaserver" not in source.casefold():
+            continue
+        content = record.get("document", "")
+        if not looks_like_mediaserver_spec_table(content):
+            continue
+        key = (source, content)
+        if key in selected_keys:
+            continue
+        table_docs.append(
+            {
+                "content": content,
+                "source": source,
+                "score": 1.0,
+                "metadata": metadata,
+            }
+        )
+        selected_keys.add(key)
+    if not table_docs and any(
+        looks_like_mediaserver_spec_table(doc.get("content", "")) for doc in selected
+    ):
+        # 이미 표가 있으면 이질 출처만 정리합니다.
+        preferred = [
+            doc
+            for doc in selected
+            if "mediaserver" in (doc.get("source") or "").casefold()
+        ]
+        others = [
+            doc
+            for doc in selected
+            if "mediaserver" not in (doc.get("source") or "").casefold()
+        ]
+        return (preferred + others)[: max(top_k, len(preferred))]
+    preferred = [
+        doc
+        for doc in selected
+        if "mediaserver" in (doc.get("source") or "").casefold()
+    ]
+    others = [
+        doc
+        for doc in selected
+        if "mediaserver" not in (doc.get("source") or "").casefold()
+    ]
+    merged = table_docs + preferred + others
+    # 중복 제거 후 top_k(표 우선)
+    seen = set()
+    result = []
+    for doc in merged:
+        key = (doc.get("source", "unknown"), doc.get("content", ""))
+        if key in seen:
+            continue
+        seen.add(key)
+        result.append(doc)
+        if len(result) >= max(top_k, 4):
+            break
+    return result or selected
+
+
+def complete_person_profile_context(
+    selected: list,
+    records: list,
+    query: str,
+    top_k: int,
+    scope: Optional[Dict[str, str]] = None,
+) -> list:
+    """인물 질문에 이름·년생이 있는 프로필 청크를 BM25 인덱스에서 강제 포함합니다.
+
+    '에 대해 알려줘' 같은 서술어가 벡터 검색을 절차/API로 끌 때 Test.md가
+    top-k에서 빠지는 것을 보완합니다. 복수 인물이면 이름별 청크를 모두 삽입합니다.
+    """
+    if not is_person_profile_intent(query) or not records:
+        return selected
+    names = extract_person_names(query)
+    if not names:
+        return selected
+    selected_keys = {
+        (doc.get("source", "unknown"), doc.get("content", "")) for doc in selected
+    }
+    extras = []
+    # 이름마다 최소 한 청크를 우선 확보한 뒤, 같은 이름 추가 청크를 모읍니다.
+    for name in names:
+        for record in records:
+            metadata = record.get("metadata") or {}
+            if not _metadata_matches_scope(metadata, scope):
+                continue
+            content = record.get("document", "")
+            if name not in content:
+                continue
+            source = metadata.get("source", "unknown")
+            key = (source, content)
+            if key in selected_keys:
+                continue
+            extras.append(
+                {
+                    "content": content,
+                    "source": source,
+                    "score": 1.0,
+                    "metadata": metadata,
+                }
+            )
+            selected_keys.add(key)
+            break
+    for record in records:
+        metadata = record.get("metadata") or {}
+        if not _metadata_matches_scope(metadata, scope):
+            continue
+        content = record.get("document", "")
+        if not any(name in content for name in names):
+            continue
+        source = metadata.get("source", "unknown")
+        key = (source, content)
+        if key in selected_keys:
+            continue
+        extras.append(
+            {
+                "content": content,
+                "source": source,
+                "score": 0.95,
+                "metadata": metadata,
+            }
+        )
+        selected_keys.add(key)
+    if not extras and not any(
+        any(name in (doc.get("content") or "") for name in names) for doc in selected
+    ):
+        return selected
+
+    def _has_any_name(doc: dict) -> bool:
+        """청크 본문에 질문 인물명 중 하나라도 있는지 판별합니다."""
+        body = doc.get("content") or ""
+        return any(name in body for name in names)
+
+    focused = [doc for doc in selected if _has_any_name(doc)]
+    others = [doc for doc in selected if not _has_any_name(doc)]
+    merged = extras + focused + others
+    seen = set()
+    result = []
+    keep_n = max(top_k, len(names) + 1, 3)
+    for doc in merged:
+        key = (doc.get("source", "unknown"), doc.get("content", ""))
+        if key in seen:
+            continue
+        seen.add(key)
+        result.append(doc)
+        if len(result) >= keep_n:
+            break
+    return result or selected
+
+
+def _has_standalone_user_management_menu(text: str) -> bool:
+    """「단말기 사용자 관리」가 아닌 단독 「사용자 관리」메뉴 표기가 있는지 판별합니다."""
+    return bool(re.search(r"(?<!단말기 )사용자 관리", text or ""))
+
+
 def _procedure_context_facets(query: str, content: str) -> set[str]:
-    """질문과 청크가 함께 충족하는 수동·자동 절차의 역할 범위를 반환합니다."""
+    """질문과 청크가 함께 충족하는 수동 3경로·자동 절차 역할 범위를 반환합니다."""
     if not is_user_terminal_procedure_intent(query):
         return set()
     normalized_query = (query or "").casefold()
@@ -1976,11 +2993,37 @@ def _procedure_context_facets(query: str, content: str) -> set[str]:
     # 상위 목록 화면과 하위 사용자 목록 화면이 다른 페이지로 분리된 UI 가이드도
     # 메뉴 진입 순서를 재구성할 수 있도록, 상위 화면 근거를 별도 역할로 보존합니다.
     if (
-        any(marker in normalized_query for marker in ("추가", "등록", "전송", "다운로드"))
+        any(marker in normalized_query for marker in ("추가", "등록", "전송", "다운로드", "동기"))
         and "단말기리스트" in normalized_content
         and ("사용자" in normalized_content or "단말기" in normalized_content)
     ):
         facets.add("manual_navigation")
+    # 경로1·2·3 메뉴 근거를 별도 역할로 보존해 한 경로로 뭉개지지 않게 합니다.
+    if any(marker in normalized_query for marker in ("추가", "등록", "전송", "다운로드", "동기")) and (
+        _has_standalone_user_management_menu(content or "")
+        or (
+            "단말기리스트" in normalized_content
+            and ("다운로드" in normalized_content or "출입그룹" in normalized_content)
+        )
+    ):
+        facets.add("path_user_management")
+    if any(marker in normalized_query for marker in ("추가", "등록", "전송", "다운로드")) and (
+        "단말기 사용자 관리" in normalized_content
+        or (
+            "단말기 사용자 리스트" in normalized_content
+            and any(marker in normalized_content for marker in ("적용", "추가", "전송"))
+        )
+    ):
+        facets.add("path_terminal_user_mgmt")
+    if any(marker in normalized_query for marker in ("추가", "등록", "전송", "다운로드")) and (
+        "단말기 사용자 확장" in normalized_content
+        or ("n:n" in normalized_content and "전송" in normalized_content)
+        or (
+            "작업리스트" in normalized_content
+            and ("전송" in normalized_content or "확장" in normalized_content)
+        )
+    ):
+        facets.add("path_terminal_user_extend")
     if "동기" in normalized_query and "자동" in normalized_content and "동기화" in normalized_content:
         facets.add("automatic_sync")
     if "동기" in normalized_query and "저장" in normalized_content and (
@@ -2137,6 +3180,9 @@ def complete_procedure_context(
     required = {
         "manual_navigation",
         "manual_transfer",
+        "path_user_management",
+        "path_terminal_user_mgmt",
+        "path_terminal_user_extend",
         "automatic_sync",
         "save_update",
         "resync_behavior",
@@ -2174,6 +3220,16 @@ def complete_procedure_context(
                 score += 0.2
             if missing == "manual_navigation" and "단말기리스트" in content:
                 score += 0.2
+            if missing == "path_user_management" and (
+                _has_standalone_user_management_menu(content) or "단말기리스트" in content
+            ):
+                score += 0.2
+            if missing == "path_terminal_user_mgmt" and "단말기 사용자 관리" in content:
+                score += 0.25
+            if missing == "path_terminal_user_extend" and (
+                "단말기 사용자 확장" in content or "N:N" in content or "작업리스트" in content
+            ):
+                score += 0.25
             if missing == "save_update" and "자동 업데이트" in content:
                 score += 0.15
             if missing == "resync_behavior" and "다시 다운로드" in content:
@@ -2211,7 +3267,31 @@ def complete_procedure_context(
             result[replace_index] = candidate
         selected_keys.add((source, content))
         covered |= facets
-    return result
+
+    def _procedure_sort_key(document: dict) -> tuple:
+        """경로1→경로2→경로3→자동동기화 순으로 컨텍스트를 정렬합니다."""
+        facets = _procedure_context_facets(query, document.get("content", ""))
+        if "path_user_management" in facets or "manual_navigation" in facets:
+            return (0, document.get("source", ""))
+        if "terminal_list_composition" in facets:
+            return (1, document.get("source", ""))
+        if "path_terminal_user_mgmt" in facets or "manual_transfer" in facets:
+            return (2, document.get("source", ""))
+        if "path_terminal_user_extend" in facets:
+            return (3, document.get("source", ""))
+        if any(
+            name in facets
+            for name in (
+                "automatic_sync",
+                "save_update",
+                "resync_behavior",
+                "overwrite_option",
+            )
+        ):
+            return (4, document.get("source", ""))
+        return (5, document.get("source", ""))
+
+    return sorted(result, key=_procedure_sort_key)
 
 
 def complete_build_output_context(
@@ -2340,8 +3420,10 @@ def complete_catalog_hex_coverage(
     RRF 상위 후보에 목차 후반이 없어도, 같은 문서의 카탈로그 청크 중 아직 없는
     hex를 가장 많이 추가하는 청크를 탐욕적으로 붙입니다. 특정 hex 값은 고정하지 않습니다.
     목차가 페이지 경계로 나뉜 경우를 위해, 선택된 카탈로그 페이지의 인접 페이지도
-    후보에 포함합니다.
+    후보에 포함합니다. 미디어 서버 스펙 표 질문에는 적용하지 않습니다.
     """
+    if is_media_server_spec_intent(query):
+        return selected
     if not detect_list_completeness_intent(query) or not selected or not records:
         return selected
     focus_sources = {doc.get("source", "unknown") for doc in selected}
@@ -2516,6 +3598,8 @@ def retrieve_documents(
     procedure_intent = is_user_terminal_procedure_intent(intent_query)
     terminal_user_mgmt_intent = is_terminal_user_management_intent(intent_query)
     automated_build_intent = is_automated_build_intent(intent_query)
+    media_spec_intent = is_media_server_spec_intent(intent_query)
+    person_intent = is_person_profile_intent(intent_query)
     candidate_count = max(top_k, vector_candidates, rerank_candidates if rerank_enabled else 0)
     # API/스키마 질문은 같은 swagger 안의 여러 엔드포인트·정의 청크가 필요하므로
     # 소스당 청크 상한을 소폭 올려 경로와 필드 표가 함께 남게 합니다.
@@ -2523,12 +3607,27 @@ def retrieve_documents(
     effective_top_k = top_k
     if detect_api_doc_intent(intent_query):
         effective_max_chunks = max(max_chunks_per_source, 3)
-    if list_intent:
+    if list_intent or media_spec_intent:
         # 표·TOC가 페이지·섹션 경계에서 잘려도 동일 출처 연속 목록을 더 모읍니다.
         effective_max_chunks = max(effective_max_chunks, 8)
         effective_top_k = max(top_k, 8)
         candidate_count = max(candidate_count, 30)
         bm25_candidates = max(bm25_candidates, 30)
+    if media_spec_intent:
+        # §1-2 표와 인접 설명이 여러 청크에 있으므로 MediaServer 출처를 넓게 보존합니다.
+        effective_max_chunks = max(effective_max_chunks, 4)
+        effective_top_k = max(effective_top_k, 6)
+        if rerank_enabled and not rerank_neural:
+            candidate_count = max(candidate_count, 24)
+            bm25_candidates = max(bm25_candidates, 24)
+    if person_intent:
+        # 이름 단독 BM25가 약할 수 있어 후보를 넓히고 complete_person이 Test.md를 보강합니다.
+        # 복수 인물이면 이름별 청크가 잘리지 않게 top_k를 조금 더 확보합니다.
+        person_n = max(1, len(extract_person_names(intent_query)))
+        effective_max_chunks = max(effective_max_chunks, max(3, person_n))
+        effective_top_k = max(top_k, max(4, person_n + 2))
+        candidate_count = max(candidate_count, 24)
+        bm25_candidates = max(bm25_candidates, 24)
     if terminal_user_mgmt_intent:
         # 메뉴 개요와 저장 리스트·사용자 리스트 조작이 인접 페이지로 나뉘므로
         # 동일 출처에서 역할을 함께 보존합니다.
@@ -2537,12 +3636,17 @@ def retrieve_documents(
         candidate_count = max(candidate_count, 30)
         bm25_candidates = max(bm25_candidates, 30)
     if procedure_intent:
-        # 수동 전송과 자동 동기화 설정은 같은 User Guide의 떨어진 연속 절에 있으므로
-        # 동일 출처에서 필요한 절차 근거를 함께 보존합니다.
-        effective_max_chunks = max(effective_max_chunks, 6)
-        effective_top_k = max(top_k, 6)
-        candidate_count = max(candidate_count, 30)
-        bm25_candidates = max(bm25_candidates, 30)
+        # 수동 3경로(사용자 관리·단말기 사용자 관리·확장)와 자동 동기화 절이
+        # 같은 User Guide의 떨어진 페이지에 있으므로 동일 출처 근거를 넓게 보존합니다.
+        effective_max_chunks = max(effective_max_chunks, 8)
+        effective_top_k = max(top_k, 8)
+        candidate_count = max(candidate_count, 36)
+        bm25_candidates = max(bm25_candidates, 36)
+        vector_candidates = max(vector_candidates, 24)
+        # 품질 우선: neural이 꺼져 있어도 절차 질문은 후보를 과도히 줄이지 않습니다.
+        if rerank_enabled and not rerank_neural:
+            candidate_count = max(candidate_count, 24)
+            bm25_candidates = max(bm25_candidates, 24)
     if automated_build_intent:
         # 자동화 섹션은 3개 청크(섹션 시작·중간·마무리+주의사항)에 걸쳐 있고
         # complete_automated_build_context가 이를 강제로 포함하므로, 최종 목록이
@@ -2588,12 +3692,24 @@ def retrieve_documents(
             effective_top_k,
             effective_max_chunks,
         )
-        finalized = complete_automated_build_context(
-            complete_catalog_hex_coverage(
-                complete_build_output_context(
-                    complete_terminal_user_mgmt_context(
-                        complete_procedure_context(
-                            expanded,
+        finalized = complete_person_profile_context(
+            complete_mediaserver_spec_context(
+                complete_automated_build_context(
+                    complete_catalog_hex_coverage(
+                        complete_build_output_context(
+                            complete_terminal_user_mgmt_context(
+                                complete_procedure_context(
+                                    expanded,
+                                    records_for_coverage or [],
+                                    intent_query,
+                                    effective_top_k,
+                                    scope,
+                                ),
+                                records_for_coverage or [],
+                                intent_query,
+                                effective_top_k,
+                                scope,
+                            ),
                             records_for_coverage or [],
                             intent_query,
                             effective_top_k,
@@ -2602,6 +3718,7 @@ def retrieve_documents(
                         records_for_coverage or [],
                         intent_query,
                         effective_top_k,
+                        effective_max_chunks,
                         scope,
                     ),
                     records_for_coverage or [],
@@ -2612,7 +3729,6 @@ def retrieve_documents(
                 records_for_coverage or [],
                 intent_query,
                 effective_top_k,
-                effective_max_chunks,
                 scope,
             ),
             records_for_coverage or [],
