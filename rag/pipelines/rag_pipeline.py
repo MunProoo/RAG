@@ -2817,7 +2817,7 @@ class Pipeline:
         SHOW_REWRITTEN_QUERY: bool = False
 
     def __init__(self):
-        self.name = "도우미"
+        self.name = "Union_Assistant"
         self.valves = self.Valves()
 
     def answer_options(self, query: str = "") -> dict:
