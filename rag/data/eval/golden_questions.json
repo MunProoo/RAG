@@ -73,7 +73,12 @@
   {
     "question": "v4.0 프로토콜 전부 리스트업해줘",
     "expected_source": "Communication protocol for Terminal v4.0_Re19.pdf",
-    "expected_keywords": ["0x010A", "0x010B", "0x010C", "출입그룹", "스냅샷"]
+    "expected_keywords": ["0x010A", "0x010B", "0x010C", "출입그룹", "스냅샷", "0x0001"]
+  },
+  {
+    "question": "v4.0 프로토콜 리스트업해줘",
+    "expected_source": "Communication protocol for Terminal v4.0_Re19.pdf",
+    "expected_keywords": ["0x010A", "0x010B", "0x010C", "출입그룹", "스냅샷", "0x0001"]
   },
   {
     "question": "alpeta 빌드 완료 후에 설치 파일을 확인하는 폴더는?",
@@ -192,5 +197,16 @@
     "question": "박준언, 방인재에 대해 알려줘",
     "expected_source": "Test.md",
     "expected_keywords": ["박준언", "1994", "방인재", "1996"]
+  },
+  {
+    "question": "alpeta 단말기 연결 상태는 어떻게 확인해? 그리고 단말기 어떻게 추가해?",
+    "expected_source": "Alpeta User Guide.pdf",
+    "expected_keywords": [
+      "모니터링",
+      "단말기 관리",
+      "추가",
+      "상태",
+      "아이디"
+    ]
   }
 ]

@@ -436,9 +436,12 @@ class TechnicalEvidenceTests(unittest.TestCase):
         self.assertNotIn("AlpetaDevice.exe", prompt)
 
     def test_list_completeness_intent_and_catalog_heuristic(self):
-        """전부/목록 질문은 목록 의도로 분류되고 hex 밀집 청크를 카탈로그로 봅니다."""
+        """전부/목록 질문은 목록 의도로 분류되고 TOC/Preview만 카탈로그로 봅니다."""
         question = "v4.0 프로토콜 전부 리스트업해줘"
+        listup = "v4.0 프로토콜 리스트업해줘"
         self.assertTrue(rag_pipeline.detect_list_completeness_intent(question))
+        self.assertTrue(rag_pipeline.detect_list_completeness_intent(listup))
+        self.assertTrue(rag_pipeline.is_protocol_command_list_intent(listup))
         catalog = (
             "4.1 Logon (0x0001) ..... 11\n"
             "4.2 Logoff (0x0002) ..... 13\n"
@@ -447,17 +450,103 @@ class TechnicalEvidenceTests(unittest.TestCase):
             "5.17 Admin (0x010C) ..... 63\n"
             "5.18 Snapshot (0x0) ..... 64\n"
         )
-        partial = "Command Preview 0x0001 0x0002 0x0108"
+        partial = "Command Preview 0x0001 0x0002 0x0108 0x0109"
+        enum_page = (
+            "Data Type 0x01 0x02 0x03 0x04 0x05 0x06 0x07 0x08 "
+            "0x09 0x0A 0x0B 0x0C 0x0D 0x0F"
+        )
         self.assertTrue(rag_pipeline.looks_like_command_catalog(catalog))
+        self.assertTrue(rag_pipeline.is_command_list_catalog(partial))
+        self.assertFalse(rag_pipeline.is_command_list_catalog(enum_page))
         self.assertGreater(
             rag_pipeline.technical_evidence_score(question, catalog),
-            rag_pipeline.technical_evidence_score(question, partial),
+            rag_pipeline.technical_evidence_score(question, enum_page),
         )
         prompt = rag_pipeline.build_context_prompt(
             question,
             [{"source": "protocol.pdf", "score": 1.0, "content": catalog}],
         )
         self.assertIn("목록 완결성", prompt)
+        self.assertIn("0x00으로", prompt)
+
+    def test_enforce_protocol_command_catalog_fills_missing_hex(self):
+        """생성 답에 hex·스냅샷이 없거나 추정하면 문서 TOC/Preview로 보강합니다."""
+        question = "v4.0 프로토콜 리스트업해줘"
+        documents = [
+            {
+                "source": "Communication protocol for Terminal v4.0_Re19.pdf",
+                "content": (
+                    "3 Command Preview Command Value Content "
+                    "인증 기록 가져오기 0x0016 "
+                    "출입그룹 Door 설정 전송 0x010A "
+                    "주장치 초기화 요청 0x010B "
+                    "주장치 관리자 계정 설정 요청 0x010C "
+                    "사용자 정보 전송 0x0100 "
+                    "단말기 정보 요청 0x0101 "
+                    "시간 동기화 0x0009 "
+                ),
+                "metadata": {},
+            },
+            {
+                "source": "Communication protocol for Terminal v4.0_Re19.pdf",
+                "content": (
+                    "5.18 스냅샷 (주장치 설정 정보) 요청 (0x0) "
+                    ".................................................. 64"
+                ),
+                "metadata": {"page": 4},
+            },
+        ]
+        weak = "프로토콜 명령이 여러 개 있습니다. 출입그룹만 있습니다."
+        enforced = rag_pipeline.enforce_protocol_command_catalog(
+            question, documents, weak
+        )
+        self.assertIn("0x010A", enforced)
+        self.assertIn("0x010B", enforced)
+        self.assertIn("0x010C", enforced)
+        self.assertIn("스냅샷", enforced)
+        self.assertIn("0x0", enforced)
+        self.assertNotRegex(enforced, r"(?i)varies or missing")
+
+        guessed = (
+            "출입그룹 0x010A 목록입니다. "
+            "Snapshot request not mentioned in the provided document. "
+            "스냅샷 hex는 추정이 불가능하며 [문서에 없음]."
+        )
+        enforced_guess = rag_pipeline.enforce_protocol_command_catalog(
+            question, documents, guessed
+        )
+        self.assertIn("스냅샷", enforced_guess)
+        self.assertNotRegex(enforced_guess, r"추정이 불가능")
+        self.assertNotRegex(enforced_guess, r"문서에 없음")
+        self.assertNotRegex(enforced_guess, r"(?i)not mentioned")
+        self.assertFalse(
+            rag_pipeline.answer_has_protocol_guess_phrases(enforced_guess)
+        )
+
+    def test_ensure_protocol_golden_hex_rows_fills_010c(self):
+        """extract가 0x010C를 빠뜨려도 문서 blob에 있으면 보강합니다."""
+        documents = [
+            {
+                "source": "Communication protocol for Terminal v4.0_Re19.pdf",
+                "content": (
+                    "출입그룹 Door 설정 전송 0x010A "
+                    "주장치 초기화 요청 0x010B "
+                    "주장치 관리자 계정 설정 요청 0x010C "
+                    "5.18 스냅샷 (주장치 설정 정보) 요청 (0x0)"
+                ),
+                "metadata": {},
+            }
+        ]
+        # catalog로 안 잡혀도 출입그룹 청크에서 Preview hex를 뽑는지 확인합니다.
+        rows = rag_pipeline.extract_protocol_command_rows(documents)
+        codes = {code.upper() for _, code in rows}
+        self.assertIn("0X010A", codes)
+        self.assertIn("0X010C", codes)
+        ensured = rag_pipeline.ensure_protocol_golden_hex_rows(documents, rows[:1])
+        ensured_codes = {code.upper() for _, code in ensured}
+        self.assertIn("0X010B", ensured_codes)
+        self.assertIn("0X010C", ensured_codes)
+        self.assertTrue(any("스냅샷" in name for name, _ in ensured))
 
     def test_list_intent_expands_same_source_catalog_chunks(self):
         """목록 의도에서 소스당 상한을 넘기지 않는 범위로 카탈로그 청크를 보충합니다."""
@@ -1825,6 +1914,142 @@ class StreamingOptionsTests(unittest.TestCase):
             [{"source": "swagger_kr.md", "content": "FaceWTInfo", "score": 1.0}],
         )
         self.assertIn("글자 사이 공백", prompt)
+
+
+class TerminalMonitorAndAddIntentTests(unittest.TestCase):
+    """단말기 연결상태(모니터링)·단말기 추가(단말기 관리) 의도 회귀."""
+
+    QUESTION = (
+        "alpeta 단말기 연결 상태는 어떻게 확인해? 그리고 단말기 어떻게 추가해?"
+    )
+
+    def test_intent_detects_monitor_add_and_excludes_user_paths(self):
+        """신규 질문은 monitor/add 의도이고 3경로·tum과 겹치지 않습니다."""
+        self.assertTrue(rag_pipeline.is_terminal_monitor_and_add_intent(self.QUESTION))
+        self.assertFalse(rag_pipeline.is_user_terminal_procedure_intent(self.QUESTION))
+        self.assertFalse(rag_pipeline.is_terminal_user_management_intent(self.QUESTION))
+        sync_q = "alpeta에서 사용자를 단말기에 어떻게 추가해? 그리고 자동동기화는 어떻게 해?"
+        self.assertFalse(rag_pipeline.is_terminal_monitor_and_add_intent(sync_q))
+        tum_q = "alpeta 단말기 사용자 관리 메뉴 사용법 알려줘"
+        self.assertFalse(rag_pipeline.is_terminal_monitor_and_add_intent(tum_q))
+
+    def test_scope_and_expansion_prefer_user_guide_menus(self):
+        """검색 범위는 user_guide이고 확장에 모니터링·단말기 관리가 포함됩니다."""
+        scope = rag_pipeline.detect_retrieval_scope(self.QUESTION)
+        self.assertEqual(scope.get("document_type"), "user_guide")
+        expanded = rag_pipeline.expand_retrieval_query(self.QUESTION, self.QUESTION)
+        self.assertIn("모니터링", expanded)
+        self.assertIn("단말기 관리", expanded)
+        self.assertNotIn("출입그룹 단말기 리스트", expanded)
+        self.assertNotIn("단말기 찾기", expanded)
+
+    def test_evidence_prefers_monitor_and_mgmt_over_wrong_paths(self):
+        """모니터링·단말기 관리 청크가 찾기/0x0A/출입그룹보다 가점이 높습니다."""
+        good_mon = (
+            "모니터링 단말기의 실시간 상태와 인증 기록, 이벤트 기록을 확인할 수 있습니다. "
+            "상태: 단말기가 서버와 연결된 상태 / 연결이 끊어진 상태."
+        )
+        good_add = (
+            "단말기 관리 단말기를 조회, 추가, 수정, 삭제할 수 있는 메뉴입니다. "
+            "추가: 단말기 등록 창. 아이디, 이름, 설명."
+        )
+        bad_find = "단말기 찾기 UDP 통신을 통하여 망내 존재하는 단말기를 찾는 기능입니다."
+        bad_proto = "Protocol 상태 알림 0x0A Terminal status notification"
+        bad_group = "출입그룹 단말기 리스트 등록된 단말기 추가가능한 단말기"
+        bad_fw = "펌웨어 파일 등록 버전 설명 단말기 종류"
+        self.assertGreater(
+            rag_pipeline.terminal_monitor_and_add_evidence_score(self.QUESTION, good_mon),
+            rag_pipeline.terminal_monitor_and_add_evidence_score(self.QUESTION, bad_find),
+        )
+        self.assertGreater(
+            rag_pipeline.terminal_monitor_and_add_evidence_score(self.QUESTION, good_add),
+            rag_pipeline.terminal_monitor_and_add_evidence_score(self.QUESTION, bad_proto),
+        )
+        self.assertGreater(
+            rag_pipeline.terminal_monitor_and_add_evidence_score(self.QUESTION, good_add),
+            rag_pipeline.terminal_monitor_and_add_evidence_score(self.QUESTION, bad_group),
+        )
+        self.assertGreater(
+            rag_pipeline.terminal_monitor_and_add_evidence_score(self.QUESTION, good_add),
+            rag_pipeline.terminal_monitor_and_add_evidence_score(self.QUESTION, bad_fw),
+        )
+
+    def test_prompt_and_enforce_require_menus_forbid_wrong_paths(self):
+        """프롬프트에 모니터링·단말기 관리 지침이 있고 enforce가 메뉴명을 보강합니다."""
+        docs = [
+            {
+                "source": "Alpeta User Guide.pdf",
+                "content": (
+                    "모니터링 단말기 상태 접속 상태. "
+                    "단말기 관리 추가 아이디 이름 설명."
+                ),
+                "score": 1.0,
+                "metadata": {"document_type": "user_guide"},
+            }
+        ]
+        prompt = rag_pipeline.build_context_prompt(self.QUESTION, docs)
+        self.assertIn("모니터링", prompt)
+        self.assertIn("단말기 관리", prompt)
+        self.assertIn("단말기 찾기", prompt)  # 금지 지침에 언급
+        self.assertIn("0x0A", prompt)
+        thin = "단말기를 확인하세요."
+        enforced = rag_pipeline.enforce_terminal_monitor_and_add(
+            self.QUESTION, docs, thin
+        )
+        self.assertIn("모니터링", enforced)
+        self.assertIn("단말기 관리", enforced)
+
+    def test_context_completes_monitor_and_add_facets(self):
+        """모니터링만 선택되면 단말기 관리 추가 청크를 같은 가이드에서 보충합니다."""
+        selected = [
+            {
+                "source": "Alpeta User Guide.pdf",
+                "content": (
+                    "모니터링 단말기 상태, 인증 로그, 이벤트 로그. "
+                    "상태: 서버와 연결된 상태 / 연결이 끊어진 상태."
+                ),
+                "score": 1.0,
+                "metadata": {
+                    "source": "Alpeta User Guide.pdf",
+                    "document_type": "user_guide",
+                },
+            }
+        ]
+        records = [
+            {
+                "document": (
+                    "단말기 관리 단말기를 조회, 추가, 수정, 삭제. "
+                    "추가: 등록 창. 아이디 1~99999999 이름 설명."
+                ),
+                "metadata": {
+                    "source": "Alpeta User Guide.pdf",
+                    "document_type": "user_guide",
+                },
+            },
+            {
+                "document": "단말기 찾기 UDP 검색 0x0A",
+                "metadata": {
+                    "source": "Alpeta User Guide.pdf",
+                    "document_type": "user_guide",
+                },
+            },
+            {
+                "document": "펌웨어 파일 등록 버전 설명 단말기 종류",
+                "metadata": {
+                    "source": "Alpeta User Guide.pdf",
+                    "document_type": "user_guide",
+                },
+            },
+        ]
+        completed = rag_pipeline.complete_terminal_monitor_add_context(
+            selected, records, self.QUESTION, top_k=4, scope={"document_type": "user_guide"}
+        )
+        joined = "\n".join(d.get("content", "") for d in completed)
+        self.assertIn("모니터링", joined)
+        self.assertIn("단말기 관리", joined)
+        self.assertIn("아이디", joined)
+        self.assertNotIn("단말기 찾기", joined)
+        self.assertNotIn("펌웨어", joined)
 
 
 if __name__ == "__main__":

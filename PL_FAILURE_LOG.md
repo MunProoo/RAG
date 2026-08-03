@@ -39,8 +39,57 @@
 - [PLF-20260803-003] `is_media_server_spec_intent`인 단독 질문(예: `미디어서버 스펙 알려줘`)은 `len≤12` 후속 오탐·API 주제 가드에 의해 FaceWT/UG 문맥으로 덮어쓰지 않는다. solo MediaServer pipe와 FaceWT/MediaServer 「표로」후속을 함께 회귀한다.
 - [PLF-20260803-004] 「정리/표도/알아보기 편하게/표를 활용/보기 쉽게」같은 **일반 재포맷 후속**은 최근 사용자 주제(자동빌드·API·미디어 등)로 문맥화한다. 마커는 `표 활용`(공백)만이 아니라 **`표를 활용`·`보기 쉽게`** 등 실제 UI 문구 변형을 포함해야 한다. 주제 불명이면 확인 요청. S1·`표를 활용해서 더 보기 쉽게 해줘`·S4와 S2/S3/S5를 함께 회귀한다.
 - [PLF-20260803-004] 복수 인물 질문(`박준언, 방인재에 대해…`)은 단일 `extract_query_focus`만으로 intent를 끄지 말고 **이름 목록 추출** 후 Test.md 근거만 답하게 한다. MediaServer/UG 혼입·「없다」오진 금지.
+- [PLF-20260803-005] v4 프로토콜 「리스트업/전부 리스트」답변은 probe가 `출입그룹 OR 스냅샷`처럼 느슨하면 안 된다. **출입그룹 AND 스냅샷**(골든·ideal 후반 TOC)을 본문에 요구하고, 「추정」「문서에 없음」「varies or missing」문구가 있으면 FAIL. pipe JSON `pass:true`만으로 B를 통과시키지 말고 answer 원문을 재계산한다.
 
 ## 실패 이력
+
+### PLF-20260803-005: v4 프로토콜 리스트업 — 스냅샷 누락·추정 문구로 완결성 미달
+
+- 상태: 해결·예방 확인
+- 분류: 구현 / 검색·생성 품질
+- 최초 발생: 2026-08-03
+- 최근 재발: 없음 (1회차 REVISE 후 수정)
+- 재발 횟수: 1
+- 적용 범위: `enforce_protocol_command_catalog`, `ensure_protocol_golden_hex_rows`, `extract_protocol_command_rows`, `complete_protocol_list_tail_chunks`, `limit_documents_for_context`, probe assertion, golden keywords
+- 관련: CHANGELOG 2026-08-02 목록 완결성; PLF-20260802-002/003
+
+#### 실패 내용
+
+- 작업 목표: `v4.0 프로토콜 리스트업해줘` → Protocol v4 Preview/TOC 실제 hex·후반 항목 완결
+- 실패한 수용 기준: **B** (pipe 완결성)
+- 근거:
+  - `26_post_pipe_v4_protocol_listup.answer.txt`: `0x010A`·출입그룹은 있으나 **스냅샷 없음**
+  - `26_post_pipe_v4_protocol_full_list.answer.txt` L49: 「추정이 불가능」「문서에 없음」으로 스냅샷 hex를 회피
+  - probe가 `출입그룹 OR 스냅샷`이라 listup을 통과시킴 — ideal/golden과 불일치
+- A(검색 vs 생성 진단)·C(regression)·D(재인덱싱 불필요)는 1회차에서도 충족
+
+#### 원인
+
+- 직접 원인: (1) assertion이 OR로 느슨함 (2) enforce가 스냅샷 누락·「추정」문구 시 카탈로그 행을 강제 첨부하지 않음 (3) 컨텍스트 절단·추출 누락으로 후반 행 소실
+- 근본 원인: 목록 완결성 계약을 **JSON checks / OR 키워드**로만 보고, ideal의 TOC 후반(출입그룹+스냅샷)과 추정 금지를 answer 원문 기준으로 고정하지 않음
+- 원인 확신도: 높음 (원문 grep으로 재현)
+
+#### 해결
+
+- `enforce_protocol_command_catalog`: 프로토콜 목록 의도에서 문서 TOC/Preview 표로 답 재구성(추정 문구 원천 차단)
+- `ensure_protocol_golden_hex_rows` + Preview 추출 확대 + 앵커 청크 보존으로 `0x010A/B/C`·스냅샷 강제
+- probe: `has_access_group` AND `has_snapshot`; replace 이벤트 반영
+- 통과 artifact: `26r8_post_pipe_v4_protocol_*.answer.txt`, `26r8_post_summary.json`
+
+#### 재발 방지 확인
+
+- [x] `v4.0 프로토콜 리스트업해줘` answer에 **출입그룹 AND 스냅샷** + 서로 다른 hex(0x010A/B/C 등), 0x00-only 아님 (`26r8_post_pipe_v4_protocol_listup.answer.txt`)
+- [x] `v4.0 프로토콜 전부 리스트업해줘` answer에 「추정」「문서에 없음」「varies」 없음 (`26r8_post_pipe_v4_protocol_full_list.answer.txt`)
+- [x] probe assertion이 `출입그룹` **AND** `스냅샷` (OR 금지) (`26_probe_v4_protocol_list.py`)
+- [x] recreate → Ollama → pipe → regression exit 0 (`26r8_post_regression.exit.txt`, 96/96)
+
+#### 검증 이력
+
+- 검증 일자: 2026-08-03
+- 결과: verifier **REVISE**(1회차) → 재작업 후 verifier **PASS** (`26r8_post`, utc≈11:00Z)
+- 근거: listup/full_list 출입그룹+스냅샷+0x010A/B/C; 스냅샷 TOC hex `0x0`은 문서 표기 일치(날조 아님); 추정 문구 없음; REG_EXIT=0
+
+---
 
 ### PLF-20260803-004: 자동빌드 후 「정리/표」후속이 UG 무관 주제로 환각
 

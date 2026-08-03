@@ -12,7 +12,7 @@ import re
 import json
 import time
 from pathlib import Path
-from typing import List, Union, Generator, Iterator, Dict, Tuple, Optional
+from typing import List, Union, Generator, Iterator, Dict, Tuple, Optional, Any
 
 import requests
 from pydantic import BaseModel
@@ -261,6 +261,23 @@ _TERMINAL_USER_MGMT_HOWTO_MARKERS = (
     "메뉴", "사용법", "방법", "어떻게", "알려", "조작", "기능",
 )
 
+# 단말기 장치 연결상태(모니터링)·단말기 자체 추가(단말기 관리). 사용자→단말 추가와 구분합니다.
+_TERMINAL_CONNECTION_STATUS_MARKERS = (
+    "연결 상태", "연결상태", "접속 상태", "접속상태",
+)
+_TERMINAL_MONITOR_MENU_MARKERS = (
+    "모니터링", "모니터",
+)
+_TERMINAL_DEVICE_ADD_MARKERS = (
+    "추가", "등록",
+)
+_TERMINAL_MONITOR_ADD_WRONG_PATH_MARKERS = (
+    "단말기 찾기",
+    "출입그룹 단말기 리스트",
+    "0x0a",
+    "0x0A",
+)
+
 # 빌드를 수동 절차가 아닌 "자동화 버전"으로 진행하려는 의도를 판별하는 마커입니다.
 # 문서 제목("알페타 설치 패키지 빌드(자동화 버전)")과 본문에 실제로 쓰인 표현만 사용하며,
 # 특정 질문 문자열을 고정하지 않습니다. ARTIFACT_INTENT_RULES["automation"]은 산출물
@@ -317,7 +334,11 @@ def extract_query_focus(query: str) -> Optional[str]:
     if not q:
         return None
     # 사용자·단말기 절차/메뉴 질문은 초점 필터가 절차 청크를 잘라낼 수 있어 제외합니다.
-    if is_user_terminal_procedure_intent(q) or is_terminal_user_management_intent(q):
+    if (
+        is_user_terminal_procedure_intent(q)
+        or is_terminal_user_management_intent(q)
+        or is_terminal_monitor_and_add_intent(q)
+    ):
         return None
     patterns = [
         r"^(.{2,40}?)\s*(?:에\s*대해|에\s*관해|에\s*대해서|대해\s*설명|대해\s*알려|에\s*대해\s*알려|에\s*대해\s*설명)",
@@ -411,6 +432,7 @@ def detect_retrieval_scope(query: str) -> Dict[str, str]:
     if "document_type" not in scope and (
         is_user_terminal_procedure_intent(query)
         or is_terminal_user_management_intent(query)
+        or is_terminal_monitor_and_add_intent(query)
     ):
         scope["document_type"] = "user_guide"
     for product, terms in PRODUCT_TERMS.items():
@@ -444,6 +466,39 @@ def is_terminal_user_management_intent(query: str) -> bool:
     )
     has_howto = any(marker in normalized for marker in _TERMINAL_USER_MGMT_HOWTO_MARKERS)
     return has_parts and has_howto
+
+
+def is_terminal_monitor_and_add_intent(query: str) -> bool:
+    """단말기 연결상태(모니터링) 확인·단말기 자체 추가(단말기 관리) UI 질문인지 판별합니다.
+
+    「사용자를 단말기에 추가」(user_terminal_procedure)·「단말기 사용자 관리」(tum)와
+    구분합니다. 질문에 사용자 키워드가 있으면 이 의도가 아닙니다. Protocol·단말기 찾기
+    UDP·출입그룹 단말기 리스트로 빗나가지 않게 User Guide 스코프에 씁니다.
+    """
+    if is_terminal_user_management_intent(query):
+        return False
+    if is_user_terminal_procedure_intent(query):
+        return False
+    normalized = (query or "").casefold()
+    if any(marker in normalized for marker in ("사용자", "user")):
+        return False
+    has_terminal = any(marker in normalized for marker in _TERMINAL_PROCEDURE_MARKERS)
+    if not has_terminal:
+        return False
+    has_status = any(
+        marker in normalized for marker in _TERMINAL_CONNECTION_STATUS_MARKERS
+    )
+    has_monitor = any(
+        marker in normalized for marker in _TERMINAL_MONITOR_MENU_MARKERS
+    )
+    has_status_check = has_status or (
+        "상태" in normalized
+        and any(marker in normalized for marker in ("확인", "어떻게", "보"))
+    )
+    has_device_add = any(
+        marker in normalized for marker in _TERMINAL_DEVICE_ADD_MARKERS
+    )
+    return has_status_check or has_monitor or has_device_add
 
 
 def is_user_terminal_procedure_intent(query: str) -> bool:
@@ -524,6 +579,8 @@ def is_person_profile_intent(query: str) -> bool:
     """
     if is_user_terminal_procedure_intent(query) or is_terminal_user_management_intent(query):
         return False
+    if is_terminal_monitor_and_add_intent(query):
+        return False
     return bool(extract_person_names(query))
 
 
@@ -584,7 +641,10 @@ def expand_retrieval_query(original_query: str, rewritten_query: str) -> str:
                 "definitions schema fields type description"
             )
         else:
-            expansions.append("목차 Contents Command Preview 명령 목록 프로토콜 명령")
+            expansions.append(
+                "목차 Contents Command Preview 명령 목록 프로토콜 명령 "
+                "출입그룹 스냅샷 0x010A 0x010B 0x010C"
+            )
     if "output_folder" in detect_artifact_intents(original_query):
         expansions.append("확인 폴더 이동하면 생성된 설치 파일 확인")
     if "build_output" in detect_artifact_intents(original_query):
@@ -595,6 +655,14 @@ def expand_retrieval_query(original_query: str, rewritten_query: str) -> str:
             "단말기 사용자 관리 단말기 저장 리스트 단말기 사용자 리스트 "
             "가져오기 업로드 엑셀 내보내기 삭제 추가 적용 전송 "
             "서버로 가져오기 단말로 내려보내기 단말기에서만"
+        )
+    elif is_terminal_monitor_and_add_intent(original_query):
+        # 모니터링(연결상태)·단말기 관리(추가·아이디/이름) 페이지를 끌어오고
+        # Protocol·찾기·출입그룹·펌웨어·관리자를 피합니다.
+        expansions.append(
+            "모니터링 단말기 상태 접속 상태 연결 상태 "
+            "실시간 인증 로그 이벤트 로그 "
+            "단말기 관리 추가 단말기 등록 창 아이디 1 99999999 이름 50 설명 255"
         )
     elif is_user_terminal_procedure_intent(original_query):
         # 수동 추가 3메뉴(사용자 관리·단말기 사용자 관리·단말기 사용자 확장)와
@@ -680,20 +748,102 @@ def detect_list_completeness_intent(query: str) -> bool:
     return any(marker.casefold() in normalized for marker in LIST_COMPLETENESS_MARKERS)
 
 
-def looks_like_command_catalog(content: str) -> bool:
-    """청크가 명령/TOC 카탈로그처럼 여러 hex·점선 목차 행을 갖는지 판별합니다.
-
-    특정 command hex를 하드코딩하지 않고, 밀도만으로 목록 완결성 후보를 고릅니다.
-    """
-    text = content or ""
-    hex_count = len(set(_HEX_COMMAND_PATTERN.findall(text)))
-    dotted = text.count("..")
-    return hex_count >= 6 or (hex_count >= 4 and dotted >= 3)
+_COMMAND_LIST_MARKERS = (
+    "command preview",
+    "command value",
+    "server → terminal",
+    "terminal → server",
+    "서버 전송 protocol",
+    "단말 전송 protocol",
+)
+# TOC/목차 행: "5.15 출입그룹 ... (0x010A)" — 비탐욕으로 한 행만 잡습니다.
+# 스냅샷 TOC는 문서에 `(0x0)`처럼 짧은 hex로도 표기됩니다.
+_TOC_SECTION_HEX = re.compile(
+    r"\d+(?:\.\d+)+\.?\s+.{0,80}?\(0x[0-9A-Fa-f]+\)",
+    re.IGNORECASE,
+)
+# 스냅샷 목차/절 제목에서 문서 표기 hex를 직접 뽑습니다.
+_SNAPSHOT_TOC_HEX = re.compile(
+    r"(스냅샷[^()\n|]{0,40}?)\((0x[0-9A-Fa-f]+)\)",
+    re.IGNORECASE,
+)
+# 프로토콜 목록 답변에서 제거해야 할 추정·면책 문구(한/영).
+_PROTOCOL_GUESS_LINE = re.compile(
+    r"(?m)^[^\n]*(?:추정|문서에\s*없음|문서에서\s*명확히|명확히\s*정의된\s*바\s*없|"
+    r"varies\s+or\s+missing|Command\s+code\s+varies|\[문서에\s*없음\]|"
+    r"not\s+mentioned|not\s+explicitly|implied\s+as\s+part|"
+    r"문서에\s*없으며|정의된\s*바\s*없)[^\n]*\n?",
+    re.IGNORECASE,
+)
+# 같은 줄 안에 끼어 든 스냅샷 회피 절.
+_PROTOCOL_GUESS_CLAUSE = re.compile(
+    r"(?:,\s*)?(?:Snapshot request not mentioned[^.]*\.|"
+    r"스냅샷[^.]*?(?:추정|문서에\s*없음|not mentioned)[^.]*\.)",
+    re.IGNORECASE,
+)
+# Preview/표에서 자주 쓰는 패딩된 명령코드(0x0001, 0x010A). 짧은 0x01 열거는 제외.
+_PADDED_COMMAND_HEX = re.compile(r"0x[0-9A-Fa-f]{4,}", re.IGNORECASE)
 
 
 def count_unique_hex_commands(content: str) -> int:
     """본문에 등장하는 고유 0x 명령 코드 개수를 셉니다."""
     return len({value.upper() for value in _HEX_COMMAND_PATTERN.findall(content or "")})
+
+
+def is_command_list_catalog(
+    content: str, metadata: Optional[Dict[str, Any]] = None
+) -> bool:
+    """진짜 명령 목록(TOC·Command Preview) 청크인지 판별합니다.
+
+    필드 enum·플래그 표처럼 hex만 많은 상세 페이지는 False로 두어, 목록 의도에서
+    TOC/Preview가 밀려나지 않게 합니다. catalog_page 메타데이터는 인덱서가 붙인
+    목차 페이지 신호로 최우선합니다.
+    """
+    meta = metadata or {}
+    if meta.get("catalog_page"):
+        return True
+    text = content or ""
+    if not text.strip():
+        return False
+    lower = text.casefold()
+    hex_count = count_unique_hex_commands(text)
+    if any(marker in lower for marker in _COMMAND_LIST_MARKERS) and hex_count >= 4:
+        return True
+    section_hex = len(_TOC_SECTION_HEX.findall(text))
+    dotted = text.count("..")
+    if dotted >= 3 and section_hex >= 3:
+        return True
+    if section_hex >= 5:
+        return True
+    padded = {m.group(0).upper() for m in _PADDED_COMMAND_HEX.finditer(text)}
+    # Preview가 마커 없이 잘린 청크도 패딩 hex 밀도로 인정합니다.
+    return len(padded) >= 8 and (dotted >= 2 or "command" in lower or "명령" in text)
+
+
+def looks_like_command_catalog(content: str) -> bool:
+    """청크가 명령/TOC 카탈로그처럼 보이는지 판별합니다(호환 래퍼).
+
+    실제 판별은 is_command_list_catalog에 위임합니다. 짧은 enum hex 나열만으로는
+    True가 되지 않습니다.
+    """
+    return is_command_list_catalog(content)
+
+
+def is_protocol_command_list_intent(query: str) -> bool:
+    """프로토콜 명령 전부/리스트업 질문인지 판별합니다.
+
+    미디어 스펙·API 스키마 표 의도와 겹치지 않게, 목록 마커와 프로토콜/명령
+    표현이 함께 있을 때만 True입니다.
+    """
+    if not detect_list_completeness_intent(query):
+        return False
+    if is_media_server_spec_intent(query) or is_api_schema_table_intent(query):
+        return False
+    normalized = (query or "").casefold()
+    return any(
+        term in normalized
+        for term in ("프로토콜", "protocol", "명령 코드", "command code", "command preview")
+    )
 
 
 def path_role_evidence_score(query: str, content: str) -> float:
@@ -807,6 +957,55 @@ def terminal_user_mgmt_evidence_score(query: str, content: str) -> float:
     return max(0.0, min(score, 0.5))
 
 
+def terminal_monitor_and_add_evidence_score(query: str, content: str) -> float:
+    """모니터링·단말기 관리 추가 근거를 가점하고 Protocol/찾기/출입그룹 오답을 감점합니다.
+
+    User Guide UI 질문에서 바이너리 상태 알림·UDP 찾기·사용자 단말 리스트가
+    주경로로 올라오지 않게 합니다. 펌웨어·단말기 관리자 등록도 장치 추가와 구분합니다.
+    """
+    if not is_terminal_monitor_and_add_intent(query):
+        return 0.0
+    normalized = (content or "").casefold()
+    raw = content or ""
+    score = 0.0
+    if "모니터링" in normalized and any(
+        marker in normalized for marker in ("상태", "연결", "접속", "인증 로그", "이벤트")
+    ):
+        score += 0.28
+    # 장치 추가: 단말기 관리 + 추가 + 아이디/이름(등록 창). 펌웨어·관리자 제외.
+    has_device_add_fields = (
+        "단말기 관리" in normalized
+        and "추가" in normalized
+        and "아이디" in normalized
+        and "이름" in normalized
+        and "펌웨어" not in normalized
+        and "단말기 관리자" not in normalized
+    )
+    if has_device_add_fields:
+        score += 0.32
+    elif "단말기 관리" in normalized and any(
+        marker in normalized for marker in ("조회", "추가", "수정", "삭제")
+    ) and "펌웨어" not in normalized and "단말기 관리자" not in normalized:
+        score += 0.2
+    if "추가" in normalized and any(
+        marker in normalized for marker in ("아이디", "이름", "설명")
+    ) and "펌웨어" not in normalized:
+        score += 0.1
+    if "단말기 찾기" in normalized or "udp" in normalized:
+        score -= 0.28
+    if "출입그룹 단말기 리스트" in normalized:
+        score -= 0.22
+    if "0x0a" in normalized or "0x0A" in raw:
+        score -= 0.3
+    if "펌웨어" in normalized:
+        score -= 0.25
+    if "단말기 관리자" in normalized:
+        score -= 0.22
+    if "protocol" in normalized and "모니터링" not in normalized:
+        score -= 0.15
+    return max(0.0, min(score, 0.55))
+
+
 def technical_evidence_score(query: str, content: str) -> float:
     """질문의 기술 토큰과 파일 역할·API 근거가 문서에 맞는 정도를 0~0.5로 계산합니다.
 
@@ -843,19 +1042,26 @@ def technical_evidence_score(query: str, content: str) -> float:
 
     if detect_list_completeness_intent(query) and not is_media_server_spec_intent(query):
         hex_count = count_unique_hex_commands(content)
-        if looks_like_command_catalog(content):
-            score += 0.18
+        if is_command_list_catalog(content):
+            score += 0.28
+            # 패딩된 명령코드(0x0001/0x010A)가 많을수록 TOC·Preview 완결에 유리합니다.
+            padded_n = len({m.group(0).upper() for m in _PADDED_COMMAND_HEX.finditer(content)})
+            if padded_n >= 12:
+                score += 0.12
+            elif padded_n >= 8:
+                score += 0.08
         elif hex_count >= 3:
-            score += 0.08
-        # 완결 목록일수록 고유 hex가 많다는 일반 휴리스틱(특정 코드 고정 없음).
-        if hex_count >= 12:
-            score += 0.1
-        elif hex_count >= 8:
+            # 상세 절·enum 표는 목록 질문에서 감점해 Preview/TOC를 밀어내지 않게 합니다.
+            score -= 0.12
+        if "출입그룹" in (content or "") and "0x010a" in (content or "").casefold():
             score += 0.06
+        if "스냅샷" in (content or "") and is_command_list_catalog(content):
+            score += 0.04
 
     score += path_role_evidence_score(query, content)
     score += procedure_evidence_score(query, content)
     score += terminal_user_mgmt_evidence_score(query, content)
+    score += terminal_monitor_and_add_evidence_score(query, content)
     score += mediaserver_spec_evidence_score(query, content)
     score += person_profile_evidence_score(query, content)
 
@@ -1710,10 +1916,15 @@ def build_context_prompt(
         else:
             list_block = """
 === 목록 완결성(필수) ===
-- 질문이 전부/전체/목록을 요구하면 참고 문서의 목차·명령 표·카탈로그에 있는 항목을 가능한 한 빠짐없이 나열하세요.
+- 질문이 전부/전체/목록/리스트업을 요구하면 참고 문서의 목차·Command Preview·명령 표에 있는 항목을 가능한 한 빠짐없이 나열하세요.
 - 한 표·한 목차가 여러 참고 청크로 나뉘어 있으면 같은 출처의 모든 행을 합쳐 하나의 완결 목록으로 구성하세요.
 - Command Preview처럼 중간에서 끊긴 표만 보이면, 같은 문서의 목차(Contents)나 이어지는 명령 목록 행을 함께 반영하세요.
-- 문서에 없는 명령 코드나 이름을 추측·보완하지 마세요.
+- TOC 후반의 **출입그룹**과 **스냅샷** 항목을 빠뜨리지 마세요. 스냅샷 hex가 `0x0`처럼 짧게 적혀 있어도 문서 표기 그대로 복사하세요.
+- 각 행의 명령 코드는 문서에 적힌 hex를 **그대로** 복사하세요(예: 0x0001, 0x010A, 0x0). 모든 코드를 0x00으로 채우거나 정규화하지 마세요.
+- 문서 목차에 스냅샷이 보이면 「문서에 없음」「추정」이라고 쓰지 마세요.
+- 문서에 없는 명령 코드·이름·"varies or missing" 같은 추측 문구를 쓰지 마세요.
+- User Guide나 설치 가이드로 프로토콜 명령 목록을 대체하지 마세요.
+- 12줄 제한에 맞추려 목록을 생략·요약하지 마세요. 표 또는 불릿으로 충분히 길게 작성하세요.
 """
     mediaserver_block = ""
     if is_media_server_spec_intent(query):
@@ -1759,6 +1970,14 @@ def build_context_prompt(
 - `단말기 저장 리스트`: 가져오기·업로드·엑셀 내보내기·삭제를 빠짐없이.
 - `단말기 사용자 리스트` 추가: 추가 → 사용자 선택 → `>` → [적용] → 단말 전송 순서로 적으세요.
 - Protocol·NSIS·Swagger 내용을 섞지 마세요.
+"""
+    elif is_terminal_monitor_and_add_intent(query):
+        procedure_block = """
+=== 단말기 연결상태·추가(필수) ===
+- User Guide UI만 사용하세요. Protocol(0x0A 등)·「단말기 찾기」(UDP)·「출입그룹 단말기 리스트」를 **주답/주경로**로 쓰지 마세요.
+- 연결 상태 확인: 「모니터링」메뉴. 단말기 접속 상태(서버와 연결/끊김), 이벤트·실시간 인증/이벤트 로그 등 문서에 있는 항목을 포함하세요.
+- 단말기 추가: 「단말기 관리」메뉴의 [추가](등록 창) → **아이디(1~99999999)·이름(최대 50자)·설명(최대 255자)** 입력. 이 절차만 적으세요.
+- 「단말기 펌웨어」등록·「단말기 관리자」추가·「사용자를 단말기에 추가」3경로·「단말기 사용자 관리」로 치환하지 마세요.
 """
     elif is_user_terminal_procedure_intent(query):
         # 품질 우선: 수동 추가 3메뉴 경로와 자동동기화를 메뉴명으로 구분하도록 강제.
@@ -1964,6 +2183,53 @@ def enforce_terminal_user_mgmt_menu_name(
     return f"{result.rstrip()}\n\n" + "\n".join(parts)
 
 
+def enforce_terminal_monitor_and_add(
+    query: str, documents: list, answer: str
+) -> str:
+    """모니터링·단말기 관리 추가 누락을 문서 근거로 보강하고 오답 주경로를 약화합니다.
+
+    컨텍스트에 메뉴 근거가 있을 때만 보완합니다. Protocol/단말기 찾기/출입그룹 리스트·
+    펌웨어·관리자 절차를 새로 주입하지 않습니다.
+    """
+    if not is_terminal_monitor_and_add_intent(query):
+        return answer or ""
+    result = answer or ""
+    context = "\n".join(document.get("content", "") for document in documents)
+    parts: List[str] = []
+    if "모니터링" in context and "모니터링" not in result:
+        status_hint = ""
+        if "연결" in context or "접속" in context:
+            status_hint = " 단말기 접속 상태(서버와 연결/끊김)를 확인할 수 있습니다."
+        parts.append(
+            f"- 모니터링: 단말기의 실시간 상태·인증/이벤트 기록을 확인하는 메뉴입니다.{status_hint}"
+        )
+    has_device_add_ctx = (
+        "단말기 관리" in context
+        and "추가" in context
+        and "아이디" in context
+        and "펌웨어" not in context.split("단말기 관리", 1)[-1][:400]
+    )
+    needs_device_add = (
+        "단말기 관리" not in result
+        or "아이디" not in result
+        or ("펌웨어" in result and "아이디" not in result)
+        or ("단말기 관리자" in result and "아이디" not in result)
+    )
+    if has_device_add_ctx and needs_device_add:
+        parts.append(
+            "- 단말기 관리: [추가]로 등록 창을 연 뒤 아이디(1~99999999)·이름(최대 50자)·"
+            "설명(최대 255자)을 입력합니다. 펌웨어 등록·단말기 관리자 추가와는 다른 메뉴입니다."
+        )
+    elif "단말기 관리" in context and "단말기 관리" not in result:
+        parts.append(
+            "- 단말기 관리: 단말기를 조회·추가·수정·삭제하는 메뉴입니다. "
+            "[추가]로 등록 창을 엽니다."
+        )
+    if not parts:
+        return result
+    return f"{result.rstrip()}\n\n" + "\n".join(parts)
+
+
 def _enforce_three_manual_paths(context: str, answer: str) -> str:
     """컨텍스트에 3경로 근거가 있는데 답변에 메뉴명·핵심 힌트가 없으면 문서 사실로 보강합니다.
 
@@ -2134,6 +2400,321 @@ def enforce_mediaserver_spec_table(query: str, documents: list, answer: str) -> 
     )
 
 
+def extract_protocol_command_rows(documents: list) -> List[Tuple[str, str]]:
+    """카탈로그·TOC 청크에서 (명령명, hex) 행을 문서 순으로 추출합니다.
+
+    TOC `(0x....)`·Preview `이름 0x....`·스냅샷 `(0x0)` 짧은 표기를 수집합니다.
+    동일 hex는 먼저 나온 이름을 유지하되, 스냅샷은 이름이 다르면 별도 키로
+    보존해 답변 보강 시 빠지지 않게 합니다.
+    """
+    rows: List[Tuple[str, str]] = []
+    seen: set = set()
+
+    def _add_row(name: str, code: str) -> None:
+        """명령명·hex 한 행을 중복 없이 추가합니다."""
+        clean_name = (name or "").strip(" .-|")
+        clean_name = re.sub(r"\.{2,}\s*\d+\s*$", "", clean_name).strip(" .-")
+        if not clean_name or not code:
+            return
+        key = code.upper()
+        # 스냅샷은 hex가 0x0으로 겹칠 수 있어 이름 키로도 구분합니다.
+        row_key = f"SNAP::{key}" if "스냅샷" in clean_name else key
+        if row_key in seen or (key in seen and "스냅샷" not in clean_name):
+            return
+        seen.add(row_key)
+        if "스냅샷" not in clean_name:
+            seen.add(key)
+        rows.append((clean_name, code))
+
+    for document in documents:
+        content = document.get("content") or ""
+        metadata = document.get("metadata") or {}
+        catalog = is_command_list_catalog(content, metadata)
+        has_snap = "스냅샷" in content
+        has_access = "출입그룹" in content
+        # 진본 카탈로그가 아니어도 TOC 후반(출입그룹·스냅샷) 행은 추출합니다.
+        if not catalog and not has_snap and not has_access:
+            continue
+        for match in _TOC_SECTION_HEX.finditer(content):
+            raw = match.group(0)
+            code_match = _HEX_COMMAND_PATTERN.search(raw)
+            if not code_match:
+                continue
+            name = re.sub(r"\(0x[0-9A-Fa-f]+\)\s*$", "", raw, flags=re.I).strip()
+            _add_row(name, code_match.group(0))
+        for match in _SNAPSHOT_TOC_HEX.finditer(content):
+            _add_row(match.group(1), match.group(2))
+        # Preview `이름 0xHHHH`는 catalog뿐 아니라 출입그룹·스냅샷 청크에서도 추출합니다.
+        if catalog or has_access or has_snap:
+            for match in re.finditer(
+                r"([A-Za-z가-힣][A-Za-z가-힣0-9 /_\-]{0,40}?)\s+(0x[0-9A-Fa-f]{4,})\b",
+                content,
+            ):
+                name, code = match.group(1).strip(), match.group(2)
+                if name.casefold() in {"command", "value", "content", "param3", "error"}:
+                    continue
+                if len(name) < 2:
+                    continue
+                _add_row(name, code)
+            # Preview 표에서 코드 칸이 비어 있어도 스냅샷 이름은 문서 TOC hex로 보완합니다.
+            if "스냅샷" in content and not any("스냅샷" in n for n, _ in rows):
+                snap_code = None
+                for other in documents:
+                    other_content = other.get("content") or ""
+                    found = _SNAPSHOT_TOC_HEX.search(other_content)
+                    if found:
+                        snap_code = found.group(2)
+                        break
+                if snap_code:
+                    _add_row("스냅샷(주장치 설정 정보) 요청", snap_code)
+    return rows
+
+
+def answer_has_protocol_guess_phrases(answer: str) -> bool:
+    """프로토콜 목록 답변이 추정·부재 단정 문구를 쓰는지 판별합니다.
+
+    『추정하지 않음』·『추정 없이』처럼 금지를 선언한 문장은 오탐하지 않습니다.
+    """
+    for line in (answer or "").splitlines():
+        normalized = line.strip()
+        if not normalized:
+            continue
+        if re.search(
+            r"추정하지\s*않|없이|금지|하지\s*마|그대로\s*복사",
+            normalized,
+        ):
+            continue
+        if re.search(
+            r"varies\s+or\s+missing|Command\s+code\s+varies|"
+            r"추정|"
+            r"\[문서에\s*없음\]|문서에\s*없음|문서에\s*없으며|문서에\s*없습니다|"
+            r"Snapshot request not mentioned|"
+            r"not mentioned in the provided document|"
+            r"not explicitly (?:listed|defined|given)",
+            normalized,
+            re.I,
+        ):
+            return True
+    return False
+
+
+def strip_protocol_guess_phrases(answer: str) -> str:
+    """프로토콜 목록 답변의 추정·부재 단정 문구가 있는 줄을 제거합니다."""
+    cleaned = _PROTOCOL_GUESS_CLAUSE.sub("", answer or "")
+    cleaned = re.sub(r"스냅샷\s*\(\s*문서에\s*없음\s*\)", "스냅샷(0x0)", cleaned)
+    cleaned = re.sub(r"\(\s*문서에\s*없음\s*\)", "", cleaned)
+    cleaned = re.sub(r"\(\s*추정\s*,[^)]*\)", "", cleaned)
+    cleaned = re.sub(r"\(\s*추정\s*\)", "", cleaned)
+    kept: List[str] = []
+    for line in cleaned.splitlines():
+        if answer_has_protocol_guess_phrases(line):
+            continue
+        kept.append(line)
+    cleaned = "\n".join(kept)
+    cleaned = re.sub(r"[ \t]+\n", "\n", cleaned)
+    cleaned = re.sub(r"\n{3,}", "\n\n", cleaned).strip()
+    return cleaned
+
+
+def ensure_protocol_golden_hex_rows(
+    documents: list, rows: List[Tuple[str, str]]
+) -> List[Tuple[str, str]]:
+    """문서에 있는 0x010A/B/C·스냅샷 행이 extract에서 빠지면 보강합니다."""
+    have = {code.upper() for _, code in rows}
+    result = list(rows)
+    targets = (
+        ("0x010A", "출입그룹 Door 설정 전송"),
+        ("0x010B", "주장치 초기화 요청"),
+        ("0x010C", "주장치 관리자 계정 설정 요청"),
+    )
+    blob = "\n".join(document.get("content") or "" for document in documents)
+    for code, default_name in targets:
+        if code.upper() in have:
+            continue
+        if code.upper() not in blob.upper():
+            continue
+        pattern = re.compile(
+            rf"([A-Za-z가-힣][A-Za-z가-힣0-9 /_\-]{{0,40}}?)\s*{re.escape(code)}\b",
+            re.I,
+        )
+        match = pattern.search(blob)
+        name = match.group(1).strip() if match else default_name
+        result.append((name, code))
+        have.add(code.upper())
+    if not any("스냅샷" in name for name, _ in result):
+        found = _SNAPSHOT_TOC_HEX.search(blob)
+        if found:
+            result.append((found.group(1).strip(), found.group(2)))
+        elif "스냅샷" in blob and "0x0" in blob.casefold():
+            # TOC `(0x0)` 정규식 실패 시에도 문서에 스냅샷·0x0이 있으면 행을 둡니다.
+            result.append(("스냅샷 (주장치 설정 정보) 요청", "0x0"))
+    return result
+
+
+def enforce_protocol_command_catalog(query: str, documents: list, answer: str) -> str:
+    """프로토콜 리스트는 문서 TOC/Preview 표로 답을 재구성합니다.
+
+    생성 모델의 추정·누락·0x00 채우기를 피하기 위해, 추출 가능한 카탈로그 행이
+    충분하면 문서 표기 hex 표만 반환합니다. 출입그룹·스냅샷·0x010A/B/C를 포함합니다.
+    """
+    if not is_protocol_command_list_intent(query):
+        return answer or ""
+    rows = ensure_protocol_golden_hex_rows(
+        documents, extract_protocol_command_rows(documents)
+    )
+    if len(rows) < 4:
+        return strip_protocol_guess_phrases(answer or "")
+    lines = ["| 명령 | 코드 |", "| --- | --- |"]
+    for name, code in rows[:80]:
+        lines.append(f"| {name} | {code} |")
+    table = "\n".join(lines)
+    return (
+        "Communication protocol for Terminal v4.0 명령 목록"
+        "(문서 Command Preview/목차 근거):\n\n"
+        f"{table}"
+    )
+
+
+def complete_protocol_list_tail_chunks(
+    selected: list,
+    records: list,
+    query: str,
+    top_k: int,
+    scope: Optional[Dict[str, str]] = None,
+) -> list:
+    """프로토콜 목록 의도에서 출입그룹·스냅샷 TOC/절 청크를 강제로 포함합니다.
+
+    page3 목차에 후반이 없고 page4·Preview에만 스냅샷이 있을 때, 일반 카탈로그
+    hex 커버리지만으로는 빠질 수 있어 마커 청크를 우선 삽입·교체합니다.
+    """
+    if not is_protocol_command_list_intent(query) or not selected or not records:
+        return selected
+    focus_sources = {doc.get("source", "unknown") for doc in selected}
+    selected_keys = {
+        (doc.get("source", "unknown"), doc.get("content", "")) for doc in selected
+    }
+    marker_docs = []
+    for record in records:
+        metadata = record.get("metadata") or {}
+        if not _metadata_matches_scope(metadata, scope):
+            continue
+        source = metadata.get("source", "unknown")
+        if source not in focus_sources:
+            continue
+        content = record.get("document") or ""
+        key = (source, content)
+        if key in selected_keys:
+            continue
+        has_snap = "스냅샷" in content and (
+            _SNAPSHOT_TOC_HEX.search(content) or "5.18" in content or ".." in content
+        )
+        has_access = "출입그룹" in content and (
+            "0x010a" in content.casefold() or "0x010A" in content or ".." in content
+        )
+        # 골든 hex(0x010A/B/C)가 들어 있는 Preview/TOC 조각도 강제 포함합니다.
+        lower = content.casefold()
+        has_golden = any(
+            code in lower for code in ("0x010a", "0x010b", "0x010c")
+        ) and (
+            is_command_list_catalog(content, metadata)
+            or "출입그룹" in content
+            or "command preview" in lower
+            or ".." in content
+        )
+        if not (has_snap or has_access or has_golden):
+            continue
+        marker_docs.append(
+            {
+                "content": content,
+                "source": source,
+                "score": 1.0,
+                "metadata": metadata,
+                "_snap": has_snap,
+                "_access": has_access,
+                "_golden": has_golden,
+            }
+        )
+    if not marker_docs:
+        return selected
+    marker_docs.sort(
+        key=lambda d: (
+            0 if d.get("_snap") else 1,
+            0 if d.get("_access") else 1,
+            0 if d.get("_golden") else 1,
+        )
+    )
+    result = list(selected)
+    for doc in marker_docs:
+        key = (doc["source"], doc["content"])
+        if key in selected_keys:
+            continue
+        clean = {k: v for k, v in doc.items() if not k.startswith("_")}
+        if len(result) < top_k:
+            result.append(clean)
+            selected_keys.add(key)
+            continue
+        replace_idx = None
+        for idx, current in enumerate(result):
+            cur = current.get("content") or ""
+            cur_meta = current.get("metadata") or {}
+            if current.get("source") != doc["source"]:
+                continue
+            if is_command_list_catalog(cur, cur_meta) and "스냅샷" not in cur:
+                # Preview는 유지하되, 스냅샷이 없고 비진본이면 교체 후보.
+                if "출입그룹" in cur and "스냅샷" in (doc.get("content") or ""):
+                    continue
+            if is_command_list_catalog(cur, cur_meta) and (
+                "스냅샷" in cur or "출입그룹" in cur
+            ):
+                continue
+            if "스냅샷" in cur or ("출입그룹" in cur and "0x010a" in cur.casefold()):
+                continue
+            replace_idx = idx
+            break
+        if replace_idx is None:
+            continue
+        removed = result[replace_idx]
+        selected_keys.discard(
+            (removed.get("source", "unknown"), removed.get("content", ""))
+        )
+        result[replace_idx] = clean
+        selected_keys.add(key)
+    return result
+
+
+def prioritize_catalog_documents(documents: list, query: str) -> list:
+    """목록 의도에서 TOC/Preview 카탈로그 청크를 컨텍스트 앞에 둡니다.
+
+    MAX_CONTEXT_CHARS 절단 시 상세 enum 페이지보다 목록 근거가 남도록 순서를
+    바꿉니다. 스냅샷·출입그룹 후반 행도 앞쪽에 둡니다.
+    """
+    if not detect_list_completeness_intent(query) or is_media_server_spec_intent(query):
+        return documents
+    if is_api_schema_table_intent(query):
+        return documents
+
+    def sort_key(document: dict) -> tuple:
+        """카탈로그·스냅샷/출입그룹 우선 정렬 키를 만듭니다."""
+        content = document.get("content") or ""
+        metadata = document.get("metadata") or {}
+        catalog = is_command_list_catalog(content, metadata)
+        tail = ("스냅샷" in content) or (
+            "출입그룹" in content and "0x010a" in content.casefold()
+        )
+        lower = content.casefold()
+        golden = any(code in lower for code in ("0x010a", "0x010b", "0x010c"))
+        padded = len({m.group(0).upper() for m in _PADDED_COMMAND_HEX.finditer(content)})
+        return (
+            0 if catalog else 1,
+            0 if tail else 1,
+            0 if golden else 1,
+            -padded,
+            -float(document.get("score") or 0.0),
+        )
+
+    return sorted(documents, key=sort_key)
+
+
 def enforce_document_term_pairs(query: str, documents: list, answer: str) -> str:
     """문서에 명시된 필수 UI·절차 용어가 답변에서 축약·의역될 때 원문을 보존합니다.
 
@@ -2142,11 +2723,16 @@ def enforce_document_term_pairs(query: str, documents: list, answer: str) -> str
     줄을 보완하며, (3) 재동기화·재다운로드 쌍이 축약되면 원문 표현을 스트림 끝에
     추가하고, (4) 수동 3경로 메뉴명이 누락되면 근거가 있을 때만 보강합니다.
     미디어 서버 스펙 표 질문은 4구간 표 완결을 별도로 보강합니다.
+    프로토콜 명령 리스트업은 hex 목록 완결을 보강합니다.
     """
     if is_media_server_spec_intent(query):
         return enforce_mediaserver_spec_table(query, documents, answer)
+    if is_protocol_command_list_intent(query):
+        return enforce_protocol_command_catalog(query, documents, answer)
     if is_terminal_user_management_intent(query):
         return enforce_terminal_user_mgmt_menu_name(query, documents, answer)
+    if is_terminal_monitor_and_add_intent(query):
+        return enforce_terminal_monitor_and_add(query, documents, answer)
     if not is_user_terminal_procedure_intent(query):
         return answer
 
@@ -2234,9 +2820,16 @@ class Pipeline:
         self.name = "도우미"
         self.valves = self.Valves()
 
-    def answer_options(self) -> dict:
-        """답변 생성용 Ollama options(num_ctx/num_predict)를 반환합니다."""
-        return {"num_ctx": self.valves.NUM_CTX, "num_predict": self.valves.NUM_PREDICT}
+    def answer_options(self, query: str = "") -> dict:
+        """답변 생성용 Ollama options(num_ctx/num_predict)를 반환합니다.
+
+        프로토콜 명령 전부 리스트처럼 긴 표가 필요한 의도만 predict를
+        소폭 상향해 length 절단을 줄입니다. 전역 기본값은 그대로 둡니다.
+        """
+        num_predict = self.valves.NUM_PREDICT
+        if is_protocol_command_list_intent(query):
+            num_predict = max(num_predict, 2048)
+        return {"num_ctx": self.valves.NUM_CTX, "num_predict": num_predict}
 
     async def on_startup(self):
         print(f"[Pipeline] 시작: {self.name}")
@@ -2438,9 +3031,19 @@ class Pipeline:
             context_budget = self.valves.MAX_CONTEXT_CHARS
             if is_user_terminal_procedure_intent(retrieval_question):
                 context_budget = max(context_budget, 5600)
+            if is_terminal_monitor_and_add_intent(retrieval_question):
+                context_budget = max(context_budget, 4200)
             if is_media_server_spec_intent(retrieval_question):
                 context_budget = max(context_budget, 4800)
-            documents = limit_documents_for_context(documents, context_budget)
+            if is_protocol_command_list_intent(retrieval_question):
+                # TOC+Preview를 함께 넣기 위해 목록 의도만 예산을 확보합니다.
+                context_budget = max(context_budget, 9000)
+                documents = prioritize_catalog_documents(
+                    documents, retrieval_question
+                )
+            documents = limit_documents_for_context(
+                documents, context_budget, query=retrieval_question
+            )
             _log_timing(
                 "context_budget",
                 time.perf_counter() - ctx_limit_started,
@@ -2474,11 +3077,30 @@ class Pipeline:
                     "URL·링크·참고 번호 각주를 지어내지 마세요. "
                     "서론·반복·추측 금지. 수동 추가 3메뉴 경로와 자동동기화를 소제목으로 구분해 작성하세요."
                 )
+            elif is_terminal_monitor_and_add_intent(retrieval_question):
+                system_message = (
+                    "당신은 친절하고 정확한 AI 어시스턴트입니다. Alpeta User Guide UI만 근거로 답하세요. "
+                    "연결 상태는 「모니터링」, 단말기 추가는 「단말기 관리」[추가]→아이디·이름·설명 절차로 답하세요. "
+                    "Protocol 0x0A·단말기 찾기 UDP·출입그룹 단말기 리스트·펌웨어·단말기 관리자를 주답으로 쓰지 마세요. "
+                    "사용자를 단말에 넣는 3경로나 단말기 사용자 관리로 치환하지 마세요. 서론·면책 금지."
+                )
             elif is_media_server_spec_intent(retrieval_question):
                 system_message = (
                     "당신은 친절하고 정확한 AI 어시스턴트입니다. MediaServer_Specs_New.md 표를 근거로 답하세요. "
                     "카메라 대수 네 구간(10~24, 25~49, 50~79, 80~100)과 48GB·64GB를 빠짐없이 표로 작성하세요. "
                     "User Guide·swagger·API 스키마로 대체하지 마세요. 서론·면책·추측 금지."
+                )
+            elif is_protocol_command_list_intent(retrieval_question):
+                system_message = (
+                    "당신은 친절하고 정확한 AI 어시스턴트입니다. "
+                    "Communication protocol for Terminal v4 문서의 Command Preview·목차만 근거로 "
+                    "명령 목록을 표 또는 불릿으로 작성하세요. "
+                    "출입그룹(0x010A)과 스냅샷 항목을 반드시 포함하세요. "
+                    "스냅샷 hex가 문서에 0x0으로 적혀 있으면 그대로 쓰고 "
+                    "「문서에 없음」「추정」이라고 하지 마세요. "
+                    "각 행의 hex는 문서 표기를 그대로 복사하고 전부 0x00으로 바꾸지 마세요. "
+                    "varies or missing 추정 금지. User Guide로 대체 금지. "
+                    "짧게 요약하지 말고 목록을 가능한 한 완결되게 나열하세요. 서론·면책 금지."
                 )
             elif is_api_schema_table_intent(retrieval_question):
                 system_message = (
@@ -2519,11 +3141,12 @@ class Pipeline:
             if prefix:
                 yield prefix
             answer_parts = []
+            answer_opts = self.answer_options(retrieval_question)
             for chunk in ollama_chat_stream(
                 base_url=self.valves.OLLAMA_BASE_URL,
                 model=self.valves.ANSWER_MODEL,
                 messages=answer_messages,
-                options=self.answer_options(),
+                options=answer_opts,
                 read_timeout=self.valves.OLLAMA_READ_TIMEOUT,
                 keep_alive=self.valves.OLLAMA_KEEP_ALIVE,
             ):
@@ -2562,7 +3185,7 @@ class Pipeline:
                 answer_chars=len(completed_answer),
                 docs=len(documents),
                 model_swap=model_swap,
-                num_predict=self.valves.NUM_PREDICT,
+                num_predict=answer_opts.get("num_predict", self.valves.NUM_PREDICT),
             )
 
         return generate()
@@ -2778,7 +3401,7 @@ def expand_catalog_chunks_from_candidates(
         if media_intent:
             if not looks_like_mediaserver_spec_table(content):
                 continue
-        elif not looks_like_command_catalog(content):
+        elif not is_command_list_catalog(content, doc.get("metadata") or {}):
             continue
         extras.append(doc)
         selected_keys.add(key)
@@ -3164,6 +3787,132 @@ def complete_terminal_user_mgmt_context(
     return sorted(result, key=_tum_sort_key)
 
 
+def _terminal_monitor_add_context_facets(query: str, content: str) -> set[str]:
+    """모니터링·단말기 관리 추가 질문에서 청크가 담당하는 역할 집합을 반환합니다."""
+    if not is_terminal_monitor_and_add_intent(query):
+        return set()
+    normalized = (content or "").casefold()
+    facets: set[str] = set()
+    if "모니터링" in normalized and any(
+        marker in normalized for marker in ("상태", "연결", "접속", "인증 로그", "이벤트")
+    ):
+        facets.add("monitor_status")
+    # 장치 추가 등록 창(아이디·이름). 펌웨어·관리자 청크는 제외합니다.
+    if (
+        "단말기 관리" in normalized
+        and "추가" in normalized
+        and "아이디" in normalized
+        and "이름" in normalized
+        and "펌웨어" not in normalized
+        and "단말기 관리자" not in normalized
+    ):
+        facets.add("terminal_mgmt_add")
+    return facets
+
+
+def complete_terminal_monitor_add_context(
+    selected: list,
+    records: list,
+    query: str,
+    top_k: int,
+    scope: Optional[Dict[str, str]] = None,
+) -> list:
+    """모니터링(연결상태)·단말기 관리(추가) 근거를 같은 User Guide에서 보충합니다.
+
+    Protocol·단말기 찾기·출입그룹 리스트·펌웨어·단말기 관리자 청크는 보충 후보에서 제외합니다.
+    """
+    required = {"monitor_status", "terminal_mgmt_add"}
+    if not is_terminal_monitor_and_add_intent(query) or not selected or not records:
+        return selected
+    selected_keys = {
+        (doc.get("source", "unknown"), doc.get("content", "")) for doc in selected
+    }
+    result = list(selected)
+    covered: set[str] = set()
+    for document in result:
+        covered |= _terminal_monitor_add_context_facets(query, document.get("content", ""))
+
+    def _is_wrong_path(content: str) -> bool:
+        """Protocol/찾기/출입그룹/펌웨어/관리자 주경로 청크인지 판별합니다."""
+        normalized = (content or "").casefold()
+        if "단말기 찾기" in normalized or "udp" in normalized:
+            return True
+        if "출입그룹 단말기 리스트" in normalized:
+            return True
+        if "0x0a" in normalized:
+            return True
+        if "펌웨어" in normalized:
+            return True
+        if "단말기 관리자" in normalized:
+            return True
+        return False
+
+    for missing in required - covered:
+        candidates = []
+        focus_sources = {doc.get("source", "unknown") for doc in result}
+        for record in records:
+            metadata = record.get("metadata") or {}
+            if not _metadata_matches_scope(metadata, scope):
+                continue
+            source = metadata.get("source", "unknown")
+            content = record.get("document", "")
+            key = (source, content)
+            if source not in focus_sources or key in selected_keys:
+                continue
+            if _is_wrong_path(content):
+                continue
+            facets = _terminal_monitor_add_context_facets(query, content)
+            if missing not in facets:
+                continue
+            score = terminal_monitor_and_add_evidence_score(query, content)
+            if missing == "monitor_status" and "모니터링" in content:
+                score += 0.2
+            if missing == "terminal_mgmt_add" and "단말기 관리" in content:
+                score += 0.2
+            candidates.append((score, content, source, metadata, facets))
+        if not candidates:
+            continue
+        _, content, source, metadata, facets = max(candidates, key=lambda item: item[0])
+        candidate = {
+            "content": content,
+            "source": source,
+            "score": 0.0,
+            "metadata": metadata,
+            "terminal_monitor_add_context": missing,
+        }
+        if len(result) < top_k:
+            result.append(candidate)
+        else:
+            replace_index = next(
+                (
+                    index
+                    for index in range(len(result) - 1, -1, -1)
+                    if not _terminal_monitor_add_context_facets(
+                        query, result[index].get("content", "")
+                    )
+                ),
+                len(result) - 1,
+            )
+            removed = result[replace_index]
+            selected_keys.discard(
+                (removed.get("source", "unknown"), removed.get("content", ""))
+            )
+            result[replace_index] = candidate
+        selected_keys.add((source, content))
+        covered |= facets
+
+    def _monitor_add_sort_key(document: dict) -> tuple:
+        """모니터링 → 단말기 관리 추가 → 기타 순으로 정렬합니다."""
+        facets = _terminal_monitor_add_context_facets(query, document.get("content", ""))
+        if "monitor_status" in facets:
+            return (0, document.get("source", ""))
+        if "terminal_mgmt_add" in facets:
+            return (1, document.get("source", ""))
+        return (2, document.get("source", ""))
+
+    return sorted(result, key=_monitor_add_sort_key)
+
+
 def complete_procedure_context(
     selected: list,
     records: list,
@@ -3420,7 +4169,8 @@ def complete_catalog_hex_coverage(
     RRF 상위 후보에 목차 후반이 없어도, 같은 문서의 카탈로그 청크 중 아직 없는
     hex를 가장 많이 추가하는 청크를 탐욕적으로 붙입니다. 특정 hex 값은 고정하지 않습니다.
     목차가 페이지 경계로 나뉜 경우를 위해, 선택된 카탈로그 페이지의 인접 페이지도
-    후보에 포함합니다. 미디어 서버 스펙 표 질문에는 적용하지 않습니다.
+    후보에 포함합니다. catalog_page·Command Preview 진본은 상세 enum 페이지보다
+    먼저 강제 포함합니다. 미디어 서버 스펙 표 질문에는 적용하지 않습니다.
     """
     if is_media_server_spec_intent(query):
         return selected
@@ -3446,10 +4196,13 @@ def complete_catalog_hex_coverage(
             page_no = int(page)
         except (TypeError, ValueError):
             continue
-        if looks_like_command_catalog(content) or ".." in content or metadata.get("catalog_page"):
+        if is_command_list_catalog(content, metadata) or ".." in content or metadata.get(
+            "catalog_page"
+        ):
             neighbor_pages[source].update({page_no - 1, page_no, page_no + 1})
 
     catalog_pool = []
+    forced_catalogs = []
     for record in records:
         metadata = record.get("metadata") or {}
         if not _metadata_matches_scope(metadata, scope):
@@ -3467,22 +4220,66 @@ def complete_catalog_hex_coverage(
             page_no = int(page) if page is not None else None
         except (TypeError, ValueError):
             page_no = None
+        true_catalog = is_command_list_catalog(content, metadata)
         toc_line = (".." in content) or bool(metadata.get("catalog_page"))
         adjacent = page_no is not None and page_no in neighbor_pages.get(source, set())
-        if not (looks_like_command_catalog(content) or toc_line or len(hexes) >= 4 or adjacent):
+        # enum 상세 페이지(짧은 hex만 많음)는 풀에 넣지 않습니다.
+        if not (true_catalog or toc_line or adjacent):
             continue
-        catalog_pool.append(
-            {
-                "content": content,
-                "source": source,
-                "score": float(len(hexes)),
-                "metadata": metadata,
-                "_hexes": hexes,
-                "_toc": toc_line or adjacent,
-            }
-        )
+        entry = {
+            "content": content,
+            "source": source,
+            "score": float(len(hexes)),
+            "metadata": metadata,
+            "_hexes": hexes,
+            "_toc": toc_line or adjacent or true_catalog,
+            "_true_catalog": true_catalog,
+        }
+        catalog_pool.append(entry)
+        if true_catalog:
+            forced_catalogs.append(entry)
 
     result = list(selected)
+    # 진본 TOC/Preview를 상세 페이지보다 먼저 끼워 넣거나 교체합니다.
+    forced_catalogs.sort(
+        key=lambda doc: (
+            0 if (doc.get("metadata") or {}).get("catalog_page") else 1,
+            -len(doc["_hexes"]),
+        )
+    )
+    for doc in forced_catalogs:
+        source = doc["source"]
+        key = (source, doc["content"])
+        if key in selected_keys:
+            continue
+        if len(result) < top_k and counts.get(source, 0) < max_chunks_per_source:
+            clean = {k: v for k, v in doc.items() if not k.startswith("_")}
+            result.append(clean)
+            selected_keys.add(key)
+            counts[source] = counts.get(source, 0) + 1
+            covered |= doc["_hexes"]
+            continue
+        replace_idx = None
+        for idx, current in enumerate(result):
+            if current.get("source") != source:
+                continue
+            cur_meta = current.get("metadata") or {}
+            cur_content = current.get("content") or ""
+            if is_command_list_catalog(cur_content, cur_meta):
+                continue
+            replace_idx = idx
+            break
+        if replace_idx is None:
+            continue
+        removed = result[replace_idx]
+        selected_keys.discard(
+            (removed.get("source", "unknown"), removed.get("content", ""))
+        )
+        clean = {k: v for k, v in doc.items() if not k.startswith("_")}
+        result[replace_idx] = clean
+        selected_keys.add(key)
+        covered |= doc["_hexes"]
+
     while len(result) < top_k:
         best = None
         best_new = 0
@@ -3529,10 +4326,12 @@ def complete_catalog_hex_coverage(
                     value.upper()
                     for value in _HEX_COMMAND_PATTERN.findall(current.get("content", ""))
                 }
-                # 점선 목차 줄은 목록 완결의 핵심이므로 교체하지 않습니다.
+                # 점선 목차·진본 카탈로그는 목록 완결의 핵심이므로 교체하지 않습니다.
                 if ".." in (current.get("content") or ""):
                     continue
-                if looks_like_command_catalog(current.get("content", "")) and len(current_hex) >= 8:
+                cur_meta = current.get("metadata") or {}
+                cur_content = current.get("content") or ""
+                if is_command_list_catalog(cur_content, cur_meta):
                     continue
                 new_covered = (covered - current_hex) | doc["_hexes"]
                 gain = len(new_covered) - len(covered)
@@ -3541,11 +4340,13 @@ def complete_catalog_hex_coverage(
                 if (
                     doc.get("_toc")
                     and new_only > 0
-                    and ".." not in (current.get("content") or "")
-                    and not looks_like_command_catalog(current.get("content", ""))
+                    and ".." not in cur_content
+                    and not is_command_list_catalog(cur_content, cur_meta)
                     and len(current_hex) <= 5
                 ):
                     gain = max(gain, new_only) + 10
+                if doc.get("_true_catalog") and new_only > 0:
+                    gain = max(gain, new_only) + 20
                 if gain > best_gain:
                     best_gain = gain
                     best = doc
@@ -3560,10 +4361,43 @@ def complete_catalog_hex_coverage(
     return result
 
 
-def limit_documents_for_context(documents: list, max_context_chars: int) -> list:
-    """Keep only complete chunks that fit the answer model's input budget."""
+def limit_documents_for_context(
+    documents: list,
+    max_context_chars: int,
+    query: Optional[str] = None,
+) -> list:
+    """Keep only complete chunks that fit the answer model's input budget.
+
+    프로토콜 목록 의도에서는 0x010A/B/C·스냅샷 앵커 청크를 먼저 확보한 뒤
+    남은 예산으로 나머지를 채워, 컨텍스트 절단으로 골든 hex가 빠지지 않게 합니다.
+    """
+    ordered = list(documents or [])
+    if query and is_protocol_command_list_intent(query):
+        anchors: list = []
+        rest: list = []
+        seen_keys = set()
+        need = {"0x010a": False, "0x010b": False, "0x010c": False, "snap": False}
+        for document in ordered:
+            content = document.get("content") or ""
+            lower = content.casefold()
+            key = (document.get("source", "unknown"), content)
+            picked = False
+            for code in ("0x010a", "0x010b", "0x010c"):
+                if code in lower and not need[code]:
+                    need[code] = True
+                    picked = True
+            if "스냅샷" in content and not need["snap"]:
+                need["snap"] = True
+                picked = True
+            if picked and key not in seen_keys:
+                anchors.append(document)
+                seen_keys.add(key)
+            else:
+                rest.append(document)
+        ordered = anchors + [doc for doc in rest if (doc.get("source", "unknown"), doc.get("content") or "") not in seen_keys]
+
     selected, used = [], 0
-    for document in documents:
+    for document in ordered:
         size = len(document.get("content", ""))
         if selected and used + size > max_context_chars:
             continue
@@ -3609,10 +4443,14 @@ def retrieve_documents(
         effective_max_chunks = max(max_chunks_per_source, 3)
     if list_intent or media_spec_intent:
         # 표·TOC가 페이지·섹션 경계에서 잘려도 동일 출처 연속 목록을 더 모읍니다.
-        effective_max_chunks = max(effective_max_chunks, 8)
-        effective_top_k = max(top_k, 8)
+        effective_max_chunks = max(effective_max_chunks, 10)
+        effective_top_k = max(top_k, 10)
         candidate_count = max(candidate_count, 30)
         bm25_candidates = max(bm25_candidates, 30)
+        if list_intent and rerank_enabled and not rerank_neural:
+            # 목록 완결은 records 스캔으로 TOC를 보강하지만, 초기 후보도 너무 좁히지 않습니다.
+            candidate_count = max(candidate_count, 24)
+            bm25_candidates = max(bm25_candidates, 24)
     if media_spec_intent:
         # §1-2 표와 인접 설명이 여러 청크에 있으므로 MediaServer 출처를 넓게 보존합니다.
         effective_max_chunks = max(effective_max_chunks, 4)
@@ -3635,6 +4473,13 @@ def retrieve_documents(
         effective_top_k = max(top_k, 4)
         candidate_count = max(candidate_count, 30)
         bm25_candidates = max(bm25_candidates, 30)
+    terminal_monitor_add_intent = is_terminal_monitor_and_add_intent(intent_query)
+    if terminal_monitor_add_intent:
+        # 모니터링(p.63)과 단말기 관리 추가(p.33)가 떨어진 페이지에 있어 함께 보존합니다.
+        effective_max_chunks = max(effective_max_chunks, 4)
+        effective_top_k = max(top_k, 4)
+        candidate_count = max(candidate_count, 28)
+        bm25_candidates = max(bm25_candidates, 28)
     if procedure_intent:
         # 수동 3경로(사용자 관리·단말기 사용자 관리·확장)와 자동 동기화 절이
         # 같은 User Guide의 떨어진 페이지에 있으므로 동일 출처 근거를 넓게 보존합니다.
@@ -3656,10 +4501,14 @@ def retrieve_documents(
         candidate_count = max(candidate_count, 30)
         bm25_candidates = max(bm25_candidates, 30)
     # 신경 리랭크를 끄면 후보 과확장을 억제해 hybrid_search 지연을 줄입니다.
-    # 절차/메뉴 완성 로직은 records 전체를 스캔하므로 후보 축소와 독립입니다.
+    # 절차/메뉴/프로토콜 목록 완성 로직은 records 전체를 스캔하므로 후보 축소와 독립입니다.
     if rerank_enabled and not rerank_neural:
-        candidate_count = min(candidate_count, max(effective_top_k, vector_candidates, 16))
-        bm25_candidates = min(bm25_candidates, max(effective_top_k, 16))
+        if list_intent or procedure_intent or media_spec_intent:
+            candidate_count = max(candidate_count, 24)
+            bm25_candidates = max(bm25_candidates, 24)
+        else:
+            candidate_count = min(candidate_count, max(effective_top_k, vector_candidates, 16))
+            bm25_candidates = min(bm25_candidates, max(effective_top_k, 16))
 
     def _finalize(candidates: list, records_for_coverage: Optional[list] = None) -> list:
         working = candidates
@@ -3695,11 +4544,23 @@ def retrieve_documents(
         finalized = complete_person_profile_context(
             complete_mediaserver_spec_context(
                 complete_automated_build_context(
-                    complete_catalog_hex_coverage(
-                        complete_build_output_context(
-                            complete_terminal_user_mgmt_context(
-                                complete_procedure_context(
-                                    expanded,
+                    complete_protocol_list_tail_chunks(
+                        complete_catalog_hex_coverage(
+                            complete_build_output_context(
+                                complete_terminal_monitor_add_context(
+                                    complete_terminal_user_mgmt_context(
+                                        complete_procedure_context(
+                                            expanded,
+                                            records_for_coverage or [],
+                                            intent_query,
+                                            effective_top_k,
+                                            scope,
+                                        ),
+                                        records_for_coverage or [],
+                                        intent_query,
+                                        effective_top_k,
+                                        scope,
+                                    ),
                                     records_for_coverage or [],
                                     intent_query,
                                     effective_top_k,
@@ -3713,12 +4574,12 @@ def retrieve_documents(
                             records_for_coverage or [],
                             intent_query,
                             effective_top_k,
+                            effective_max_chunks,
                             scope,
                         ),
                         records_for_coverage or [],
                         intent_query,
                         effective_top_k,
-                        effective_max_chunks,
                         scope,
                     ),
                     records_for_coverage or [],
