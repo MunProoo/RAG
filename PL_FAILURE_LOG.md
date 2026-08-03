@@ -33,8 +33,57 @@
 - [PLF-20260802-001] Postgres/config 복구 후 `alembic_version` stamp만으로 스키마가 최신이라 가정하지 않는다. `chat.pinned`/`meta`/`folder_id` 존재, `chat.chat` JSON 타입, `config.openai.api_base_urls`=`http://pipelines:9099`를 확인하고, Open WebUI→pipelines e2e(`chats/new`+`/api/chat/completions`+pipelines 로그 inlet/completions)로 연동을 증명한다.
 - [PLF-20260802-002] 검색·생성 품질 작업은 최종 코드 변경 뒤 pipelines recreate → Ollama `/api/chat` readiness → direct `Pipeline.pipe()` raw/JSON assertion → basic/`--rerank` → regression을 같은 인덱스로 다시 실행하고, 각 종료 코드와 원문을 `rag/data/eval/artifacts/`에 남긴 뒤에만 완료로 본다.
 - [PLF-20260802-003] 새 이슈의 Pipe probe/골든 항목을 추가할 때, 기존 probe 스크립트의 `QUESTIONS`/골든 파일에 있는 과거(이미 PASS된) 질문 키를 재사용하거나 그대로 두지 말고, 이번 작업의 실제 신규 질문 문자열이 `QUESTIONS`와 `golden_questions.json`에 새 키로 존재하는지, 그 raw 답변·assertion 파일이 이번 실행에서 새로 생성됐는지(타임스탬프·내용) 확인한다.
+- [PLF-20260803-001] 지연 최적화 시 `OLLAMA_NUM_PREDICT`를 과도하게 낮추면 `reason=length`로 절차/표 답변이 중간에 끊겨 UI에서 “답변 안 됨”처럼 보인다. pipe/SSE assertion에 `reason=stop`(또는 충분한 본문)과 non-status 본문을 포함한다.
+- [PLF-20260803-001] 진행 상태 문구를 일반 문자열로 yield하면 Open WebUI가 `delta.content`로 저장해 status가 본문에 섞이거나 최종 답변처럼 보인다. status는 `event.type=status` dict로 분리하고, e2e에서 `legacy_status_in_content=false`를 확인한다.
 
 ## 실패 이력
+
+### PLF-20260803-001: 지연 최적화 후 status content 혼입·NUM_PREDICT 과소로 UI가 빈/깨진 답변처럼 보임
+
+- 상태: 해결·예방 확인
+- 분류: 구현 / 성능 / 환경
+- 최초 발생: 2026-08-03
+- 최근 재발: 2026-08-03
+- 재발 횟수: 1
+- 적용 범위: `docker-compose.yml`(`OLLAMA_NUM_PREDICT`), `rag/pipelines/rag_pipeline.py`(status yield, 토큰 공백 복원), Open WebUI↔pipelines SSE
+
+#### 실패 내용
+
+- 작업 목표: 지연 최적화(15_latency) 이후 사용자가 보고한 RAG 무응답/빈 답변 회귀 복구
+- 실패한 수용 기준: (회귀 보고) A/B — UI에서 답변이 없거나 status만/깨진 출력으로 보임
+- 관찰된 증상: 파이프라인은 검색·생성까지 진행하나 `reason=length`(220 tok) 조기 절단; chat history ASSISTANT가 `문서 검색 준비 중...` 등 status 문자열로 시작; 본문에 `FA W T`/`t e r m i n a l s` 글자 공백 깨짐
+- 재현 절차: latency 설정(`NUM_PREDICT=220`, status 문자열 yield)으로 절차형 질문 pipe/SSE 후 Open WebUI 저장 답변·pipelines 로그 확인
+- 근거: `16_pipelines_logs.txt`(length×3, status 혼입, 공백 깨짐); 수정 후 `16_empty_fix_summary.json` pass true, `16_e2e_pipelines_sse.json` content_len>0·legacy_status_in_content=false
+
+#### 원인
+
+- 직접 원인: (1) `OLLAMA_NUM_PREDICT=220`으로 생성 조기 종료 (2) status를 plain string yield → Open WebUI `delta.content` 혼입 (3) 절단/생성 품질로 식별자 글자 공백 깨짐
+- 근본 원인: 지연 목표만 warm wall-clock으로 합격 처리하고, UI content 계약(status 분리)·완결 생성(`reason=stop`/충분 predict)·본문 품질 assertion을 완료 조건에 넣지 않음
+- 원인 확신도: 높음(전후 로그·SSE·pipe assertion)
+
+#### 해결
+
+- 적용한 수정:
+  1. `OLLAMA_NUM_PREDICT` 220→768
+  2. status를 Open WebUI `event.type=status` dict로 분리(본문 미혼입)
+  3. 식별자 공백 금지 지침 + `repair_spaced_document_tokens()`
+  4. think:false 유지; regression에 status/공백/think 테스트 추가
+- 외부 차단 해소 조건: 없음
+
+#### 재발 방지 확인
+
+- [x] pipe/SSE assertion: non-empty 본문, status-only 아님, `legacy_status_in_content=false`
+- [x] 절차형 대표 질문에서 `reason=stop` 또는 eval_count가 이전 length 한도(220)를 넘는 생성 증거
+- [x] compose/런타임 `OLLAMA_NUM_PREDICT`가 과도하게 낮지 않음(현재 768) 및 recreate 반영
+- [x] `think: False` 유지, `__init__.py` 없음, 첫 status event는 검색 전 즉시(first_yield≈0)
+
+#### 검증 이력
+
+- 검증 일자: 2026-08-03
+- 결과: verifier **PASS** (수용 기준 A–G)
+- 근거: `16_empty_fix_*` 2/2 pass; SSE e2e content_len=235 exit 0; regression 63/63 exit 0; NUM_PREDICT=768; FaceWT 48.8s stop / user_terminal 76.5s stop(지연 trade-off 명시)
+
+---
 
 ### PLF-20260802-003: 신규 이슈의 Pipe 검증이 기존(이미 해결된) 질문만 재확인하고 실제 신규 질문을 검증하지 않음
 

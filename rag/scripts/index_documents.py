@@ -228,6 +228,16 @@ _TOC_COMMAND_ENTRY = re.compile(
     r"^\d+(?:\.\d+)+\.?\s+.+(?:\(0x[0-9A-Fa-f]+\)|0x[0-9A-Fa-f]+)",
     re.IGNORECASE,
 )
+# PDF가 번호 없는 메뉴 제목을 직전 절과 한 줄로 붙일 때 분리합니다.
+# 예: VoIP 설명 뒤에 이어지는 「단말기 사용자 관리」본문.
+_INLINE_MENU_SECTION_TITLES = (
+    "단말기 사용자 관리",
+)
+_INLINE_MENU_SECTION_SPLIT = re.compile(
+    r"("
+    + "|".join(re.escape(title) for title in _INLINE_MENU_SECTION_TITLES)
+    + r")(?=\s*(?:단말기|서버|해당|이 메뉴))"
+)
 
 
 def is_toc_or_catalog_page(page_text: str) -> bool:
@@ -274,6 +284,31 @@ def split_pdf_page_sections(page_text: str) -> list[tuple[str, str]]:
     return sections or [("", page_text)]
 
 
+def split_inline_menu_sections(section_title: str, text: str) -> list[tuple[str, str]]:
+    """번호 없는 메뉴 제목이 본문 중간에 붙을 때 별도 섹션으로 나눕니다.
+
+    User Guide PDF는 「단말기 사용자 관리」처럼 번호 없는 메뉴명이 직전 기능(VoIP 등)
+    설명과 한 덩어리로 추출되는 경우가 있습니다. 메뉴명 검색이 인접 절로 희석되지
+    않도록 제목 앞에서 단위를 분리하고, 새 단위의 section 메타데이터에 메뉴명을 둡니다.
+    """
+    if not text or not _INLINE_MENU_SECTION_SPLIT.search(text):
+        return [(section_title, text)]
+    parts = _INLINE_MENU_SECTION_SPLIT.split(text)
+    # split 결과는 [prefix, title1, body1, title2, body2, ...] 형태입니다.
+    result: list[tuple[str, str]] = []
+    if parts and parts[0].strip():
+        result.append((section_title, parts[0]))
+    index = 1
+    while index < len(parts):
+        menu_title = parts[index].strip()
+        body = parts[index + 1] if index + 1 < len(parts) else ""
+        unit_text = f"{menu_title}{body}".strip()
+        if unit_text:
+            result.append((menu_title[:160], unit_text))
+        index += 2
+    return result or [(section_title, text)]
+
+
 def extract_document_units(file_path: Path) -> list[dict]:
     """Return independently chunkable units with page and heading information."""
     if file_path.suffix.lower() == ".pdf":
@@ -281,14 +316,15 @@ def extract_document_units(file_path: Path) -> list[dict]:
         for page_no, page_text in _extract_pdf_pages(file_path):
             toc_like = is_toc_or_catalog_page(page_text)
             for section, text in split_pdf_page_sections(page_text):
-                units.append(
-                    {
-                        "text": text,
-                        "page": page_no,
-                        "section": section or _section_title(text),
-                        "catalog_page": toc_like,
-                    }
-                )
+                for unit_section, unit_text in split_inline_menu_sections(section, text):
+                    units.append(
+                        {
+                            "text": unit_text,
+                            "page": page_no,
+                            "section": unit_section or _section_title(unit_text),
+                            "catalog_page": toc_like,
+                        }
+                    )
         return units
 
     text = extract_text_from_file(file_path)

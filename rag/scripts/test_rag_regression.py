@@ -78,6 +78,7 @@ from scripts import eval_retrieval
 from scripts.index_documents import (
     classify_document,
     is_toc_or_catalog_page,
+    split_inline_menu_sections,
     split_pdf_page_sections,
 )
 from scripts.swagger_yaml_to_md import collect_operation_schema_refs
@@ -1071,6 +1072,132 @@ class PdfSectionChunkingTests(unittest.TestCase):
         self.assertIn("0x010A", sections[0][1])
         self.assertIn("스냅샷", sections[0][1])
 
+    def test_inline_menu_title_splits_voip_from_terminal_user_mgmt(self):
+        """번호 없는 「단말기 사용자 관리」제목이 VoIP 절과 한 덩어리일 때 분리합니다."""
+        text = (
+            "단말기에 VoIP 설정을 하는 기능입니다. "
+            "단말기 사용자 관리 단말기에 등록된 사용자 정보를 삭제하거나 "
+            "서버로 가져올 수 있습니다. 해당 메뉴에서 삭제한 사용자는 단말기에서만 삭제됩니다."
+        )
+        sections = split_inline_menu_sections("", text)
+        self.assertEqual(len(sections), 2)
+        self.assertIn("VoIP", sections[0][1])
+        self.assertNotIn("단말기 사용자 관리", sections[0][1])
+        self.assertEqual(sections[1][0], "단말기 사용자 관리")
+        self.assertIn("단말기에서만", sections[1][1])
+
+
+class TerminalUserManagementIntentTests(unittest.TestCase):
+    """「단말기 사용자 관리」메뉴 의도·가점·컨텍스트·프롬프트 회귀."""
+
+    QUESTION = "alpeta 단말기 사용자 관리 메뉴 사용법 알려줘"
+
+    def test_intent_detects_menu_howto_and_excludes_sync_procedure(self):
+        """메뉴 사용법 질문만 tum 의도이고, 추가·동기화 복합 질문은 기존 절차 의도입니다."""
+        self.assertTrue(rag_pipeline.is_terminal_user_management_intent(self.QUESTION))
+        self.assertFalse(rag_pipeline.is_user_terminal_procedure_intent(self.QUESTION))
+        sync_q = "alpeta에서 사용자를 단말기에 어떻게 추가해? 그리고 자동동기화는 어떻게 해?"
+        self.assertFalse(rag_pipeline.is_terminal_user_management_intent(sync_q))
+        self.assertTrue(rag_pipeline.is_user_terminal_procedure_intent(sync_q))
+
+    def test_query_expansion_prefers_import_upload_terms(self):
+        """검색 확장에 가져오기·업로드·단말기에서만 표현이 포함됩니다."""
+        expanded = rag_pipeline.expand_retrieval_query(self.QUESTION, self.QUESTION)
+        self.assertIn("가져오기", expanded)
+        self.assertIn("업로드", expanded)
+        self.assertIn("단말기에서만", expanded)
+        self.assertIn("단말기 사용자 관리", expanded)
+
+    def test_evidence_prefers_menu_and_import_over_user_reg_and_port(self):
+        """메뉴·가져오기 청크가 9003/고유아이디 청크보다 가점이 높습니다."""
+        good_overview = (
+            "단말기 사용자 관리 단말기에 등록된 사용자를 삭제하거나 서버로 가져올 수 있습니다. "
+            "해당 메뉴에서 삭제한 사용자는 단말기에서만 삭제됩니다."
+        )
+        good_ops = (
+            "(단말기 저장 리스트) 가져오기: 선택된 단말기의 사용자 정보를 불러 옵니다. "
+            "(단말기 저장 리스트) 업로드: 가져오기로 불러온 사용자 정보를 알페타로 업로드합니다. "
+            "(단말기 사용자 리스트) 추가: 적용하면 단말기로 사용자 정보가 전송됩니다."
+        )
+        bad_port = "단말기 정보 통신포트 9003 으로 설정해야 합니다."
+        bad_reg = "사용자 추가 시 고유아이디와 권한(8)을 입력합니다."
+        self.assertGreater(
+            rag_pipeline.terminal_user_mgmt_evidence_score(self.QUESTION, good_overview),
+            rag_pipeline.terminal_user_mgmt_evidence_score(self.QUESTION, bad_port),
+        )
+        self.assertGreater(
+            rag_pipeline.terminal_user_mgmt_evidence_score(self.QUESTION, good_ops),
+            rag_pipeline.terminal_user_mgmt_evidence_score(self.QUESTION, bad_reg),
+        )
+
+    def test_context_completes_overview_and_ops_facets(self):
+        """개요만 선택된 경우 가져오기·추가 조작 청크를 같은 가이드에서 보충합니다."""
+        selected = [
+            {
+                "source": "Alpeta User Guide.pdf",
+                "content": (
+                    "단말기 사용자 관리 서버로 가져오기와 단말로 내려보내기가 가능합니다. "
+                    "삭제하면 단말기에서만 삭제됩니다."
+                ),
+                "score": 1.0,
+                "metadata": {
+                    "source": "Alpeta User Guide.pdf",
+                    "document_type": "user_guide",
+                },
+            }
+        ]
+        records = [
+            {
+                "document": (
+                    "(단말기 저장 리스트) 가져오기 / 업로드 / 엑셀 내보내기 / 삭제. "
+                    "알페타에는 남고 단말기에서만 삭제됩니다."
+                ),
+                "metadata": {
+                    "source": "Alpeta User Guide.pdf",
+                    "document_type": "user_guide",
+                },
+            },
+            {
+                "document": (
+                    "(단말기 사용자 리스트) 추가: 사용자를 선택하고 > 후 [적용]하면 "
+                    "단말기로 사용자 정보가 전송됩니다."
+                ),
+                "metadata": {
+                    "source": "Alpeta User Guide.pdf",
+                    "document_type": "user_guide",
+                },
+            },
+        ]
+        completed = rag_pipeline.complete_terminal_user_mgmt_context(
+            selected,
+            records,
+            self.QUESTION,
+            top_k=4,
+            scope={"document_type": "user_guide"},
+        )
+        joined = "\n".join(doc["content"] for doc in completed)
+        self.assertIn("가져오기", joined)
+        self.assertIn("업로드", joined)
+        self.assertIn("단말기 사용자 리스트", joined)
+
+    def test_prompt_requires_menu_scope_and_forbids_p34_reg(self):
+        """답변 지침이 메뉴 조작을 요구하고 9003·고유아이디 중심을 금합니다."""
+        prompt = rag_pipeline.build_context_prompt(
+            self.QUESTION,
+            [
+                {
+                    "source": "Alpeta User Guide.pdf",
+                    "score": 1.0,
+                    "content": "단말기 사용자 관리 가져오기 업로드 추가",
+                }
+            ],
+        )
+        self.assertIn("단말기 사용자 관리 메뉴", prompt)
+        self.assertIn("가져오기", prompt)
+        self.assertIn("9003", prompt)
+        self.assertIn("고유아이디", prompt)
+        self.assertIn("쓰지 마세요", prompt)
+
 
 class FollowUpContextTests(unittest.TestCase):
     """후속 질문 감지와 문맥 반영 질문 변환(question condensing) 검증."""
@@ -1169,6 +1296,40 @@ class StreamingOptionsTests(unittest.TestCase):
 
         self.assertEqual(result, "continued")
         self.assertEqual(payloads[0]["options"], {"num_ctx": 8192, "num_predict": 2048})
+        self.assertIs(payloads[0].get("think"), False)
+
+    def test_status_event_is_not_plain_content_string(self):
+        """status는 Open WebUI event dict여야 하며 본문 문자열이 아니어야 합니다."""
+        event = rag_pipeline._status_event("문서 검색 준비 중...")
+        self.assertIsInstance(event, dict)
+        self.assertEqual(event["event"]["type"], "status")
+        self.assertEqual(event["event"]["data"]["description"], "문서 검색 준비 중...")
+        self.assertFalse(event["event"]["data"]["done"])
+        done = rag_pipeline._status_event("", done=True)
+        self.assertTrue(done["event"]["data"]["done"])
+
+    def test_repair_spaced_document_tokens_restores_identifiers(self):
+        """문서에 있는 식별자의 글자 사이 공백 깨짐을 복원합니다."""
+        documents = [
+            {
+                "source": "swagger_kr.md",
+                "content": "FaceWTInfo and /v1/terminals/{id}/scan/facewt",
+                "score": 1.0,
+            }
+        ]
+        broken = "Use FA W T and FaceWTIn f o via /v1/t e r m i n a l s/{id}/scan/facewt"
+        repaired = rag_pipeline.repair_spaced_document_tokens(documents, broken)
+        self.assertIn("FaceWTInfo", repaired)
+        self.assertIn("/v1/terminals/{id}/scan/facewt", repaired)
+        self.assertNotIn("t e r m i n a l s", repaired)
+
+    def test_answer_prompt_forbids_letter_spacing_in_identifiers(self):
+        """답변 프롬프트에 식별자 글자 사이 공백 금지 지침이 포함되는지 확인합니다."""
+        prompt = rag_pipeline.build_context_prompt(
+            "FaceWT API?",
+            [{"source": "swagger_kr.md", "content": "FaceWTInfo", "score": 1.0}],
+        )
+        self.assertIn("글자 사이 공백", prompt)
 
 
 if __name__ == "__main__":

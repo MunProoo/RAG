@@ -10,6 +10,7 @@ LLM → RAG → LLM Pipeline for Open WebUI
 import os
 import re
 import json
+import time
 from pathlib import Path
 from typing import List, Union, Generator, Iterator, Dict, Tuple, Optional
 
@@ -19,6 +20,30 @@ from pydantic import BaseModel
 import chromadb
 from chromadb.utils import embedding_functions
 from rank_bm25 import BM25Okapi
+
+
+def _log_timing(stage: str, seconds: float, **extra) -> None:
+    """단계별 지연을 `[RAG] timing ...` 형식으로 남겨 병목 재현을 돕습니다."""
+    detail = " ".join(f"{key}={value}" for key, value in extra.items())
+    suffix = f" {detail}" if detail else ""
+    print(f"[RAG] timing stage={stage} sec={seconds:.3f}{suffix}")
+
+
+def _status_event(description: str, *, done: bool = False) -> dict:
+    """Open WebUI SSE status 이벤트를 만듭니다(채팅 본문 content로 저장되지 않음).
+
+    pipelines가 dict yield를 `data: {...}`로 전달하므로, 문자열 status를
+    본문에 섞지 않고 UI 진행 표시만 갱신할 때 사용합니다.
+    """
+    return {
+        "event": {
+            "type": "status",
+            "data": {
+                "description": description,
+                "done": done,
+            },
+        }
+    }
 
 
 # ─────────────────────────────────────────
@@ -159,6 +184,12 @@ _PROCEDURE_ACTION_MARKERS = (
     "추가", "등록", "전송", "동기화", "다운로드", "적용",
 )
 
+# 「단말기 사용자 관리」메뉴 자체를 묻는 질문. 일반 사용자 등록·단말기 정보와 구분합니다.
+_TERMINAL_USER_MGMT_MENU_PHRASE = "단말기 사용자 관리"
+_TERMINAL_USER_MGMT_HOWTO_MARKERS = (
+    "메뉴", "사용법", "방법", "어떻게", "알려", "조작", "기능",
+)
+
 # 빌드를 수동 절차가 아닌 "자동화 버전"으로 진행하려는 의도를 판별하는 마커입니다.
 # 문서 제목("알페타 설치 패키지 빌드(자동화 버전)")과 본문에 실제로 쓰인 표현만 사용하며,
 # 특정 질문 문자열을 고정하지 않습니다. ARTIFACT_INTENT_RULES["automation"]은 산출물
@@ -257,9 +288,12 @@ def detect_retrieval_scope(query: str) -> Dict[str, str]:
         if any(term.casefold() in normalized for term in terms):
             scope["document_type"] = document_type
             break
-    # 문서 종류를 직접 말하지 않은 절차형 질문도 사용자·단말기 조작 의도가 분명하면
+    # 문서 종류를 직접 말하지 않은 절차형·메뉴 사용법 질문도 의도가 분명하면
     # User Guide로 한정합니다. 프로토콜/API/설치 문서가 섞여 메뉴 절차를 대체하지 않게 합니다.
-    if "document_type" not in scope and is_user_terminal_procedure_intent(query):
+    if "document_type" not in scope and (
+        is_user_terminal_procedure_intent(query)
+        or is_terminal_user_management_intent(query)
+    ):
         scope["document_type"] = "user_guide"
     for product, terms in PRODUCT_TERMS.items():
         if any(term.casefold() in normalized for term in terms):
@@ -275,13 +309,35 @@ def detect_retrieval_scope(query: str) -> Dict[str, str]:
     return scope
 
 
+def is_terminal_user_management_intent(query: str) -> bool:
+    """「단말기 사용자 관리」메뉴 사용법·조작을 묻는 질문인지 판별합니다.
+
+    메뉴 명칭이 직접 나오거나, 단말기·사용자·관리와 사용법/메뉴 표현이 함께 있을 때만
+    참입니다. 일반 사용자 등록이나 사용자→단말 추가·동기화 복합 질문과 겹치지 않게
+    합니다.
+    """
+    normalized = (query or "").casefold()
+    if _TERMINAL_USER_MGMT_MENU_PHRASE in normalized:
+        return True
+    has_parts = (
+        "단말기" in normalized
+        and "사용자" in normalized
+        and "관리" in normalized
+    )
+    has_howto = any(marker in normalized for marker in _TERMINAL_USER_MGMT_HOWTO_MARKERS)
+    return has_parts and has_howto
+
+
 def is_user_terminal_procedure_intent(query: str) -> bool:
     """사용자와 단말기 사이의 UI 절차를 묻는 질문을 일반 키워드 조합으로 판별합니다.
 
     명시적인 문서 유형이 없는 경우에만 검색 범위를 User Guide로 좁히는 보조 규칙입니다.
     단말기·사용자와 추가/전송/동기화 같은 작업 표현이 함께 있어야 하므로 일반 제품 소개
     질문을 가이드 절차로 오인하지 않습니다.
+    「단말기 사용자 관리」메뉴 사용법 질문은 별도 의도로 분리해 여기서는 제외합니다.
     """
+    if is_terminal_user_management_intent(query):
+        return False
     normalized = (query or "").casefold()
     has_user = any(marker in normalized for marker in _USER_TERMINAL_PROCEDURE_MARKERS)
     has_terminal = any(marker in normalized for marker in _TERMINAL_PROCEDURE_MARKERS)
@@ -328,7 +384,14 @@ def expand_retrieval_query(original_query: str, rewritten_query: str) -> str:
         expansions.append("확인 폴더 이동하면 생성된 설치 파일 확인")
     if "build_output" in detect_artifact_intents(original_query):
         expansions.append("빌드 완료 설치 파일 생성 최종 산출물 경로")
-    if is_user_terminal_procedure_intent(original_query):
+    if is_terminal_user_management_intent(original_query):
+        # p.39 메뉴 목적·p.40 조작 표현으로 확장해 일반 「사용자 관리」·VoIP 청크를 밀어냅니다.
+        expansions.append(
+            "단말기 사용자 관리 단말기 저장 리스트 단말기 사용자 리스트 "
+            "가져오기 업로드 엑셀 내보내기 삭제 추가 적용 전송 "
+            "서버로 가져오기 단말로 내려보내기 단말기에서만"
+        )
+    elif is_user_terminal_procedure_intent(original_query):
         expansions.append(
             "사용자 단말기 추가 사용자 선택 적용 전송 "
             "단말기리스트 출입그룹 단말기 리스트 등록된 단말기 추가가능한 단말기 "
@@ -485,6 +548,45 @@ def procedure_evidence_score(query: str, content: str) -> float:
     return min(score, 0.3)
 
 
+def terminal_user_mgmt_evidence_score(query: str, content: str) -> float:
+    """「단말기 사용자 관리」메뉴 근거 청크를 가점하고 인접 오답 메뉴를 감점합니다.
+
+    메뉴 제목·가져오기/업로드 조작·단말기에서만 삭제 표현이 있는 청크를 올리고,
+    통신포트 9003·고유아이디/권한(8)·VoIP만 있는 청크는 내립니다.
+    """
+    if not is_terminal_user_management_intent(query):
+        return 0.0
+    normalized = (content or "").casefold()
+    score = 0.0
+    if _TERMINAL_USER_MGMT_MENU_PHRASE in normalized:
+        score += 0.3
+    if "가져오기" in normalized and "업로드" in normalized:
+        score += 0.24
+    if "단말기 저장 리스트" in normalized or "단말기 사용자 리스트" in normalized:
+        score += 0.1
+    if "단말기에서만" in normalized:
+        score += 0.08
+    if "엑셀" in normalized and "내보내기" in normalized:
+        score += 0.06
+    # 오답 메뉴·등록 흐름이 본문 중심이면 감점합니다.
+    if "9003" in normalized and _TERMINAL_USER_MGMT_MENU_PHRASE not in normalized:
+        score -= 0.2
+    if "고유아이디" in normalized or (
+        "권한" in normalized and re.search(r"권한\s*\(?\s*8\s*\)?", content or "")
+    ):
+        score -= 0.12
+    if "voip" in normalized and "가져오기" not in normalized:
+        score -= 0.12
+    # 일반 「사용자 관리」개요만 있고 메뉴 제목·가져오기가 없으면 감점합니다.
+    if (
+        "사용자 관리" in normalized
+        and _TERMINAL_USER_MGMT_MENU_PHRASE not in normalized
+        and "가져오기" not in normalized
+    ):
+        score -= 0.1
+    return max(0.0, min(score, 0.5))
+
+
 def technical_evidence_score(query: str, content: str) -> float:
     """질문의 기술 토큰과 파일 역할·API 근거가 문서에 맞는 정도를 0~0.5로 계산합니다.
 
@@ -533,6 +635,7 @@ def technical_evidence_score(query: str, content: str) -> float:
 
     score += path_role_evidence_score(query, content)
     score += procedure_evidence_score(query, content)
+    score += terminal_user_mgmt_evidence_score(query, content)
 
     exact_tokens = extract_technical_tokens(query)
     if exact_tokens:
@@ -584,7 +687,10 @@ def ollama_chat(
     options: Optional[dict] = None,
     read_timeout: int = DEFAULT_OLLAMA_READ_TIMEOUT,
 ) -> str:
-    """Ollama chat API를 호출합니다."""
+    """Ollama chat API를 호출합니다(think=false 유지, 빈 content 폴백).
+
+    content가 비고 eval_count>0이면 thinking 필드로 폴백하고 경고를 남깁니다.
+    """
     url = f"{base_url}/api/chat"
     # 일부 Ollama 모델은 think/thinking 옵션을 지원합니다.
     # Open WebUI/RAG 응답에서 사고과정 노출을 피하기 위해 기본적으로 think=false를 전달합니다.
@@ -594,7 +700,17 @@ def ollama_chat(
     response = requests.post(url, json=payload, timeout=(10, read_timeout))
     response.raise_for_status()
     data = response.json()
-    return data["message"]["content"]
+    message = data.get("message") or {}
+    content = message.get("content") or ""
+    eval_count = data.get("eval_count") or 0
+    if not content and eval_count > 0:
+        fallback = (message.get("thinking") or message.get("reasoning") or "").strip()
+        print(
+            "[RAG] WARNING empty content with eval_count>0; "
+            f"using thinking/reasoning fallback chars={len(fallback)} eval_count={eval_count}"
+        )
+        return fallback
+    return content
 
 
 def ollama_chat_stream(
@@ -604,11 +720,19 @@ def ollama_chat_stream(
     options: Optional[dict] = None,
     read_timeout: int = DEFAULT_OLLAMA_READ_TIMEOUT,
 ) -> Generator[str, None, None]:
-    """Ollama chat API 스트리밍 버전."""
+    """Ollama chat API 스트리밍 버전(think=false, TTFT·빈 content 경고/폴백).
+
+    첫 content 토큰까지(TTFT)와 전체 생성 시간을 로그하고, content가 비었는데
+    eval_count>0이면 thinking 조각을 폴백으로 yield합니다.
+    """
     url = f"{base_url}/api/chat"
     payload = {"model": model, "messages": messages, "stream": True, "think": False}
     if options:
         payload["options"] = options
+    started = time.perf_counter()
+    first_token_at: Optional[float] = None
+    content_chars = 0
+    thinking_parts: List[str] = []
     with requests.post(url, json=payload, stream=True, timeout=(10, read_timeout)) as resp:
         resp.raise_for_status()
         for line in resp.iter_lines():
@@ -616,16 +740,43 @@ def ollama_chat_stream(
                 continue
             data = json.loads(line)
             if data.get("done", False):
+                total_sec = time.perf_counter() - started
+                ttft = (first_token_at - started) if first_token_at is not None else None
+                eval_count = data.get("eval_count") or 0
                 print(
                     "[RAG] Ollama stream completed: "
                     f"reason={data.get('done_reason', 'unknown')}, "
                     f"prompt_tokens={data.get('prompt_eval_count', 'unknown')}, "
-                    f"generated_tokens={data.get('eval_count', 'unknown')}"
+                    f"generated_tokens={eval_count}, "
+                    f"content_chars={content_chars}"
                 )
+                _log_timing(
+                    "answer_generation",
+                    total_sec,
+                    ttft_sec=f"{ttft:.3f}" if ttft is not None else "none",
+                    content_chars=content_chars,
+                    eval_count=eval_count,
+                )
+                if content_chars == 0 and eval_count > 0:
+                    fallback = "".join(thinking_parts).strip()
+                    print(
+                        "[RAG] WARNING empty content with eval_count>0; "
+                        f"yielding thinking fallback chars={len(fallback)}"
+                    )
+                    if fallback:
+                        yield fallback
                 break
             else:
-                content = data.get("message", {}).get("content", "")
+                message = data.get("message") or {}
+                content = message.get("content") or ""
+                thinking = message.get("thinking") or message.get("reasoning") or ""
+                if thinking:
+                    thinking_parts.append(thinking)
                 if content:
+                    if first_token_at is None:
+                        first_token_at = time.perf_counter()
+                        _log_timing("answer_ttft", first_token_at - started)
+                    content_chars += len(content)
                     yield content
 
 
@@ -638,10 +789,9 @@ def rewrite_query(
     original_query: str,
     chat_history: list,
 ) -> str:
-    """
-    LLM 1: 사용자 질문을 벡터 검색에 최적화된 쿼리로 재작성합니다.
-    - 검색 친화적인 키워드 강조
-    - 모호한 지시어(이것, 그것 등) 명확화
+    """LLM으로 검색 친화 쿼리 변형을 만들고 소요 시간을 기록합니다.
+
+    재작성은 짧은 출력만 필요하므로 num_predict/num_ctx를 낮춰 지연을 줄입니다.
     """
     # 성능/안정성 목적: 대화 컨텍스트는 재작성에 반영하지 않습니다.
     # (입력 토큰 감소 → 지연 감소, 내부 태스크/잡담 변형 최소화)
@@ -672,7 +822,16 @@ def rewrite_query(
         {"role": "user", "content": user_message},
     ]
 
-    rewritten = ollama_chat(base_url, model, messages, stream=False)
+    started = time.perf_counter()
+    # 재작성은 짧은 키워드 목록만 필요하므로 생성 예산을 작게 유지합니다.
+    rewritten = ollama_chat(
+        base_url,
+        model,
+        messages,
+        stream=False,
+        options={"num_ctx": 2048, "num_predict": 128},
+    )
+    _log_timing("query_rewrite", time.perf_counter() - started, model=model)
     # 2~4줄로 제한(모델이 과다 생성할 때 대비)
     lines = [ln.strip() for ln in rewritten.splitlines() if ln.strip()]
     lines = lines[:4] if len(lines) > 4 else lines
@@ -999,22 +1158,28 @@ def build_context_prompt(
                 "`.exe`의 파일 위치나 빌드 입력 복사 폴더를 최종 산출 경로로 바꾸지 마세요.\n"
             )
     procedure_block = ""
-    if is_user_terminal_procedure_intent(query):
+    if is_terminal_user_management_intent(query):
+        procedure_block = """
+=== 단말기 사용자 관리 메뉴(필수) ===
+- 「단말기 사용자 관리」메뉴만 답하세요. 일반 「사용자 관리」등록, 「단말기 정보」(통신포트 9003 등), 고유아이디·권한(8)·출입그룹 입력 중심 절차는 본문에 쓰지 마세요.
+- 메뉴 목적: 단말 사용자 삭제 / 서버로 가져오기 / 서버→단말 전송. 이 메뉴 삭제 = 단말기에서만 삭제.
+- `단말기 저장 리스트`: 가져오기·업로드·엑셀 내보내기·삭제를 빠짐없이.
+- `단말기 사용자 리스트` 추가: 추가 → 사용자 선택 → `>` → [적용] → 단말 전송 순서로 적으세요.
+- Protocol·NSIS·Swagger 내용을 섞지 마세요.
+"""
+    elif is_user_terminal_procedure_intent(query):
+        # 지연 최적화: 회귀 테스트가 요구하는 핵심 문구는 유지하되 장문 서술은 압축.
         procedure_block = """
 === 사용자·단말기 절차 범위(필수) ===
-- 사용자와 단말기 관련 절차는 User Guide 참고 문서의 메뉴·버튼·순서만 사용하세요.
-- 수동으로 특정 단말기에 추가·전송하는 절차와 자동 동기화 설정은 별도 소제목으로 구분하세요.
-- **(필수, 매우 중요)** 사용자를 단말기에 추가하는 수동 방법이 참고 문서에 서로 다른 화면 근거(예: 사용자 정보 화면의 `[단말기리스트]`와, 단말기 관리 화면의 `단말기 사용자 리스트` `[추가]`)로 각각 있으면, 이 둘을 하나의 메뉴 계층(상위 화면 → 하위 화면)으로 합치지 말고 「방법 1」/「방법 2」처럼 서로 완전히 독립된 방법으로 각각 설명하세요. `[단말기리스트]`를 `단말기 사용자 리스트`의 상위 메뉴로 연결한 하나의 절차로 이어 붙이면 안 됩니다.
-  - **(필수, 표기 고정)** 문서에 `[단말기리스트]`(띄어쓰기 없음)가 있으면 반드시 그 철자 그대로 쓰세요. `[단말기 리스트]`처럼 가운데 공백을 넣거나 `단말기 저장 리스트`로 바꾸면 안 됩니다.
-  - `[단말기리스트]` 근거만 있으면: 사용자 정보 화면에서 `[단말기리스트]`를 클릭해 해당 사용자가 이미 내려가 있는 단말기 목록을 확인하고, 원하는 단말기로 사용자를 내리는 절차라고 그 근거 그대로 설명하세요.
-  - `단말기 사용자 리스트`의 `[추가]` 근거가 있으면: 그 화면에서 `[추가]` 클릭 → 팝업에서 사용자 선택 → `>` → `[적용]` → 단말기 전송 순서를 그대로 답하세요. 단말기 관리자·권한처럼 이름이 비슷한 다른 메뉴로 대체하지 말고, 문서에 없는 `단말기 저장 리스트` 같은 유사 명칭을 만들거나 대체하지 마세요.
-- 자동 동기화 근거에는 설정 경로(예: 일반설정·사용자·사용자 데이터), 활성화, 동일 출입그룹 조건, 저장 후 업데이트, 수동 제거 뒤 재동기화 동작, 중복 ID 덮어쓰기 옵션이 각각 실제로 있을 때만 빠짐없이 구분해 답하세요.
-- 위 자동 동기화 근거가 모두 있으면 경로는 반드시 `[일반설정] > [사용자] > [사용자 데이터]`로, 저장 후 동작은 사용자 정보 `[저장]` 시 출입그룹 단말기 정보 자동 업데이트로 명시하세요.
-- 참고 문서에 `덮어쓰기`가 있으면 그 단어를 그대로 쓰고 `덮어씌울지`처럼 바꾸지 마세요. `다시 다운로드` 또는 `다운로드 재진행`이 있으면 `다시 동기화`(또는 `재동기화`)와 **함께** 문서 표기 그대로 적으세요. **(필수, 생략 금지)** 이때 `다시 다운로드`라는 단어 자체를 `(다운로드)`처럼 괄호로 축약하거나 `다시 동기화`로만 대체하지 말고, 두 표현("다시 동기화"와 "다시 다운로드")을 각각 그대로 문장에 포함하세요.
-- 자동 동기화의 대상·조건·중복/덮어쓰기 제한은 참고 문서에 실제로 적힌 경우에만 설명하고, Protocol·NSIS 문서의 내용을 섞지 마세요.
-- **(필수, 생략 금지)** 참고 문서에 `출입그룹 단말기 리스트`, `등록된 단말기`, `추가가능한 단말기`라는 화면 구성 항목이 있으면, 반드시 **3가지 항목 전부**(2가지로 합치거나 하나를 빠뜨리지 말 것)를 각각의 이름과 설명을 요약하거나 자동 동기화 설명에 합치지 말고 원문 표기(띄어쓰기 포함) 그대로 모두 나열하세요. 이 항목들은 사용자 정보 화면의 `[단말기리스트]` 방법 설명 안에서 다루세요.
-- **(필수, 인용 필수, 생략 금지)** 위 3가지 항목 바로 뒤에 `※`로 표시된 사전 조건 문장(예: `[등록된 단말기]`에서 `[추가 가능한 단말기]`로 이동 시 단말기가 **필수로 연결**되어 있어야 동작한다는 문장)이 참고 문서에 있으면, 절대 생략하거나 다른 문장에 뭉뚱그려 넣지 말고 "필수로 연결"이라는 단어를 포함해 원문 문장 그대로(의역·요약 금지) 별도 문장으로 인용하세요. 이 문장은 매 답변마다 빠뜨리면 안 되는 최우선 순위 항목입니다.
-- **(필수, 생략 금지)** 참고 문서에 `[주의사항]`이라는 표시가 있으면, 그 아래 이어지는 문장에 담긴 사실을 하나도 빠짐없이(예: Alpeta가 출입그룹을 기반으로 단말기와 설정을 관리한다는 내용 포함) 별도의 '주의사항' 소제목으로 원문 표현에 가깝게 나열하세요. 다른 설명에 요약해 섞어 넣거나 이 문단 자체를 빠뜨리면 안 됩니다.
+- User Guide 메뉴/버튼만 사용. 수동으로 특정 단말기에 추가·전송하는 절차와 자동 동기화는 소제목으로 분리.
+- 수동 근거가 `[단말기리스트]`와 `단말기 사용자 리스트` `[추가]`로 나뉘면 「방법 1」/「방법 2」처럼 독립된 방법으로 각각 설명(계층 합치기 금지).
+- 표기 고정: `[단말기리스트]`(공백 금지). `단말기 저장 리스트`로 바꾸지 마세요. `덮어쓰기` 유지.
+- 자동동기화 경로: `[일반설정] > [사용자] > [사용자 데이터]`. `다시 동기화`와 `다시 다운로드`를 둘 다 포함.
+- `[단말기리스트]` 안에 `출입그룹 단말기 리스트`, `등록된 단말기`, `추가가능한 단말기` 3항목과 `필수로 연결` ※문장, `[주의사항]`을 빠짐없이.
+- 사용자·단말기 수동 전송(`단말기 사용자 리스트`의 `[추가]`) 답변에서는 그 절차를 반드시 `[추가] → 사용자 선택 → > → [적용] → 해당 사용자 정보 단말기 전송` 순서로 한 줄 또는 번호 목록에 적으세요. `[단말기리스트]`는 이와 별개인 다른 화면이므로 상위 메뉴로 이어 붙이지 말고, `단말기 저장 리스트`는 수동 전송 절차의 메뉴가 아니므로 이 답변에 쓰지 마세요. 메뉴 경로를 이을 때 `>`를 breadcrumb 구분자로 쓰지 마세요. `>`는 팝업의 이동 버튼에만 사용하세요.
+- 사용자·단말기 자동 동기화 답변에서는 근거가 있을 때 사용자와 단말기가 `동일한 출입그룹`이어야 한다는 조건을 그대로 적으세요.
+- 사용자·단말기 자동 동기화 근거에 중복 ID `덮어쓰기`와 수동 제거 뒤 `다시 동기화`/`다시 다운로드`(또는 `다운로드 재진행`)가 있으면 해당 용어를 빠짐없이 문서 표기 그대로 적으세요.
+- Protocol·NSIS 문서 내용을 섞지 마세요.
 """
     automated_build_block = ""
     if is_automated_build_intent(query):
@@ -1047,7 +1212,8 @@ def build_context_prompt(
 === 답변 지침 ===
 - 참고 문서의 내용을 기반으로 답변하세요
 - 명확하고 구조적으로 답변하세요
-- 파일명·경로·명령·API·버전은 참고 문서의 철자, 확장자, 구분자, 대소문자를 그대로 복사하세요. 비슷한 이름으로 바꾸거나 문서에 없는 경로를 추측하지 마세요.
+- 파일명·경로·명령·API·스키마·버전은 참고 문서의 철자, 확장자, 구분자, 대소문자를 그대로 복사하세요. 비슷한 이름으로 바꾸거나 문서에 없는 경로를 추측하지 마세요.
+- 식별자·경로·스키마명 안에 글자 사이 공백을 넣지 마세요. 예: `FaceWTInfo`, `/v1/terminals/{id}` (금지: `FA W T`, `t e r m i n a l s`, `FaceWTIn f o`).
 - 질문이 요구한 대상 역할을 먼저 구분하세요. 자동화/배치 파일, 소스 스크립트, 실행·설치 산출물, 설정 파일, 결과물 확인 폴더는 서로 다른 답이므로 다른 유형의 이름을 대신 답하지 마세요.
 - 파일 이름이나 경로 질문은 그 파일을 실행·선택·수정하라고 직접 지시하는 문장을 우선 근거로 사용하세요. 파일 이름만 물어도 같은 지시에 상위 폴더가 있으면 답변 첫 문장에 `파일명`과 `폴더\파일명` 전체 경로를 각각 하나의 코드 문자열로 반드시 함께 제시하세요.
 - 후보가 여러 개면 질문의 대상 역할에 직접 맞는 항목만 먼저 답하고, 산출물이나 관련 스크립트는 사용자가 요청한 경우에만 별도로 구분해 설명하세요.
@@ -1055,9 +1221,6 @@ def build_context_prompt(
 - 질문 용어 중 참고 문서에 없는 이름만 짧게 구분하고, 문서에 있는 인접 스키마·엔드포인트는 출처 파일명과 함께 제시하세요.
 - **금지(매우 중요)**: "제공된 참고 문서에는 … 포함되어 있지 않습니다/명시되어 있지 않습니다", "문서에는 … 에 대한 정보가 없습니다" 같은 **장황한 면책·부정 문단**을 쓰지 마세요. 문서에 없는 세부는 **굳이 나열하지 말고 생략**하거나, 꼭 필요할 때만 한 문장으로 짧게 처리하세요.
 - 질문에 답하는 데 필요한 사실만 말하세요. 없는 내용을 억지로 채우지 마세요.
-- 사용자·단말기 수동 전송(`단말기 사용자 리스트`의 `[추가]`) 답변에서는 그 절차를 반드시 `[추가] → 사용자 선택 → > → [적용] → 해당 사용자 정보 단말기 전송` 순서로 한 줄 또는 번호 목록에 적으세요. `[단말기리스트]`는 이와 별개인 다른 화면이므로 상위 메뉴로 이어 붙이지 말고, `단말기 저장 리스트`는 수동 전송 절차의 메뉴가 아니므로 이 답변에 쓰지 마세요. 메뉴 경로를 이을 때 `>`를 breadcrumb 구분자로 쓰지 마세요. `>`는 팝업의 이동 버튼에만 사용하세요.
-- 사용자·단말기 자동 동기화 답변에서는 근거가 있을 때 사용자와 단말기가 `동일한 출입그룹`이어야 한다는 조건을 그대로 적으세요.
-- 사용자·단말기 자동 동기화 근거에 중복 ID `덮어쓰기`와 수동 제거 뒤 `다시 동기화`/`다시 다운로드`(또는 `다운로드 재진행`)가 있으면 해당 용어를 빠짐없이 문서 표기 그대로 적으세요.
 {image_rules}"""
 
 
@@ -1145,6 +1308,38 @@ def _composition_supplement_lines(context: str, missing_terms: list) -> list:
         else:
             lines.append(f"- **{term}**")
     return lines
+
+
+def repair_spaced_document_tokens(documents: list, answer: str) -> str:
+    """참고 문서 식별자가 답변에서 글자 사이 공백으로 깨진 경우 원형으로 복원합니다.
+
+    소형 모델이 `FaceWT`/`terminals`를 `FA W T`/`t e r m i n a l s`처럼 쪼개는
+    경우가 있어, 컨텍스트에 실제 등장하는 길이 4 이상 토큰만 대상으로 복원합니다.
+    """
+    if not answer or not documents:
+        return answer or ""
+    context = "\n".join(document.get("content", "") for document in documents)
+    if not context:
+        return answer
+    tokens = re.findall(
+        r"[A-Za-z][A-Za-z0-9_]{3,}|/[A-Za-z0-9_./{}-]{3,}",
+        context,
+    )
+    # 긴 토큰부터 치환해 부분 매칭이 짧은 토큰을 선점하지 않게 합니다.
+    unique_tokens = sorted(set(tokens), key=len, reverse=True)
+    result = answer
+    for token in unique_tokens[:80]:
+        # 글자 사이에 공백이 0개 이상 끼어 있는 변형만 잡고, 원문은 그대로 둡니다.
+        spaced_pattern = r"\s*".join(re.escape(ch) for ch in token)
+        loose = re.compile(spaced_pattern, re.IGNORECASE)
+        def _replace_if_broken(match: re.Match, original: str = token) -> str:
+            """공백이 실제로 끼어 있을 때만 문서 원형 토큰으로 되돌립니다."""
+            text = match.group(0)
+            if text == original or " " not in text:
+                return text
+            return original
+        result = loose.sub(_replace_if_broken, result)
+    return result
 
 
 def enforce_document_term_pairs(query: str, documents: list, answer: str) -> str:
@@ -1240,6 +1435,7 @@ class Pipeline:
         self.valves = self.Valves()
 
     def answer_options(self) -> dict:
+        """답변 생성용 Ollama options(num_ctx/num_predict)를 반환합니다."""
         return {"num_ctx": self.valves.NUM_CTX, "num_predict": self.valves.NUM_PREDICT}
 
     async def on_startup(self):
@@ -1273,9 +1469,21 @@ class Pipeline:
         messages: List[dict],
         body: dict,
     ) -> Union[str, Generator, Iterator]:
+        """RAG 파이프라인 진입점. 첫 yield로 즉시 상태를 알린 뒤 검색·생성을 수행합니다.
+
+        첫 yield 전에 재작성·검색·리랭크를 동기 수행하지 않습니다(PLF-20260801-001).
+        """
         chat_history = messages[:-1] if len(messages) > 1 else []
 
         print(f"\n[Step 1] 원본 질문: {user_message}")
+        model_swap = self.valves.REWRITE_MODEL != self.valves.ANSWER_MODEL
+        print(
+            f"[RAG] models rewrite={self.valves.REWRITE_MODEL} "
+            f"answer={self.valves.ANSWER_MODEL} swap={model_swap} "
+            f"use_query_rewrite={self.valves.USE_QUERY_REWRITE} "
+            f"rerank={self.valves.RERANK_ENABLED} "
+            f"rerank_candidates={self.valves.RERANK_CANDIDATES}"
+        )
 
         # Open WebUI 내부 작업(후속질문/제목/태그 등)은 RAG/재작성 스킵
         if is_openwebui_internal_task(user_message):
@@ -1283,6 +1491,11 @@ class Pipeline:
             stream = bool((body or {}).get("stream", True))
 
             def generate_internal():
+                """내부 작업은 RAG/status 없이 바로 답변만 반환합니다.
+
+                제목·태그 JSON에 '처리 중...' 문자열이 섞이면 파싱이 깨질 수 있어
+                status 문구를 본문에 yield하지 않습니다.
+                """
                 if stream:
                     yield from ollama_chat_stream(
                         base_url=self.valves.OLLAMA_BASE_URL,
@@ -1303,93 +1516,128 @@ class Pipeline:
 
             return generate_internal()
 
-        # Step 0: 후속 질문이면 이전 대화를 반영해 독립형 질문으로 변환.
-        # 검색·범위 필터·초점 추출은 전부 이 질문 기준으로 동작합니다.
-        retrieval_question = user_message
-        if self.valves.CONTEXTUALIZE_FOLLOW_UP and is_follow_up_question(user_message, chat_history):
-            retrieval_question = condense_question(
-                base_url=self.valves.OLLAMA_BASE_URL,
-                model=self.valves.REWRITE_MODEL,
-                question=user_message,
-                chat_history=chat_history,
-            )
-            if retrieval_question != user_message:
-                print(f"[Step 0] 후속 질문 감지 → 문맥 반영 질문: {retrieval_question}")
-
-        # 성능 목적: 질문 재작성 시 대화 컨텍스트를 반영하지 않음(문맥은 Step 0에서 반영됨)
-        if self.valves.USE_QUERY_REWRITE:
-            rewritten_query = rewrite_query(
-                base_url=self.valves.OLLAMA_BASE_URL,
-                model=self.valves.REWRITE_MODEL,
-                original_query=retrieval_question,
-                chat_history=[],
-            )
-        else:
-            rewritten_query = retrieval_question
-        rewritten_query = expand_retrieval_query(retrieval_question, rewritten_query)
-        print(f"[Step 1] 재작성된 쿼리: {rewritten_query}")
-
-        scope = detect_retrieval_scope(retrieval_question)
-        print(f"[Step 2] 검색 중... (top_k={self.valves.TOP_K}, scope={scope or 'none'})")
-        documents = retrieve_documents(
-            chroma_path=self.valves.CHROMA_PATH,
-            collection_name=self.valves.CHROMA_COLLECTION,
-            embedding_model=self.valves.EMBEDDING_MODEL,
-            query=rewritten_query,
-            top_k=self.valves.TOP_K,
-            min_relevance_score=self.valves.MIN_RELEVANCE_SCORE,
-            bm25_index_path=self.valves.BM25_INDEX_PATH,
-            vector_candidates=self.valves.VECTOR_CANDIDATES,
-            bm25_candidates=self.valves.BM25_CANDIDATES,
-            scope=scope,
-            max_chunks_per_source=self.valves.MAX_CHUNKS_PER_SOURCE,
-            rerank_enabled=self.valves.RERANK_ENABLED,
-            rerank_model=self.valves.RERANK_MODEL,
-            rerank_candidates=self.valves.RERANK_CANDIDATES,
-            # 리랭커는 재작성 변형이 아닌 (문맥 반영된) 질문과의 적합도를 봐야 합니다.
-            rerank_query=retrieval_question,
-        )
-        print(f"[Step 2] 검색된 문서: {len(documents)}개")
-
-        focus = extract_query_focus(retrieval_question)
-        if focus:
-            before = len(documents)
-            documents = filter_documents_by_focus(
-                documents, focus, self.valves.TOP_K
-            )
-            print(
-                f"[Step 2b] 질문 초점: 「{focus}」 → 초점 포함 청크만 사용 "
-                f"({before} → {len(documents)}개)"
-            )
-
-        documents = limit_documents_for_context(documents, self.valves.MAX_CONTEXT_CHARS)
-        print(f"[Step 2c] 답변 컨텍스트: {len(documents)}개 청크, 최대 {self.valves.MAX_CONTEXT_CHARS}자")
-
-        # 답변 프롬프트에도 문맥 반영 질문을 사용합니다. ("그거 자세히"보다 명확)
-        # 이전 대화는 answer_messages의 chat_history로 별도 전달됩니다.
-        context_prompt = build_context_prompt(retrieval_question, documents, focus=focus)
-
-        prefix = ""
-        if self.valves.SHOW_REWRITTEN_QUERY:
-            prefix += f"> **재작성된 검색 쿼리:** `{rewritten_query}`\n\n"
-        if self.valves.SHOW_SOURCES and documents:
-            sources = ", ".join(sorted(set(d["source"] for d in documents)))
-            prefix += f"> **참조 출처:** {sources}\n\n---\n\n"
-
-        print(f"[Step 3] 답변 생성 중... (모델: {self.valves.ANSWER_MODEL})")
-        system_message = (
-            "당신은 친절하고 정확한 AI 어시스턴트입니다. 주어진 참고 문서를 바탕으로 답변하세요. "
-            "이전 대화에 나온 다른 인물·추측은 무시하고, 이번 사용자 질문과 참고 문서만 따르세요. "
-            "질문에 특정 인물·주제가 있으면 그 범위를 벗어난 인물 이름·설명을 쓰지 마세요. "
-            "답변 말미에 '문서에는 … 없습니다' 식의 긴 면책 문장을 반복하지 마세요."
-        )
-        answer_messages = [
-            {"role": "system", "content": system_message},
-            *chat_history[-4:],  # 최근 2턴 유지
-            {"role": "user", "content": context_prompt},
-        ]
+        stream = bool((body or {}).get("stream", True))
 
         def generate():
+            """status 이벤트를 즉시 yield한 뒤 재작성·검색·답변 생성과 타이밍을 수행합니다."""
+            pipe_started = time.perf_counter()
+            # 첫 yield 전 장시간 동기 금지(PLF-20260801-001). 본문이 아닌 status 이벤트만 보냅니다.
+            if stream:
+                yield _status_event("문서 검색 준비 중...")
+            else:
+                # non-stream 연결 유지용 최소 신호(본문 assertion에서 제거 가능)
+                yield "\n"
+
+            retrieval_question = user_message
+            if self.valves.CONTEXTUALIZE_FOLLOW_UP and is_follow_up_question(
+                user_message, chat_history
+            ):
+                condense_started = time.perf_counter()
+                retrieval_question = condense_question(
+                    base_url=self.valves.OLLAMA_BASE_URL,
+                    model=self.valves.REWRITE_MODEL,
+                    question=user_message,
+                    chat_history=chat_history,
+                )
+                _log_timing(
+                    "contextualize",
+                    time.perf_counter() - condense_started,
+                    model=self.valves.REWRITE_MODEL,
+                )
+                if retrieval_question != user_message:
+                    print(f"[Step 0] 후속 질문 감지 → 문맥 반영 질문: {retrieval_question}")
+
+            if self.valves.USE_QUERY_REWRITE:
+                rewritten_query = rewrite_query(
+                    base_url=self.valves.OLLAMA_BASE_URL,
+                    model=self.valves.REWRITE_MODEL,
+                    original_query=retrieval_question,
+                    chat_history=[],
+                )
+            else:
+                rewritten_query = retrieval_question
+                _log_timing("query_rewrite", 0.0, skipped=True)
+            rewritten_query = expand_retrieval_query(retrieval_question, rewritten_query)
+            print(f"[Step 1] 재작성된 쿼리: {rewritten_query}")
+
+            scope = detect_retrieval_scope(retrieval_question)
+            print(f"[Step 2] 검색 중... (top_k={self.valves.TOP_K}, scope={scope or 'none'})")
+            if stream:
+                yield _status_event("관련 문서 검색 중...")
+            documents = retrieve_documents(
+                chroma_path=self.valves.CHROMA_PATH,
+                collection_name=self.valves.CHROMA_COLLECTION,
+                embedding_model=self.valves.EMBEDDING_MODEL,
+                query=rewritten_query,
+                top_k=self.valves.TOP_K,
+                min_relevance_score=self.valves.MIN_RELEVANCE_SCORE,
+                bm25_index_path=self.valves.BM25_INDEX_PATH,
+                vector_candidates=self.valves.VECTOR_CANDIDATES,
+                bm25_candidates=self.valves.BM25_CANDIDATES,
+                scope=scope,
+                max_chunks_per_source=self.valves.MAX_CHUNKS_PER_SOURCE,
+                rerank_enabled=self.valves.RERANK_ENABLED,
+                rerank_model=self.valves.RERANK_MODEL,
+                rerank_candidates=self.valves.RERANK_CANDIDATES,
+                # 리랭커는 재작성 변형이 아닌 (문맥 반영된) 질문과의 적합도를 봐야 합니다.
+                rerank_query=retrieval_question,
+            )
+            print(f"[Step 2] 검색된 문서: {len(documents)}개")
+
+            focus = extract_query_focus(retrieval_question)
+            if focus:
+                before = len(documents)
+                documents = filter_documents_by_focus(
+                    documents, focus, self.valves.TOP_K
+                )
+                print(
+                    f"[Step 2b] 질문 초점: 「{focus}」 → 초점 포함 청크만 사용 "
+                    f"({before} → {len(documents)}개)"
+                )
+
+            ctx_limit_started = time.perf_counter()
+            documents = limit_documents_for_context(
+                documents, self.valves.MAX_CONTEXT_CHARS
+            )
+            _log_timing(
+                "context_budget",
+                time.perf_counter() - ctx_limit_started,
+                docs=len(documents),
+                max_chars=self.valves.MAX_CONTEXT_CHARS,
+            )
+            print(
+                f"[Step 2c] 답변 컨텍스트: {len(documents)}개 청크, "
+                f"최대 {self.valves.MAX_CONTEXT_CHARS}자"
+            )
+
+            context_prompt = build_context_prompt(
+                retrieval_question, documents, focus=focus
+            )
+
+            prefix = ""
+            if self.valves.SHOW_REWRITTEN_QUERY:
+                prefix += f"> **재작성된 검색 쿼리:** `{rewritten_query}`\n\n"
+            if self.valves.SHOW_SOURCES and documents:
+                sources = ", ".join(sorted(set(d["source"] for d in documents)))
+                prefix += f"> **참조 출처:** {sources}\n\n---\n\n"
+
+            print(f"[Step 3] 답변 생성 중... (모델: {self.valves.ANSWER_MODEL})")
+            if stream:
+                yield _status_event("답변 생성 중...")
+            system_message = (
+                "당신은 친절하고 정확한 AI 어시스턴트입니다. 주어진 참고 문서를 바탕으로 답변하세요. "
+                "이전 대화에 나온 다른 인물·추측은 무시하고, 이번 사용자 질문과 참고 문서만 따르세요. "
+                "질문에 특정 인물·주제가 있으면 그 범위를 벗어난 인물 이름·설명을 쓰지 마세요. "
+                "답변 말미에 '문서에는 … 없습니다' 식의 긴 면책 문장을 반복하지 마세요. "
+                "필수 메뉴·경로·버튼명·API 식별자는 문서 철자 그대로 쓰고 글자 사이 공백을 넣지 마세요. "
+                "서론·반복·추측 금지. 가능하면 12줄 이내 불릿으로 작성하세요."
+            )
+            answer_messages = [
+                {"role": "system", "content": system_message},
+                *chat_history[-4:],  # 최근 2턴 유지
+                {"role": "user", "content": context_prompt},
+            ]
+
             if prefix:
                 yield prefix
             answer_parts = []
@@ -1403,13 +1651,40 @@ class Pipeline:
                 answer_parts.append(chunk)
                 yield chunk
             answer = "".join(answer_parts)
+            repaired = repair_spaced_document_tokens(documents, answer)
             completed_answer = enforce_document_term_pairs(
                 retrieval_question,
                 documents,
-                answer,
+                repaired,
             )
+            visible = f"{prefix}{answer}"
+            final_visible = f"{prefix}{completed_answer}"
             if completed_answer != answer:
-                yield completed_answer[len(answer):]
+                if completed_answer.startswith(answer):
+                    # 말미 보강만 있으면 이어서 스트리밍합니다.
+                    yield completed_answer[len(answer):]
+                elif stream:
+                    # 중간 글자 공백 복원 등은 Open WebUI replace 이벤트로 본문을 교체합니다.
+                    yield {
+                        "event": {
+                            "type": "replace",
+                            "data": {"content": final_visible},
+                        }
+                    }
+                else:
+                    yield completed_answer[len(answer):] if final_visible.startswith(
+                        visible
+                    ) else ""
+            if stream:
+                yield _status_event("", done=True)
+            _log_timing(
+                "pipe_wall_clock",
+                time.perf_counter() - pipe_started,
+                answer_chars=len(completed_answer),
+                docs=len(documents),
+                model_swap=model_swap,
+                num_predict=self.valves.NUM_PREDICT,
+            )
 
         return generate()
 
@@ -1671,6 +1946,107 @@ def _procedure_context_facets(query: str, content: str) -> set[str]:
     ):
         facets.add("terminal_list_composition")
     return facets
+
+
+def _terminal_user_mgmt_context_facets(query: str, content: str) -> set[str]:
+    """단말기 사용자 관리 메뉴 질문에서 청크가 담당하는 역할 집합을 반환합니다."""
+    if not is_terminal_user_management_intent(query):
+        return set()
+    normalized = (content or "").casefold()
+    facets: set[str] = set()
+    if _TERMINAL_USER_MGMT_MENU_PHRASE in normalized and (
+        "서버로" in normalized
+        or "단말로" in normalized
+        or "단말기에서만" in normalized
+        or "내려보내" in normalized
+    ):
+        facets.add("tum_overview")
+    if "가져오기" in normalized and "업로드" in normalized:
+        facets.add("tum_save_list")
+    if "단말기 사용자 리스트" in normalized and any(
+        marker in normalized for marker in ("추가", "적용", "전송")
+    ):
+        facets.add("tum_user_list_add")
+    return facets
+
+
+def complete_terminal_user_mgmt_context(
+    selected: list,
+    records: list,
+    query: str,
+    top_k: int,
+    scope: Optional[Dict[str, str]] = None,
+) -> list:
+    """메뉴 개요(p.39)·저장 리스트·사용자 리스트 추가 근거를 같은 출처에서 보충합니다.
+
+    리랭커가 일반 「사용자 관리」만 남긴 경우에도, 검색 후보 안에서 누락된 역할 청크를
+    끼워 넣어 생성 컨텍스트가 「단말기 사용자 관리」조작을 포함하게 합니다.
+    """
+    required = {"tum_overview", "tum_save_list", "tum_user_list_add"}
+    if not is_terminal_user_management_intent(query) or not selected or not records:
+        return selected
+    selected_keys = {
+        (doc.get("source", "unknown"), doc.get("content", "")) for doc in selected
+    }
+    result = list(selected)
+    covered: set[str] = set()
+    for document in result:
+        covered |= _terminal_user_mgmt_context_facets(query, document.get("content", ""))
+
+    for missing in required - covered:
+        candidates = []
+        focus_sources = {doc.get("source", "unknown") for doc in result}
+        for record in records:
+            metadata = record.get("metadata") or {}
+            if not _metadata_matches_scope(metadata, scope):
+                continue
+            source = metadata.get("source", "unknown")
+            content = record.get("document", "")
+            key = (source, content)
+            if source not in focus_sources or key in selected_keys:
+                continue
+            facets = _terminal_user_mgmt_context_facets(query, content)
+            if missing not in facets:
+                continue
+            score = terminal_user_mgmt_evidence_score(query, content)
+            if missing == "tum_overview" and _TERMINAL_USER_MGMT_MENU_PHRASE in content:
+                score += 0.2
+            if missing == "tum_save_list" and "가져오기" in content:
+                score += 0.2
+            if missing == "tum_user_list_add" and "단말기 사용자 리스트" in content:
+                score += 0.2
+            candidates.append((score, content, source, metadata, facets))
+        if not candidates:
+            continue
+        _, content, source, metadata, facets = max(candidates, key=lambda item: item[0])
+        candidate = {
+            "content": content,
+            "source": source,
+            "score": 0.0,
+            "metadata": metadata,
+            "terminal_user_mgmt_context": missing,
+        }
+        if len(result) < top_k:
+            result.append(candidate)
+        else:
+            replace_index = next(
+                (
+                    index
+                    for index in range(len(result) - 1, -1, -1)
+                    if not _terminal_user_mgmt_context_facets(
+                        query, result[index].get("content", "")
+                    )
+                ),
+                len(result) - 1,
+            )
+            removed = result[replace_index]
+            selected_keys.discard(
+                (removed.get("source", "unknown"), removed.get("content", ""))
+            )
+            result[replace_index] = candidate
+        selected_keys.add((source, content))
+        covered |= facets
+    return result
 
 
 def complete_procedure_context(
@@ -2061,10 +2437,11 @@ def retrieve_documents(
     rerank_candidates: int = DEFAULT_RERANK_CANDIDATES,
     rerank_query: Optional[str] = None,
 ) -> list:
-    """Fuse dense BGE-M3 and exact-keyword BM25 rankings with RRF, then rerank."""
+    """벡터+BM25+RRF 후 선택적 리랭크로 문서를 검색하고 단계 시간을 기록합니다."""
     intent_query = rerank_query or query
     list_intent = detect_list_completeness_intent(intent_query)
     procedure_intent = is_user_terminal_procedure_intent(intent_query)
+    terminal_user_mgmt_intent = is_terminal_user_management_intent(intent_query)
     automated_build_intent = is_automated_build_intent(intent_query)
     candidate_count = max(top_k, vector_candidates, rerank_candidates if rerank_enabled else 0)
     # API/스키마 질문은 같은 swagger 안의 여러 엔드포인트·정의 청크가 필요하므로
@@ -2077,6 +2454,13 @@ def retrieve_documents(
         # 표·TOC가 페이지·섹션 경계에서 잘려도 동일 출처 연속 목록을 더 모읍니다.
         effective_max_chunks = max(effective_max_chunks, 8)
         effective_top_k = max(top_k, 8)
+        candidate_count = max(candidate_count, 30)
+        bm25_candidates = max(bm25_candidates, 30)
+    if terminal_user_mgmt_intent:
+        # 메뉴 개요와 저장 리스트·사용자 리스트 조작이 인접 페이지로 나뉘므로
+        # 동일 출처에서 역할을 함께 보존합니다.
+        effective_max_chunks = max(effective_max_chunks, 4)
+        effective_top_k = max(top_k, 4)
         candidate_count = max(candidate_count, 30)
         bm25_candidates = max(bm25_candidates, 30)
     if procedure_intent:
@@ -2098,9 +2482,21 @@ def retrieve_documents(
     def _finalize(candidates: list, records_for_coverage: Optional[list] = None) -> list:
         working = candidates
         if rerank_enabled:
-            working = rerank_documents(
-                intent_query, working, rerank_model, candidate_count
+            # 리랭크는 상위 N개만 채점해 지연을 줄이고, 나머지는 RRF 순으로 뒤에 둡니다.
+            rerank_n = max(1, min(len(working), rerank_candidates))
+            rerank_started = time.perf_counter()
+            head = rerank_documents(
+                intent_query, working[:rerank_n], rerank_model, rerank_n
             )
+            working = head + working[rerank_n:]
+            _log_timing(
+                "rerank",
+                time.perf_counter() - rerank_started,
+                scored=rerank_n,
+                total_candidates=len(candidates),
+                model=rerank_model,
+            )
+        assemble_started = time.perf_counter()
         limited = limit_documents_per_source(working, effective_top_k, effective_max_chunks)
         expanded = expand_catalog_chunks_from_candidates(
             limited,
@@ -2109,11 +2505,17 @@ def retrieve_documents(
             effective_top_k,
             effective_max_chunks,
         )
-        return complete_automated_build_context(
+        finalized = complete_automated_build_context(
             complete_catalog_hex_coverage(
                 complete_build_output_context(
-                    complete_procedure_context(
-                        expanded,
+                    complete_terminal_user_mgmt_context(
+                        complete_procedure_context(
+                            expanded,
+                            records_for_coverage or [],
+                            intent_query,
+                            effective_top_k,
+                            scope,
+                        ),
                         records_for_coverage or [],
                         intent_query,
                         effective_top_k,
@@ -2135,18 +2537,32 @@ def retrieve_documents(
             effective_top_k,
             scope,
         )
+        _log_timing(
+            "context_assemble",
+            time.perf_counter() - assemble_started,
+            docs=len(finalized),
+        )
+        return finalized
 
+    hybrid_started = time.perf_counter()
     vector_docs = retrieve_vector_documents(
         chroma_path, collection_name, embedding_model, query,
         candidate_count, min_relevance_score, scope,
     )
     records, bm25 = _get_bm25_index(bm25_index_path)
     if not records or bm25 is None:
+        _log_timing(
+            "hybrid_search",
+            time.perf_counter() - hybrid_started,
+            vector=len(vector_docs),
+            bm25=0,
+        )
         return _finalize(vector_docs, [])
     allowed = [index for index, record in enumerate(records)
                if _metadata_matches_scope(record.get("metadata"), scope)]
     if not allowed:
         print(f"[RAG] No documents matched required scope: {scope}")
+        _log_timing("hybrid_search", time.perf_counter() - hybrid_started, vector=len(vector_docs), bm25=0)
         return []
     scores = [0.0] * len(records)
     for query_variant in [q for q in query.splitlines() if q.strip()]:
@@ -2161,5 +2577,12 @@ def retrieve_documents(
         metadata = record.get("metadata") or {}
         bm25_docs.append({"content": record.get("document", ""), "source": metadata.get("source", "unknown"), "score": scores[index], "metadata": metadata})
     merged = _rrf_merge(vector_docs, bm25_docs, candidate_count, query=intent_query)
+    _log_timing(
+        "hybrid_search",
+        time.perf_counter() - hybrid_started,
+        vector=len(vector_docs),
+        bm25=len(bm25_docs),
+        merged=len(merged),
+    )
     return _finalize(merged, records)
 

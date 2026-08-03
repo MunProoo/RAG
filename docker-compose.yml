@@ -86,18 +86,20 @@ services:
       - BM25_INDEX_PATH=/app/chroma_db/bm25_index.json
       - TOP_K=4
       - MAX_CHUNKS_PER_SOURCE=2
-      - MAX_CONTEXT_CHARS=12000
+      # 지연 최적화: 문서 컨텍스트 축소. NUM_PREDICT는 length 조기절단 방지 여유 유지
+      - MAX_CONTEXT_CHARS=2800
       - OLLAMA_NUM_CTX=8192
-      - OLLAMA_NUM_PREDICT=2048
+      - OLLAMA_NUM_PREDICT=768
       - OLLAMA_READ_TIMEOUT=600
       - REWRITE_MODEL=qwen3.5:4b
       - ANSWER_MODEL=qwen3.5:4b
       # 크로스 인코더 리랭커 (로드 실패 시 자동으로 RRF 순위 폴백)
       - RERANK_ENABLED=true
       - RERANK_MODEL=BAAI/bge-reranker-v2-m3
-      - RERANK_CANDIDATES=20
+      # 리랭크 채점 후보 축소(코드는 상위 N만 크로스인코더 채점)
+      - RERANK_CANDIDATES=8
       # false로 두면 LLM 질문 재작성을 생략해 응답 지연이 줄어듭니다.
-      - USE_QUERY_REWRITE=true
+      - USE_QUERY_REWRITE=false
       # 후속 질문("그거 자세히")을 이전 대화 기반 독립형 질문으로 바꿔 검색
       - CONTEXTUALIZE_FOLLOW_UP=true
     restart: unless-stopped

@@ -118,5 +118,16 @@
       "D:\\nsis\\install",
       "자동화 버전"
     ]
+  },
+  {
+    "question": "alpeta 단말기 사용자 관리 메뉴 사용법 알려줘",
+    "expected_source": "Alpeta User Guide.pdf",
+    "expected_keywords": [
+      "단말기 사용자 관리",
+      "가져오기",
+      "업로드",
+      "추가",
+      "단말기에서만"
+    ]
   }
 ]
