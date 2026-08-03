@@ -77,6 +77,10 @@ DEFAULT_MAX_CHUNKS_PER_SOURCE = int(os.getenv("MAX_CHUNKS_PER_SOURCE", "2"))
 DEFAULT_RERANK_ENABLED = os.getenv("RERANK_ENABLED", "true").lower() == "true"
 DEFAULT_RERANK_MODEL = os.getenv("RERANK_MODEL", "BAAI/bge-reranker-v2-m3")
 DEFAULT_RERANK_CANDIDATES = int(os.getenv("RERANK_CANDIDATES", "20"))
+# false면 크로스인코더를 건너뛰고 기술 근거 점수만으로 재정렬해 검색 지연을 줄입니다.
+DEFAULT_RERANK_NEURAL = os.getenv("RERANK_NEURAL", "true").lower() == "true"
+# Ollama 모델 상주 유지(재로드 방지). 예: 30m, -1(무기한)
+DEFAULT_OLLAMA_KEEP_ALIVE = os.getenv("OLLAMA_KEEP_ALIVE", "30m")
 
 # false면 LLM 재작성을 생략하고 원본 질문 + 규칙 기반 확장만 사용합니다(지연 감소).
 DEFAULT_USE_QUERY_REWRITE = os.getenv("USE_QUERY_REWRITE", "true").lower() == "true"
@@ -686,10 +690,12 @@ def ollama_chat(
     stream: bool = False,
     options: Optional[dict] = None,
     read_timeout: int = DEFAULT_OLLAMA_READ_TIMEOUT,
+    keep_alive: Optional[str] = None,
 ) -> str:
     """Ollama chat API를 호출합니다(think=false 유지, 빈 content 폴백).
 
     content가 비고 eval_count>0이면 thinking 필드로 폴백하고 경고를 남깁니다.
+    keep_alive로 모델 상주를 유지해 재로드 지연을 줄입니다.
     """
     url = f"{base_url}/api/chat"
     # 일부 Ollama 모델은 think/thinking 옵션을 지원합니다.
@@ -697,6 +703,9 @@ def ollama_chat(
     payload = {"model": model, "messages": messages, "stream": stream, "think": False}
     if options:
         payload["options"] = options
+    alive = DEFAULT_OLLAMA_KEEP_ALIVE if keep_alive is None else keep_alive
+    if alive != "":
+        payload["keep_alive"] = alive
     response = requests.post(url, json=payload, timeout=(10, read_timeout))
     response.raise_for_status()
     data = response.json()
@@ -719,16 +728,21 @@ def ollama_chat_stream(
     messages: list,
     options: Optional[dict] = None,
     read_timeout: int = DEFAULT_OLLAMA_READ_TIMEOUT,
+    keep_alive: Optional[str] = None,
 ) -> Generator[str, None, None]:
     """Ollama chat API 스트리밍 버전(think=false, TTFT·빈 content 경고/폴백).
 
     첫 content 토큰까지(TTFT)와 전체 생성 시간을 로그하고, content가 비었는데
     eval_count>0이면 thinking 조각을 폴백으로 yield합니다.
+    keep_alive로 모델 상주를 유지해 재로드 지연을 줄입니다.
     """
     url = f"{base_url}/api/chat"
     payload = {"model": model, "messages": messages, "stream": True, "think": False}
     if options:
         payload["options"] = options
+    alive = DEFAULT_OLLAMA_KEEP_ALIVE if keep_alive is None else keep_alive
+    if alive != "":
+        payload["keep_alive"] = alive
     started = time.perf_counter()
     first_token_at: Optional[float] = None
     content_chars = 0
@@ -1342,6 +1356,34 @@ def repair_spaced_document_tokens(documents: list, answer: str) -> str:
     return result
 
 
+def enforce_terminal_user_mgmt_menu_name(
+    query: str, documents: list, answer: str
+) -> str:
+    """단말기 사용자 관리 답변에서 메뉴명·가져오기·업로드 누락을 문서 근거로 보강합니다.
+
+    컨텍스트에 해당 근거가 있을 때만 동작하며, 스트림 말미에 이어 붙여 replace를 피합니다.
+    """
+    if not is_terminal_user_management_intent(query):
+        return answer or ""
+    result = answer or ""
+    context = "\n".join(document.get("content", "") for document in documents)
+    if _TERMINAL_USER_MGMT_MENU_PHRASE not in context:
+        return result
+    parts: List[str] = []
+    if _TERMINAL_USER_MGMT_MENU_PHRASE not in result:
+        parts.append(
+            f"- {_TERMINAL_USER_MGMT_MENU_PHRASE}: 단말기에 등록된 사용자 정보를 "
+            "삭제하거나 서버로 가져오고, 서버 사용자를 단말로 전송하는 메뉴입니다."
+        )
+    if "가져오기" in context and "가져오기" not in result:
+        parts.append("- 단말기 저장 리스트: 가져오기로 단말 사용자를 불러옵니다.")
+    if "업로드" in context and "업로드" not in result:
+        parts.append("- 단말기 저장 리스트: 불러온 사용자 정보를 알페타로 업로드합니다.")
+    if not parts:
+        return result
+    return f"{result.rstrip()}\n\n" + "\n".join(parts)
+
+
 def enforce_document_term_pairs(query: str, documents: list, answer: str) -> str:
     """문서에 명시된 필수 UI·절차 용어가 답변에서 축약·의역될 때 원문을 보존합니다.
 
@@ -1350,6 +1392,8 @@ def enforce_document_term_pairs(query: str, documents: list, answer: str) -> str
     줄을 보완하며, (3) 재동기화·재다운로드 쌍이 축약되면 원문 표현을 스트림 끝에
     추가합니다. 특정 질문에 답을 고정하지 않고 컨텍스트 근거가 있을 때만 동작합니다.
     """
+    if is_terminal_user_management_intent(query):
+        return enforce_terminal_user_mgmt_menu_name(query, documents, answer)
     if not is_user_terminal_procedure_intent(query):
         return answer
 
@@ -1424,8 +1468,10 @@ class Pipeline:
         RERANK_ENABLED: bool = DEFAULT_RERANK_ENABLED
         RERANK_MODEL: str = DEFAULT_RERANK_MODEL
         RERANK_CANDIDATES: int = DEFAULT_RERANK_CANDIDATES
+        RERANK_NEURAL: bool = DEFAULT_RERANK_NEURAL
         USE_QUERY_REWRITE: bool = DEFAULT_USE_QUERY_REWRITE
         CONTEXTUALIZE_FOLLOW_UP: bool = DEFAULT_CONTEXTUALIZE_FOLLOW_UP
+        OLLAMA_KEEP_ALIVE: str = DEFAULT_OLLAMA_KEEP_ALIVE
 
         SHOW_SOURCES: bool = True
         SHOW_REWRITTEN_QUERY: bool = False
@@ -1482,6 +1528,7 @@ class Pipeline:
             f"answer={self.valves.ANSWER_MODEL} swap={model_swap} "
             f"use_query_rewrite={self.valves.USE_QUERY_REWRITE} "
             f"rerank={self.valves.RERANK_ENABLED} "
+            f"rerank_neural={self.valves.RERANK_NEURAL} "
             f"rerank_candidates={self.valves.RERANK_CANDIDATES}"
         )
 
@@ -1503,6 +1550,7 @@ class Pipeline:
                         messages=messages,
                         options=self.answer_options(),
                         read_timeout=self.valves.OLLAMA_READ_TIMEOUT,
+                        keep_alive=self.valves.OLLAMA_KEEP_ALIVE,
                     )
                 else:
                     yield ollama_chat(
@@ -1512,6 +1560,7 @@ class Pipeline:
                         stream=False,
                         options=self.answer_options(),
                         read_timeout=self.valves.OLLAMA_READ_TIMEOUT,
+                        keep_alive=self.valves.OLLAMA_KEEP_ALIVE,
                     )
 
             return generate_internal()
@@ -1579,6 +1628,7 @@ class Pipeline:
                 rerank_enabled=self.valves.RERANK_ENABLED,
                 rerank_model=self.valves.RERANK_MODEL,
                 rerank_candidates=self.valves.RERANK_CANDIDATES,
+                rerank_neural=self.valves.RERANK_NEURAL,
                 # 리랭커는 재작성 변형이 아닌 (문맥 반영된) 질문과의 적합도를 봐야 합니다.
                 rerank_query=retrieval_question,
             )
@@ -1647,6 +1697,7 @@ class Pipeline:
                 messages=answer_messages,
                 options=self.answer_options(),
                 read_timeout=self.valves.OLLAMA_READ_TIMEOUT,
+                keep_alive=self.valves.OLLAMA_KEEP_ALIVE,
             ):
                 answer_parts.append(chunk)
                 yield chunk
@@ -1759,16 +1810,24 @@ def _get_reranker(model_name: str):
     return model
 
 
-def rerank_documents(query: str, documents: list, model_name: str, top_k: int) -> list:
+def rerank_documents(
+    query: str,
+    documents: list,
+    model_name: str,
+    top_k: int,
+    use_neural: bool = True,
+) -> list:
     """크로스 인코더 점수에 기술 토큰·파일 역할 근거 점수를 결합합니다.
 
-    모델이 없을 때도 결정적 근거 점수로 정렬하며, 점수가 같은 문서는 기존 RRF
-    순서를 유지합니다.
+    use_neural=False이거나 모델이 없으면 결정적 근거 점수만으로 정렬하며,
+    점수가 같은 문서는 기존 RRF 순서를 유지합니다.
     """
     if len(documents) <= 1:
         return documents[:top_k]
-    model = _get_reranker(model_name)
     question = next((line.strip() for line in (query or "").splitlines() if line.strip()), query)
+    model = _get_reranker(model_name) if use_neural else None
+    if not use_neural:
+        print("[RAG] Rerank neural skipped; using technical evidence order")
     if model is None:
         scores = [0.0] * len(documents)
     else:
@@ -2046,7 +2105,20 @@ def complete_terminal_user_mgmt_context(
             result[replace_index] = candidate
         selected_keys.add((source, content))
         covered |= facets
-    return result
+
+    # 메뉴 개요 청크를 앞에 두어 생성기가 정식 메뉴명을 먼저 보도록 합니다.
+    def _tum_sort_key(document: dict) -> tuple:
+        """overview → save_list → user_list → 기타 순으로 정렬 키를 만듭니다."""
+        facets = _terminal_user_mgmt_context_facets(query, document.get("content", ""))
+        if "tum_overview" in facets:
+            return (0, document.get("source", ""))
+        if "tum_save_list" in facets:
+            return (1, document.get("source", ""))
+        if "tum_user_list_add" in facets:
+            return (2, document.get("source", ""))
+        return (3, document.get("source", ""))
+
+    return sorted(result, key=_tum_sort_key)
 
 
 def complete_procedure_context(
@@ -2435,6 +2507,7 @@ def retrieve_documents(
     rerank_enabled: bool = False,
     rerank_model: str = DEFAULT_RERANK_MODEL,
     rerank_candidates: int = DEFAULT_RERANK_CANDIDATES,
+    rerank_neural: bool = DEFAULT_RERANK_NEURAL,
     rerank_query: Optional[str] = None,
 ) -> list:
     """벡터+BM25+RRF 후 선택적 리랭크로 문서를 검색하고 단계 시간을 기록합니다."""
@@ -2478,6 +2551,11 @@ def retrieve_documents(
         effective_top_k = max(top_k, 4)
         candidate_count = max(candidate_count, 30)
         bm25_candidates = max(bm25_candidates, 30)
+    # 신경 리랭크를 끄면 후보 과확장을 억제해 hybrid_search 지연을 줄입니다.
+    # 절차/메뉴 완성 로직은 records 전체를 스캔하므로 후보 축소와 독립입니다.
+    if rerank_enabled and not rerank_neural:
+        candidate_count = min(candidate_count, max(effective_top_k, vector_candidates, 16))
+        bm25_candidates = min(bm25_candidates, max(effective_top_k, 16))
 
     def _finalize(candidates: list, records_for_coverage: Optional[list] = None) -> list:
         working = candidates
@@ -2486,7 +2564,11 @@ def retrieve_documents(
             rerank_n = max(1, min(len(working), rerank_candidates))
             rerank_started = time.perf_counter()
             head = rerank_documents(
-                intent_query, working[:rerank_n], rerank_model, rerank_n
+                intent_query,
+                working[:rerank_n],
+                rerank_model,
+                rerank_n,
+                use_neural=rerank_neural,
             )
             working = head + working[rerank_n:]
             _log_timing(
@@ -2494,7 +2576,8 @@ def retrieve_documents(
                 time.perf_counter() - rerank_started,
                 scored=rerank_n,
                 total_candidates=len(candidates),
-                model=rerank_model,
+                model=rerank_model if rerank_neural else "evidence_only",
+                neural=rerank_neural,
             )
         assemble_started = time.perf_counter()
         limited = limit_documents_per_source(working, effective_top_k, effective_max_chunks)

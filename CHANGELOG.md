@@ -5,6 +5,22 @@
 
 ## [Unreleased]
 
+### 응답 지연 목표(80%)·GPU Ollama·품질 가드레일 (2026-08-03)
+
+성능 목표(TTFT 2초 / 일반 5–8초 / 긴 설명 10–15초 / 검색 500ms / 동시 10–20명)의 **최소 80%**를 warm 단독 기준으로 맞추고, 기존 답변 품질(단말기 사용자 관리 등)은 유지했습니다.
+
+- **`docker-compose.yml`**: compose GPU `ollama` 서비스 추가(`gpus: all`, `OLLAMA_KEEP_ALIVE=30m`, `OLLAMA_NUM_PARALLEL=2`). pipelines/open-webui의 `OLLAMA_*`를 `http://ollama:11434`로 연결. 호스트 `%USERPROFILE%\.ollama`를 컨테이너에 바인드해 기존 pull 모델을 재사용합니다. `USE_QUERY_REWRITE=false`, `RERANK_NEURAL=false`(크로스인코더 대신 evidence 리랭크), `VECTOR/BM25_CANDIDATES=12`, `OLLAMA_NUM_CTX=4096`, `OLLAMA_NUM_PREDICT=768` 유지.
+- **`rag/pipelines/rag_pipeline.py`**: 단계별 `[RAG] timing` 로그, 진행 상태를 `event.type=status`로 분리(본문 미혼입), evidence-only 리랭크·`keep_alive` 전달, 식별자 공백 복원, 「단말기 사용자 관리」(User Guide p.39–40) 전용 의도·확장·프롬프트·품질 enforce 유지.
+- **`rag/scripts/index_documents.py`**: PDF 「단말기 사용자 관리」섹션 분리(재인덱싱 반영, 청크 1592).
+- **회귀·평가**: `golden_questions.json`에 `terminal_user_management` 추가, `test_rag_regression.py` 보강. warm 측정 예: TTFT ~0.9s, 일반 wall ~2s, 긴 설명 ~7–9s, 검색 151–375ms. regression 71/71. 동시 5명 P95는 단독×2 대비 PARTIAL(실패율 0).
+- **운영**: 호스트에서 11434를 쓰는 Ollama가 있으면 **서비스는 중지**한 뒤 `docker compose up -d`로 compose `ollama`를 기동하세요. 모델 디렉터리(`%USERPROFILE%\.ollama`)는 compose가 재사용하므로 **폴더 삭제 금지**. 호스트 Ollama **앱만** 제거하는 것은 가능하나, 제거 전 compose GPU 경로로 답이 나오는지 확인하세요.
+- 측정·이상답 근거: `rag/data/eval/artifacts/15_*`, `16_*`, `17_*`, `18_perf_comparison.md` 등.
+
+### 지연 최적화 부작용 복구·단말기 사용자 관리 답변 정렬 (2026-08-03)
+
+- **빈/깨진 답변처럼 보이던 회귀**: `OLLAMA_NUM_PREDICT` 과소(`reason=length` 조기 절단)와 status 문자열의 content 혼입을 수정. predict **768**, status는 event 분리, 식별자 공백 복원(`PLF-20260803-001`).
+- **「alpeta 단말기 사용자 관리 메뉴」**: p.34 단말기 정보·일반 사용자 등록(고유아이디/권한8) 혼입 대신 User Guide **p.39–40** 메뉴(가져오기/업로드/추가·단말기에서만 삭제)로 정렬. ideal: `17_ideal_terminal_user_mgmt.md`.
+
 ### 알페타 자동화 버전 빌드 절 완결성·사용자 단말기 이중 방법 분리 (2026-08-02)
 
 - **이슈 1: "알페타 설치 패키지 빌드(자동화 버전)" 전체가 안 나옴**

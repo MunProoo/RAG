@@ -1198,6 +1198,43 @@ class TerminalUserManagementIntentTests(unittest.TestCase):
         self.assertIn("고유아이디", prompt)
         self.assertIn("쓰지 마세요", prompt)
 
+    def test_enforce_adds_menu_name_when_missing(self):
+        """생성 답변에 메뉴명이 없으면 문서 근거가 있을 때 보강합니다."""
+        documents = [
+            {
+                "source": "Alpeta User Guide.pdf",
+                "content": (
+                    "단말기 사용자 관리 단말기에 등록된 사용자 정보를 삭제. "
+                    "가져오기와 업로드가 있습니다."
+                ),
+            }
+        ]
+        completed = rag_pipeline.enforce_document_term_pairs(
+            self.QUESTION,
+            documents,
+            "- 추가 후 적용하여 전송합니다.",
+        )
+        self.assertIn("단말기 사용자 관리", completed)
+        self.assertIn("가져오기", completed)
+        self.assertIn("업로드", completed)
+
+    def test_rerank_neural_false_skips_cross_encoder(self):
+        """RERANK_NEURAL=false면 크로스인코더를 호출하지 않습니다."""
+        documents = [
+            {"source": "a.pdf", "content": "단말기 사용자 관리 가져오기 업로드", "score": 0.5},
+            {"source": "b.pdf", "content": "일반 텍스트", "score": 0.9},
+        ]
+        with patch.object(rag_pipeline, "_get_reranker") as get_reranker:
+            ranked = rag_pipeline.rerank_documents(
+                self.QUESTION,
+                documents,
+                "fake-model",
+                top_k=2,
+                use_neural=False,
+            )
+            get_reranker.assert_not_called()
+        self.assertEqual(len(ranked), 2)
+
 
 class FollowUpContextTests(unittest.TestCase):
     """후속 질문 감지와 문맥 반영 질문 변환(question condensing) 검증."""
