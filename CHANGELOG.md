@@ -5,6 +5,21 @@
 
 ## [Unreleased]
 
+### 검색 키워드 완화·User Guide QA·API 카탈로그 (2026-08-04)
+
+루프 `25_*`~`36_*` 품질 개선을 반영했습니다. 청킹·임베딩 변경 없음 → **재인덱싱 불필요**(청크 ~1592). 코드 반영: `docker compose up -d --force-recreate pipelines`. regression 최종 약 **137/137**.
+
+1. **위겐드/wiegand** (`29_*`): 한글 `위겐드`·소문자 `wiegand` 동의어 → Set Wiegand(`0x0041`)·`WiegandConfig`·`base`/`device_type` enforce. 「문서에 없다」오답·Config 필드 누락 완화.
+2. **FaceWT A/B 불일치** (`30_*`): 「알려」+CamelCase가 프로토콜 hex 의도로 오분류되며 Holiday로 빗나가던 문제. API/FaceWT면 hex expand 차단·고정 검색 확장·FAW=FaceWT.
+3. **FaceWT `/scan/facewt` 완결** (`31_*`): top-k가 `faceWTInfo`만 채워 scan 경로가 빠지던 `retrieval_miss` → `extract_api_paths_from_documents` / `complete_related_api_endpoint_chunks` / `enforce_api_endpoint_catalog`로 API 주제 카탈로그 일반화. probe·골든은 path **AND**.
+4. **문서별 Q&A** (`32_*`): 핵심 문서 5종×2~3문항 → `rag/data/eval/doc_qa/<slug>/{questions,expected_answers}.md`. FAIL분(펌웨어·login·authLogs·출입그룹·미디어 용량 등) 최소 수정. PLF-20260804-002(MediaServer 15GB AND).
+5. **User Guide 10문항** (`33_*`~`34_*`): `doc_qa/alpeta_user_guide_v2/` 타임존·공휴일·출입구역·인증로그·**일반설정 자동동기화** 등. UG UI intent로 `user_guide` 스코프·절차 enforce. Q9는 수동 전송 주답 금지·p.126 자동동기화 고정 (PLF-20260804-003).
+6. **모니터링 상태 아이콘** (`35_*`): 연결상태 1차·후속「표로」에 녹/적 원·출입문 이벤트 설명 AND. 후속 주제 `terminal_monitor` 유지(근태/MediaServer 오염 금지).
+7. **한글↔Swagger 키워드 완화** (`36_*`): `_API_ENTITY_LEXICON`(출입그룹↔accessGroups, 사용자/단말기/타임존/공휴일 등). **「…API/swagger」면 api 스코프 우선**, 「출입그룹 어떻게 추가」UI는 UG 유지. CamelCase `AccessGroup`만 되던 문제를 자연어로 완화.
+8. **v4 목록·Set Wiegand 선행** (`25_*`~`28_*`): 프로토콜 리스트업 출입그룹∧스냅샷, Set Wiegand/WiegandConfig 생성 누락 보강, artifact 키 case-safe(`*_lc`/`*_title`). PLF-20260803-005, PLF-20260804-001.
+9. 문서: `rag/data/eval/doc_qa/`, `PL_FAILURE_LOG.md` 예방 체크리스트, `golden_questions.json`·`test_rag_regression.py` 누적.
+10. 근거 artifact: `rag/data/eval/artifacts/25_*`~`36_*` (root_cause·ideal·compare·post pipe).
+
 ### 후속 문맥·MediaServer·인물 검색 정확도 (2026-08-03)
 
 d280a2f 이후 품질·문맥·검색 회귀를 정리했습니다. 재인덱싱은 **불필요**(청크 ~1592 유지). 코드 반영: `docker compose up -d --force-recreate pipelines`. regression 최종 약 **89/89**.

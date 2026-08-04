@@ -13,12 +13,13 @@
 ## 최근 핵심 개선 (2026-08 요약)
 
 - **파일 역할 구분**: NSIS `.bat`(자동화) / `.nsi`(스크립트) / `.exe`(산출물). 설치 확인 폴더는 `D:\nsis\install`, device setup은 `D:\nsis\Alpeta\setup` 등으로 구분.
-- **API/Swagger**: `document_type=api`, FaceWT 등 CamelCase 보존, product 필터 완화. swagger md 재생성 후 `--reset` 재인덱싱.
-- **v4 프로토콜 전체 리스트**: TOC/카탈로그 큰 청크 + 목록 완결성 규칙.
-- **User Guide 절차**: 단말기 추가·자동동기화의 **두 방법 분리**, `[단말기리스트]` 등 UI 표기 보존.
+- **API/Swagger**: `document_type=api`, FaceWT 등 CamelCase 보존, product 필터 완화. **한글 UI명↔경로 동의어**(출입그룹↔`/v1/accessGroups` 등)로 CamelCase 없이도 swagger 검색. API 주제는 관련 엔드포인트 카탈로그 완결(`faceWTInfo` **및** `/scan/facewt`).
+- **v4 프로토콜**: TOC/카탈로그 완결(출입그룹∧스냅샷), 위겐드/`0x0041`/`WiegandConfig` 동의어·필드 enforce.
+- **User Guide 절차**: 타임존·공휴일·출입구역·모니터링(녹/적 상태 아이콘)·일반설정 자동동기화 등 UI 의도·enforce. 수동 전송과 자동동기화 질문 분리. 문서별 Q&A: `rag/data/eval/doc_qa/`.
+- **후속 「표로」**: 최근 주제(MediaServer / FaceWT·스키마 / 자동빌드 / 모니터링) 유지, 교차 오염 금지.
 - **자동화 버전 빌드**: `build_install.bat` 하위 작업 포함 1~7단계 완결, 수동(MakeNSISW) 혼입 금지.
-- **평가**: 회귀 약 **60개** (`test_rag_regression.py`) + 골든 질문셋. 성공 = 출처 + 필수 키워드 전부. 이상적 답변은 `rag/data/eval/artifacts/ideal_answer_*.md`.
-- **연동**: pipelines `http://pipelines:9099`, DB 복구 시 chat 스키마(`pinned`/`meta`/`folder_id`, chat JSON)·config 확인. qwen은 `think:false`, 첫 토큰 전 긴 동기 작업 시 UI 무응답처럼 보일 수 있음.
+- **평가**: 회귀 약 **137개** (`test_rag_regression.py`) + 골든 질문셋. 성공 = 출처 + 필수 키워드 전부(AND). 이상적 답·루프 근거: `rag/data/eval/artifacts/` (`ideal_*`, `*_root_cause.md`, `2x_*`~`36_*`).
+- **연동**: pipelines `http://pipelines:9099`. compose GPU Ollama(`http://ollama:11434`) 권장. qwen은 `think:false`, status는 `event.type=status`로 본문과 분리.
 
 상세·운영 주의는 위 가이드와 `PL_FAILURE_LOG.md`를 보세요. 비밀값·전체 로그는 문서에 넣지 않습니다.
 
@@ -104,7 +105,7 @@ docker compose build indexer
 docker compose up -d --force-recreate pipelines
 docker compose run --rm indexer python /app/scripts/index_documents.py /app/docs --reset
 
-# 모델 없이 실행 가능한 검색/스트림 회귀 테스트 (약 60개)
+# 모델 없이 실행 가능한 검색/스트림 회귀 테스트 (약 137개)
 docker compose run --rm --no-deps --entrypoint python indexer /app/scripts/test_rag_regression.py
 ```
 
@@ -135,7 +136,10 @@ docker compose up -d --force-recreate pipelines
 
 **평가 성공 조건**: 기대 출처 적중 **그리고** 해당 질문의 필수 키워드가 **모두** 검색 결과에 포함되어야 합니다. 출처만 맞고 키워드가 빠지면 실패입니다. [PLF-20260801-002]
 
-이상적 답변 기준(대조용): `rag/data/eval/artifacts/ideal_answer_facewt_swagger_kr.md`, `ideal_answer_nsis_auto_build.md`, `ideal_answer_terminal_user_sync.md`
+이상적 답변·문서별 예상 Q&A(대조용):
+
+- `rag/data/eval/artifacts/ideal_answer_*.md`, 루프별 `*_ideal_*.md` / `*_root_cause.md`
+- `rag/data/eval/doc_qa/<문서slug>/questions.md` + `expected_answers.md` (및 `alpeta_user_guide_v2/*_10.md`)
 
 ```bash
 # 인덱싱이 끝난 상태에서 실행

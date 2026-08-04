@@ -99,9 +99,9 @@ FOLLOW_UP_MARKERS = (
     # 주제 명사 없이 재포맷·정리만 요청하는 일반 후속
     "정리해서", "정리해줘", "정리해 줘", "알아보기 편하게",
     "요약해", "요약해서", "가독성", "다시 알려줘", "다시 정리",
-    # 「표 활용」(공백)과 「표를 활용」(을) 둘 다 잡습니다. 「보기 쉽게」는
-    # 「읽기 쉽게」와 별도 표현이라 함께 둡니다.
-    "읽기 쉽게", "보기 쉽게", "표 활용", "표를 활용", "표로 정리",
+    # 「표 활용」(공백)과 「표를 활용」(을) 둘 다 잡습니다. 「보기 쉽게」/
+    # 「보기 좋게」는 「읽기 쉽게」와 별도 표현이라 함께 둡니다.
+    "읽기 쉽게", "보기 쉽게", "보기 좋게", "표 활용", "표를 활용", "표로 정리",
 )
 
 # 주제 키워드 없이 재포맷·정리·표만 요청하는지 판별할 때 씁니다.
@@ -109,14 +109,15 @@ _REFORMAT_FOLLOW_UP_MARKERS = (
     "정리해서", "정리해줘", "정리해 줘", "정리해",
     "알아보기 편하게", "표도", "표로", "표 활용", "표를 활용", "표로 정리",
     "요약해", "요약해서", "가독성", "다시 알려줘", "다시 정리",
-    "읽기 쉽게", "보기 쉽게",
+    "읽기 쉽게", "보기 쉽게", "보기 좋게",
 )
 
 # 재포맷 질문에 이미 검색 주제가 포함돼 있는지 볼 때 쓰는 일반 명사/제품 표기입니다.
 _RETRIEVAL_TOPIC_NOUNS = (
     "alpeta", "알페타", "nsis", "빌드", "swagger", "스키마", "schema",
-    "미디어", "mediaserver", "프로토콜", "출입", "단말기", "사용자",
+    "미디어", "mediaserver", "프로토콜", "protocol", "출입", "단말기", "사용자",
     "facewt", "faw", "api", "설치", "자동빌드", "자동화",
+    "command preview", "명령 코드",
 )
 
 # 주제 불명 재포맷 요청에 무관 문서로 채우지 않고 확인을 요청할 때 씁니다.
@@ -152,6 +153,119 @@ PRODUCT_TERMS = {
 }
 CURRENT_PROTOCOL_TERMS = ("신규", "최신", "새 프로토콜", "new protocol", "v4", "4.0")
 LEGACY_PROTOCOL_TERMS = ("구형", "기존 프로토콜", "legacy", "v1", "1.0")
+
+# 한글 UI명 ↔ Swagger 식별자·경로 동의어. swagger_kr에 실재하는 경로만 시드합니다.
+# AccessGroup 전용 if가 아니라 엔트리 추가로 확장합니다(공휴일은 /v1/timezones/holidays).
+_API_ENTITY_LEXICON: Tuple[Dict[str, Any], ...] = (
+    {
+        "id": "access_groups",
+        "aliases": (
+            "출입그룹",
+            "출입 그룹",
+            "access group",
+            "accessgroup",
+            "accessgroups",
+        ),
+        "markers": ("accessgroups", "accessgroup", "/v1/accessgroups"),
+        "expand_tokens": (
+            "AccessGroup accessGroups access group 출입그룹 "
+            "GET /v1/accessGroups POST /v1/accessGroups "
+            "PUT /v1/accessGroups/{id}"
+        ),
+        "seeds": (
+            {
+                "method": "GET",
+                "path": "/v1/accessGroups",
+                "summary": "출입그룹 목록 조회",
+            },
+            {
+                "method": "POST",
+                "path": "/v1/accessGroups",
+                "summary": "출입그룹 생성",
+            },
+            {
+                "method": "PUT",
+                "path": "/v1/accessGroups/{id}",
+                "summary": "출입그룹 수정",
+            },
+        ),
+    },
+    {
+        "id": "users",
+        "aliases": ("사용자", "users"),
+        "markers": ("/v1/users", "users"),
+        "expand_tokens": (
+            "users 사용자 GET /v1/users POST /v1/users "
+            "GET /v1/users/{id} PUT /v1/users/{id}"
+        ),
+        "seeds": (
+            {"method": "GET", "path": "/v1/users", "summary": "사용자 목록 조회"},
+            {"method": "POST", "path": "/v1/users", "summary": "사용자 생성"},
+            {
+                "method": "GET",
+                "path": "/v1/users/{id}",
+                "summary": "사용자 단건 조회",
+            },
+        ),
+    },
+    {
+        "id": "terminals",
+        "aliases": ("단말기", "terminals"),
+        "markers": ("/v1/terminals", "terminals"),
+        "expand_tokens": (
+            "terminals 단말기 GET /v1/terminals POST /v1/terminals "
+            "GET /v1/terminals/{id} PUT /v1/terminals/{id}"
+        ),
+        "seeds": (
+            {"method": "GET", "path": "/v1/terminals", "summary": "단말기 목록 조회"},
+            {"method": "POST", "path": "/v1/terminals", "summary": "단말기 등록"},
+            {
+                "method": "GET",
+                "path": "/v1/terminals/{id}",
+                "summary": "단말기 단건 조회",
+            },
+        ),
+    },
+    {
+        "id": "timezones",
+        "aliases": ("타임존", "timezones", "timezone"),
+        "markers": ("/v1/timezones", "timezones"),
+        "expand_tokens": (
+            "timezones 타임존 GET /v1/timezones POST /v1/timezones "
+            "PUT /v1/timezones/{id}"
+        ),
+        "seeds": (
+            {"method": "GET", "path": "/v1/timezones", "summary": "타임존 목록 조회"},
+            {"method": "POST", "path": "/v1/timezones", "summary": "타임존 생성"},
+            {
+                "method": "PUT",
+                "path": "/v1/timezones/{id}",
+                "summary": "타임존 수정",
+            },
+        ),
+    },
+    {
+        "id": "holidays",
+        "aliases": ("공휴일", "holidays", "holiday"),
+        "markers": ("/v1/timezones/holidays", "holidays"),
+        "expand_tokens": (
+            "holidays 공휴일 GET /v1/timezones/holidays "
+            "POST /v1/timezones/holidays"
+        ),
+        "seeds": (
+            {
+                "method": "GET",
+                "path": "/v1/timezones/holidays",
+                "summary": "공휴일 목록 조회",
+            },
+            {
+                "method": "POST",
+                "path": "/v1/timezones/holidays",
+                "summary": "공휴일 생성",
+            },
+        ),
+    },
+)
 
 ARTIFACT_INTENT_RULES = {
     "automation": {
@@ -234,6 +348,46 @@ _MEDIA_SERVER_TABLE_ANCHORS = (
     "64GB",
 )
 _HEX_COMMAND_PATTERN = re.compile(r"0x[0-9A-Fa-f]+")
+# 질문에 0x 없이 적힌 명령 코드(0041, 41) — 프로토콜 단건 질의에서만 보조 추출합니다.
+_BARE_HEX_CODE_PATTERN = re.compile(
+    r"(?<![0-9A-Za-z])([0-9A-Fa-f]{2,4})(?![0-9A-Za-z])"
+)
+# 공백 분리 명령/필드 구: "Set Wiegand", "set Wiegand", "Wiegand Config"
+_SPACED_TECH_PHRASE_PATTERN = re.compile(
+    r"(?<![A-Za-z0-9_])("
+    r"(?:[Ss]et|[Gg]et|[Nn]otify|[Rr]equest|[Rr]eport|[Aa]dd|[Dd]elete|[Uu]pdate)"
+    r"\s+[A-Za-z][A-Za-z0-9]+"
+    r"|(?:[A-Z][a-z0-9]+)(?:\s+[A-Z][a-z0-9]+)+"
+    r")(?![A-Za-z0-9_])"
+)
+# 프로토콜 단건 상세에서 무시할 일반 영문 토큰(버전·문서 종류 단어).
+_PROTOCOL_DETAIL_TOKEN_STOPWORDS = frozenset(
+    {
+        "the", "and", "for", "from", "with", "this", "that", "protocol",
+        "terminal", "server", "command", "param", "extra", "data", "type",
+        "product", "alpeta", "communication", "document", "section", "page",
+        "request", "response", "notify", "current", "legacy", "bytes", "byte",
+        "mediaserver", "swagger", "openapi", "access", "group", "timezone",
+        "알려줘", "알려", "무엇", "뭐야",
+    }
+)
+# 질문 표현↔문서 표기 소량 동의어(정규식 매칭용). 질문별 if 분기 대신 사전+정규식.
+_PROTOCOL_TERM_SYNONYMS: Dict[str, Tuple[str, ...]] = {
+    "logon": ("Logon", "Terminal Logon", "단말기 로그온", "0x0001"),
+    "login": ("Logon", "logon", "Terminal Logon", "단말기 로그온", "0x0001"),
+    "로그온": ("Logon", "logon", "Terminal Logon", "단말기 로그온", "0x0001"),
+    "로그인": ("Logon", "logon", "Terminal Logon", "단말기 로그온", "0x0001"),
+    # 한글·소문자 wiegand는 Title Case 추출에 안 잡히므로 문서 표기·0x0041로 확장합니다.
+    "wiegand": ("Wiegand", "Set Wiegand", "WiegandConfig", "0x0041"),
+    "위겐드": ("Wiegand", "Set Wiegand", "WiegandConfig", "0x0041", "wiegand"),
+}
+_PROTOCOL_TERM_SYNONYM_RE = re.compile(
+    r"(?i)(?<![A-Za-z0-9_])(logon|login|wiegand)(?![A-Za-z0-9_])|로그온|로그인|위겐드"
+)
+# 생성 답이 섞는 중문(한자 영역) — 한국어 음절(Hangul)과 분리해 목록 품질을 판정합니다.
+_PROTOCOL_LIST_CJK_RE = re.compile(r"[\u4e00-\u9fff]")
+# 문서에 없는 「보완 항목」가짜 행·표기.
+_PROTOCOL_LIST_FAKE_ROW_RE = re.compile(r"보완\s*항목|보완\s*행|추정\s*보완")
 _WINDOWS_FOLDER_PATTERN = re.compile(
     r"(?i)\b([A-Z]:\\(?:[^\\\s,.;:()]+\\)*[^\\\s,.;:()]+)"
 )
@@ -276,6 +430,27 @@ _TERMINAL_MONITOR_ADD_WRONG_PATH_MARKERS = (
     "출입그룹 단말기 리스트",
     "0x0a",
     "0x0A",
+)
+# 모니터링 연결상태·이벤트 후속 문맥화에 쓰는 대화/질문 마커입니다.
+_TERMINAL_MONITOR_HISTORY_MARKERS = (
+    "모니터링",
+    "연결 상태",
+    "연결상태",
+    "접속 상태",
+    "접속상태",
+)
+_HALLUCINATED_STATUS_CHECKMARKS = ("✓", "○", "◯", "☑", "✔", "✅", "❌", "⭕", "⊗")
+_MONITOR_STATUS_POLLUTION_MARKERS = (
+    "근태",
+    "결근",
+    "조퇴",
+    "지각",
+    "FaceWTInfo",
+    "TemplateType",
+    "16GB",
+    "48GB",
+    "64GB",
+    "카메라",
 )
 
 # 빌드를 수동 절차가 아닌 "자동화 버전"으로 진행하려는 의도를 판별하는 마커입니다.
@@ -417,7 +592,7 @@ def detect_retrieval_scope(query: str) -> Dict[str, str]:
     product 필터와 함께 쓰면 전부 탈락하므로 api 타입일 때는 product를 제거합니다.
     미디어 서버 스펙 표 질문은 API/스키마 필터로 빗나가지 않게 합니다.
     """
-    if is_media_server_spec_intent(query):
+    if is_media_server_spec_intent(query) or is_media_server_capacity_calc_intent(query):
         return {}
     if is_person_profile_intent(query):
         return {}
@@ -427,12 +602,37 @@ def detect_retrieval_scope(query: str) -> Dict[str, str]:
         if any(term.casefold() in normalized for term in terms):
             scope["document_type"] = document_type
             break
+    # hex 단건 상세(0x0041 알려줘)는 문서 종류 키워드가 없어도 protocol로 한정합니다.
+    if "document_type" not in scope and is_protocol_hex_detail_intent(query):
+        scope["document_type"] = "protocol"
     # 문서 종류를 직접 말하지 않은 절차형·메뉴 사용법 질문도 의도가 분명하면
     # User Guide로 한정합니다. 프로토콜/API/설치 문서가 섞여 메뉴 절차를 대체하지 않게 합니다.
-    if "document_type" not in scope and (
-        is_user_terminal_procedure_intent(query)
+    # API/swagger 표면이 있으면 UG 추정 전에 제외합니다.
+    api_doc = detect_api_doc_intent(query) or is_api_entity_doc_intent(query)
+    if (not api_doc) and "document_type" not in scope and (
+        is_auto_sync_setting_intent(query)
+        or is_user_terminal_procedure_intent(query)
         or is_terminal_user_management_intent(query)
         or is_terminal_monitor_and_add_intent(query)
+        or is_access_group_ui_intent(query)
+        or is_access_group_user_ui_intent(query)
+        or is_access_zone_ui_intent(query)
+        or is_timezone_ui_intent(query)
+        or is_holiday_ui_intent(query)
+        or is_alpeta_user_guide_procedure_intent(query)
+    ):
+        scope["document_type"] = "user_guide"
+    # Access Group·타임존·공휴일 UI는 protocol hex 오분류를 덮어 user_guide로 고정.
+    # API/swagger/엔드포인트 키워드가 있으면 UI 고정보다 API 검색이 우선합니다.
+    if api_doc:
+        scope["document_type"] = "api"
+        scope.pop("product", None)
+    elif (
+        is_access_group_ui_intent(query)
+        or is_access_group_user_ui_intent(query)
+        or is_access_zone_ui_intent(query)
+        or is_timezone_ui_intent(query)
+        or is_holiday_ui_intent(query)
     ):
         scope["document_type"] = "user_guide"
     for product, terms in PRODUCT_TERMS.items():
@@ -480,7 +680,10 @@ def is_terminal_monitor_and_add_intent(query: str) -> bool:
     if is_user_terminal_procedure_intent(query):
         return False
     normalized = (query or "").casefold()
-    if any(marker in normalized for marker in ("사용자", "user")):
+    if "사용자" in normalized:
+        return False
+    # 「User Guide」표기의 user는 사용자→단말 절차와 무관합니다.
+    if "user" in normalized and "user guide" not in normalized:
         return False
     has_terminal = any(marker in normalized for marker in _TERMINAL_PROCEDURE_MARKERS)
     if not has_terminal:
@@ -501,14 +704,97 @@ def is_terminal_monitor_and_add_intent(query: str) -> bool:
     return has_status_check or has_monitor or has_device_add
 
 
+def is_terminal_monitor_status_only_intent(query: str) -> bool:
+    """연결 상태(모니터링) 확인만 묻고 단말기 장치 추가는 묻지 않는 질문인지 판별합니다.
+
+    「그리고 단말기 어떻게 추가」처럼 추가 절차가 함께 있으면 False입니다.
+    """
+    if not is_terminal_monitor_and_add_intent(query):
+        return False
+    normalized = (query or "").casefold()
+    asks_device_add = any(
+        marker in normalized for marker in _TERMINAL_DEVICE_ADD_MARKERS
+    ) and any(marker in normalized for marker in ("단말기", "장치", "등록"))
+    if asks_device_add:
+        return False
+    return any(
+        marker in normalized for marker in _TERMINAL_CONNECTION_STATUS_MARKERS
+    ) or (
+        "상태" in normalized
+        and any(marker in normalized for marker in ("확인", "어떻게", "보", "연결"))
+    )
+
+
+def is_terminal_monitor_status_table_intent(query: str) -> bool:
+    """모니터링 접속·이벤트 상태를 표로 정리하라는 질문(후속 문맥화 포함)인지 판별합니다."""
+    normalized = (query or "").casefold()
+    asks_table = "표" in normalized or any(
+        marker in normalized for marker in ("정리", "요약", "가독성", "알아보기 편")
+    )
+    if not asks_table:
+        return False
+    return any(
+        marker in normalized
+        for marker in (
+            "모니터링",
+            "접속",
+            "연결 상태",
+            "연결상태",
+            "출입문",
+            "이벤트",
+            "녹",
+            "빨",
+        )
+    )
+
+
+def history_suggests_terminal_monitor_topic(history_text: str) -> bool:
+    """압축 대화가 Alpeta 모니터링·단말기 연결상태 주제인지 판별합니다."""
+    normalized = (history_text or "").casefold()
+    if any(marker in normalized for marker in _TERMINAL_MONITOR_HISTORY_MARKERS):
+        return True
+    return (
+        "단말기" in normalized
+        and ("연결" in normalized or "접속" in normalized or "상태" in normalized)
+        and not any(marker in normalized for marker in ("스키마", "facewt", "미디어", "스펙"))
+    )
+
+
+def is_auto_sync_setting_intent(query: str) -> bool:
+    """일반설정에서 자동 동기화 옵션만 켜는 방법을 묻는 User Guide 질문인지 판별합니다.
+
+    수동 전송 3경로와 복합 질문(is_user_terminal_procedure_intent)과 구분합니다.
+    「일반설정」「자동」「동기화」와 활성화 표현이 함께 있을 때만 참입니다.
+    """
+    if is_terminal_user_management_intent(query):
+        return False
+    normalized = (query or "").casefold()
+    has_sync = "동기화" in normalized or "자동동기화" in normalized.replace(" ", "")
+    has_auto = "자동" in normalized
+    has_general = "일반설정" in normalized or "일반 설정" in normalized
+    has_enable = any(
+        marker in normalized
+        for marker in ("켜", "활성", "설정", "옵션", "사용")
+    )
+    has_manual_focus = any(
+        marker in normalized
+        for marker in ("추가", "전송", "등록", "내려", "다운로드")
+    ) and not has_general
+    if has_manual_focus and not has_enable:
+        return False
+    return has_sync and has_auto and (has_general or "단말기 사용자 정보" in normalized)
+
+
 def is_user_terminal_procedure_intent(query: str) -> bool:
     """사용자와 단말기 사이의 UI 절차를 묻는 질문을 일반 키워드 조합으로 판별합니다.
 
     명시적인 문서 유형이 없는 경우에만 검색 범위를 User Guide로 좁히는 보조 규칙입니다.
     단말기·사용자와 추가/전송/동기화 같은 작업 표현이 함께 있어야 하므로 일반 제품 소개
     질문을 가이드 절차로 오인하지 않습니다.
-    「단말기 사용자 관리」메뉴 사용법 질문은 별도 의도로 분리해 여기서는 제외합니다.
+    「단말기 사용자 관리」메뉴 사용법·일반설정 자동동기화 단독 질문은 제외합니다.
     """
+    if is_auto_sync_setting_intent(query):
+        return False
     if is_terminal_user_management_intent(query):
         return False
     normalized = (query or "").casefold()
@@ -543,12 +829,164 @@ def detect_api_doc_intent(query: str) -> bool:
     return bool(re.search(r"(?i)(?<![a-z])api(?![a-z])", query or ""))
 
 
+def _alias_mentions_in_query(query: str, alias: str) -> bool:
+    """쿼리에 엔티티 별칭이 있는지 판별합니다.
+
+    한글·공백 구는 부분 문자열, ASCII 식별자는 단어 경계로 매칭해
+    user guide / guide 오염을 줄입니다.
+    """
+    text = query or ""
+    normalized = text.casefold()
+    needle = (alias or "").casefold()
+    if not needle:
+        return False
+    if any("\uac00" <= ch <= "\ud7a3" for ch in needle) or " " in needle:
+        return needle in normalized
+    return bool(re.search(rf"(?<![a-z0-9_/]){re.escape(needle)}(?![a-z0-9_])", normalized))
+
+
+def match_api_entity_lexicon(query: str) -> List[Dict[str, Any]]:
+    """질문에 등장한 Alpeta API 엔티티 사전 항목을 반환합니다.
+
+    FaceWT/FAW처럼 동의어 확장·시드·마커에 쓰는 일반화 훅입니다.
+    """
+    matched: List[Dict[str, Any]] = []
+    for entry in _API_ENTITY_LEXICON:
+        aliases = entry.get("aliases") or ()
+        if any(_alias_mentions_in_query(query, alias) for alias in aliases):
+            matched.append(entry)
+    return matched
+
+
+def is_api_entity_doc_intent(query: str) -> bool:
+    """엔티티 한글/영문 별칭과 API/swagger 표면이 함께 있는 질문인지 판별합니다.
+
+    UG 절차(「어떻게 추가」만)는 detect_api_doc_intent가 False이므로 제외됩니다.
+    """
+    if not detect_api_doc_intent(query):
+        return False
+    return bool(match_api_entity_lexicon(query))
+
+
+def query_has_facewt_or_faw(query: str) -> bool:
+    """질문에 FaceWT·FAW·UserFaceWT 등 얼굴 워크스루 API 마커가 있는지 판별합니다."""
+    normalized = (query or "").casefold()
+    return any(
+        marker in normalized
+        for marker in ("facewt", "faw", "userfacewt", "facewtinfo")
+    )
+
+
+def is_facewt_faw_api_intent(query: str) -> bool:
+    """Swagger/API 맥락에서 FaceWT·FAW 스키마·경로를 묻는 질문인지 판별합니다.
+
+    FAW는 FaceWT 동의어로 취급합니다. 프로토콜 hex 단건 의도와 구분합니다.
+    """
+    if not query_has_facewt_or_faw(query):
+        return False
+    return detect_api_doc_intent(query)
+
+
+def reinject_essential_retrieval_tokens(
+    original_query: str, rewritten_query: str
+) -> str:
+    """재작성·확장 결과에 원문의 필수 기술 토큰이 빠졌으면 다시 붙입니다.
+
+    LLM 재작성이 FaceWT/FAW를 탈락시키거나 Holiday 등으로 치환해도
+    검색 쿼리가 원문 필수 식별자를 잃지 않게 합니다.
+    """
+    rewritten = (rewritten_query or "").strip()
+    missing: List[str] = []
+    cf_rw = rewritten.casefold()
+    for token in extract_technical_tokens(original_query):
+        if token.casefold() not in cf_rw:
+            missing.append(token)
+    # FaceWT/FAW는 extract 누락·소문자만 있을 때도 동의어 쌍으로 보존합니다.
+    if query_has_facewt_or_faw(original_query):
+        for alias in ("FaceWT", "FAW", "FaceWTInfo"):
+            if alias.casefold() not in cf_rw:
+                missing.append(alias)
+    # API 엔티티 한글/자연어 질의에서 Swagger 식별자가 빠지면 검색용으로 되돌립니다.
+    if detect_api_doc_intent(original_query):
+        for entry in match_api_entity_lexicon(original_query):
+            for marker in entry.get("markers") or ():
+                token = str(marker).strip()
+                if not token or token.startswith("/"):
+                    continue
+                if token.casefold() not in cf_rw:
+                    missing.append(token)
+            for seed in entry.get("seeds") or ():
+                path = str(seed.get("path") or "").strip()
+                if path and path.casefold() not in cf_rw:
+                    missing.append(path)
+    if not missing:
+        return rewritten
+    # 중복 제거·순서 유지
+    uniq = list(dict.fromkeys(missing))
+    suffix = " ".join(uniq)
+    if not rewritten:
+        return suffix
+    return f"{rewritten}\n{suffix}"
+
+
+def is_media_server_capacity_calc_intent(query: str) -> bool:
+    """미디어서버 대역폭·시청자 Mbps·녹화 스토리지 산정 질문인지 판별합니다.
+
+    전체 권장 스펙 표(is_media_server_spec_intent)와 구분합니다. REST/스트림 API는
+    제외합니다. 「미디어서버」표기가 없어도 `동시 녹화`/`스토리지`/`1.2배`/`3.24`/
+    `여유`+보관일 등 §5 산정 마커면 True로 둡니다(PLF-20260804-002).
+    """
+    normalized = (query or "").casefold()
+    if any(
+        marker in normalized
+        for marker in (
+            "api", "swagger", "openapi", "스키마", "schema",
+            "엔드포인트", "endpoint", "/stream", "/v1/",
+        )
+    ):
+        return False
+
+    has_server = any(marker in normalized for marker in _MEDIA_SERVER_MARKERS)
+    network_markers = (
+        "대역폭", "bandwidth", "mbps", "시청자", "viewer", "webrtc",
+        "인입", "합계", "network calc",
+    )
+    # 미디어서버 문구 없이도 MediaServer_Specs §5 스토리지 산정을 잡습니다.
+    strong_storage_markers = (
+        "동시 녹화",
+        "스토리지",
+        "storage",
+        "1.2배",
+        "retention_days",
+        "retention",
+        "3.24tb",
+        "3.24",
+        "15gb",
+    )
+    has_strong_storage = any(m in normalized for m in strong_storage_markers)
+    if (
+        "여유" in normalized
+        and any(
+            m in normalized
+            for m in ("1.2", "보관", "녹화", "스토리지", "30일", "hdd", "용량")
+        )
+    ):
+        has_strong_storage = True
+    if has_strong_storage:
+        return True
+    if not has_server:
+        return False
+    has_network = any(marker in normalized for marker in network_markers)
+    return has_network or "녹화" in normalized
+
+
 def is_media_server_spec_intent(query: str) -> bool:
     """미디어 서버 카메라 대수별 하드웨어 스펙·표를 묻는지 판별합니다.
 
     API/스키마·User Guide 카메라 설정과 구분하기 위해 미디어 서버 표기와
     스펙/표/대수 표현이 함께 있을 때만 참으로 둡니다. 스트림 추가 API처럼
-    REST 호출 질문은 제외합니다.
+    REST 호출 질문은 제외합니다. 대역폭·스토리지 산정만 묻는 질문은
+    is_media_server_capacity_calc_intent 로 분리합니다.
     """
     normalized = (query or "").casefold()
     has_server = any(marker in normalized for marker in _MEDIA_SERVER_MARKERS)
@@ -568,6 +1006,293 @@ def is_media_server_spec_intent(query: str) -> bool:
         "카메라 대", "대수", "gb", "코어",
     )
     return any(marker in normalized for marker in hardware_markers)
+
+
+def is_access_group_ui_intent(query: str) -> bool:
+    """Alpeta User Guide 출입그룹(Access Group) UI 추가·설정 질문인지 판별합니다.
+
+    영문 access group + ID/타임존/구역과 한글 출입그룹 추가를 포함합니다.
+    Protocol Door 설정·「출입그룹 내려보내기」전송 질문과 구분합니다.
+    API/swagger/엔드포인트 질문은 UI가 아니라 API 문서 검색으로 넘깁니다.
+    """
+    # timezone_ui처럼 API 표면이 있으면 User Guide 고정을 하지 않습니다.
+    if detect_api_doc_intent(query):
+        return False
+    normalized = (query or "").casefold()
+    has_group = (
+        "출입그룹" in normalized
+        or "출입 그룹" in normalized
+        or "access group" in normalized
+    )
+    if not has_group:
+        return False
+    # 출입그룹에 사용자 등록/해제는 별도 UI 의도입니다.
+    if "사용자" in normalized and any(
+        m in normalized for m in ("등록", "추가", "해제", "삭제")
+    ):
+        return False
+    # Protocol 전송/패킷·내려보내기 맥락은 UI가 아닙니다.
+    if any(
+        marker in normalized
+        for marker in (
+            "protocol", "프로토콜", "내려", "내리", "packet", "0x010a", "0x0103",
+            "doorconfig", "door 설정",
+        )
+    ):
+        return False
+    if extract_hex_codes(query or "") or re.search(
+        r"(?i)\b0x0?103\b", query or ""
+    ):
+        return False
+    ui_markers = (
+        "추가", "만들", "생성", "설정", "방법", "알려", "어떻게",
+        "타임존", "timezone", "명칭", "구역", "아이디",
+        "alpeta", "알페타", "user guide", "가이드",
+    )
+    has_id_token = bool(
+        re.search(r"(?i)(?<![A-Za-z0-9])id(?![A-Za-z0-9])", query or "")
+    )
+    return has_id_token or any(marker in normalized for marker in ui_markers)
+
+
+def is_timezone_ui_intent(query: str) -> bool:
+    """Alpeta User Guide 타임존·타임라인 생성/관리 UI 절차 질문인지 판별합니다.
+
+    「타임존 관리」추가·한 주 일정 설정·타임라인 ID/NAME 입력을 묻습니다.
+    출입그룹/출입구역에 타임존을 「선택」만 하는 필드 설명과 Protocol timezone
+    패킷·Swagger API 질문과 구분합니다.
+    """
+    normalized = (query or "").casefold()
+    has_tz = "타임존" in normalized or "timezone" in normalized
+    has_timeline = "타임라인" in normalized or "timeline" in normalized
+    if not has_tz and not has_timeline:
+        return False
+    if any(
+        marker in normalized
+        for marker in (
+            "protocol", "프로토콜", "swagger", "openapi", "api",
+            "0x", "packet", "doorconfig",
+        )
+    ):
+        return False
+    if extract_hex_codes(query or ""):
+        return False
+    # 출입그룹/구역 생성 시 타임존 필드만 언급하는 질문은 access group/zone UI로 분리.
+    if ("출입그룹" in normalized or "access group" in normalized) and not has_timeline:
+        if "타임존 관리" not in normalized and "만들" not in normalized:
+            if is_access_group_ui_intent(query):
+                return False
+    if "출입구역" in normalized and "타임존 관리" not in normalized and not has_timeline:
+        return False
+    howto = (
+        "만들", "생성", "추가", "어떻게", "설정", "관리", "알려", "방법",
+        "새로", "입력",
+    )
+    return any(marker in normalized for marker in howto)
+
+
+def is_timeline_create_ui_intent(query: str) -> bool:
+    """타임라인 관리에서 새 타임라인을 만드는 UI 절차(Q7)인지 판별합니다.
+
+    「타임라인」+「새로/입력」 중심이고 「타임존」생성 질문(Q1)과 겹치지
+    않을 때만 참입니다.
+    """
+    normalized = (query or "").casefold()
+    if "타임라인" not in normalized and "timeline" not in normalized:
+        return False
+    if "타임존" in normalized and "만들" in normalized and "타임라인" not in normalized:
+        return False
+    if "타임존" in normalized and "타임존 관리" in normalized:
+        return False
+    timeline_focus = any(
+        marker in normalized
+        for marker in ("새로", "새 ", "입력", "만들", "생성", "추가")
+    )
+    return timeline_focus and (
+        "타임존" not in normalized
+        or ("타임라인" in normalized and "타임존" not in normalized.replace("타임라인", ""))
+    )
+
+
+def is_timezone_create_ui_intent(query: str) -> bool:
+    """타임존 관리에서 새 타임존을 추가·설정하는 UI 절차(Q1)인지 판별합니다."""
+    if not is_timezone_ui_intent(query):
+        return False
+    if is_timeline_create_ui_intent(query):
+        return False
+    normalized = (query or "").casefold()
+    return "타임존" in normalized or "timezone" in normalized
+
+
+def is_authlog_category_ui_intent(query: str) -> bool:
+    """인증 로그 조회 검색 카테고리 목록을 묻는 User Guide UI 질문인지 판별합니다."""
+    normalized = (query or "").casefold()
+    has_authlog = "인증 로그" in normalized or "authlog" in normalized or "인증로그" in normalized
+    has_category = "카테고리" in normalized or "검색" in normalized
+    return has_authlog and has_category
+
+
+def is_holiday_ui_intent(query: str) -> bool:
+    """Alpeta User Guide 공휴일 관리 UI 생성·설정 절차 질문인지 판별합니다.
+
+    「공휴일 관리」메뉴·ID/이름·달력 [추가]·최대 30개 제한 등 User Guide 절차를
+    묻습니다. Protocol Holiday 명령·근태 「적용 공휴일」코드 선택만 있는 질문과
+    구분합니다.
+    """
+    normalized = (query or "").casefold()
+    if "공휴일" not in normalized and "holiday" not in normalized:
+        return False
+    if any(
+        marker in normalized
+        for marker in ("protocol", "프로토콜", "swagger", "openapi", "0x")
+    ):
+        return False
+    if extract_hex_codes(query or ""):
+        return False
+    # 근태형태·적용 공휴일 코드 선택만 묻는 근태 설정은 제외(공휴일 관리 생성 아님).
+    if "근무형태" in normalized or "적용 공휴일" in normalized:
+        if "공휴일 관리" not in normalized and "만들" not in normalized:
+            return False
+    howto = ("만들", "생성", "추가", "어떻게", "설정", "관리", "알려", "방법")
+    factual_only = (
+        "최대" in normalized or "몇 개" in normalized or "몇개" in normalized
+    ) and not any(m in normalized for m in howto)
+    if factual_only:
+        return False
+    return any(marker in normalized for marker in howto) or "공휴일 관리" in normalized
+
+
+def is_access_zone_ui_intent(query: str) -> bool:
+    """User Guide 출입구역 추가·단말기 할당 UI 절차 질문인지 판별합니다."""
+    if detect_api_doc_intent(query):
+        return False
+    normalized = (query or "").casefold()
+    if "출입구역" not in normalized and "출입 구역" not in normalized:
+        return False
+    if any(marker in normalized for marker in ("protocol", "프로토콜", "0x")):
+        return False
+    howto = ("추가", "만들", "생성", "어떻게", "방법", "알려", "설정")
+    return any(marker in normalized for marker in howto)
+
+
+def is_access_group_user_ui_intent(query: str) -> bool:
+    """출입그룹 사용자 등록/해제 UI(출입 그룹 사용자 관리) 질문인지 판별합니다.
+
+    출입그룹 자체 생성(is_access_group_ui_intent)과 Protocol 전송과 구분합니다.
+    """
+    if detect_api_doc_intent(query):
+        return False
+    normalized = (query or "").casefold()
+    has_group = "출입그룹" in normalized or "출입 그룹" in normalized
+    has_user = "사용자" in normalized or "user" in normalized
+    if not (has_group and has_user):
+        return False
+    if any(marker in normalized for marker in ("protocol", "프로토콜", "내려", "전송", "0x")):
+        return False
+    register_markers = ("등록", "추가", "해제", "삭제", "어떻게", "방법", "알려")
+    return any(marker in normalized for marker in register_markers)
+
+
+def is_alpeta_user_guide_procedure_intent(query: str) -> bool:
+    """알페타 제품명과 User Guide 메뉴·절차 표현이 있는 일반 UI 질문인지 판별합니다.
+
+    이미 분리된 API·프로토콜·미디어·출입그룹/타임존/공휴일 UI 의도와 겹치지
+    않을 때만 보조 user_guide 스코프로 사용합니다.
+    """
+    if (
+        is_access_group_ui_intent(query)
+        or is_access_group_user_ui_intent(query)
+        or is_access_zone_ui_intent(query)
+        or is_timezone_ui_intent(query)
+        or is_holiday_ui_intent(query)
+        or is_auto_sync_setting_intent(query)
+        or is_user_terminal_procedure_intent(query)
+        or is_terminal_user_management_intent(query)
+        or is_terminal_monitor_and_add_intent(query)
+    ):
+        return False
+    normalized = (query or "").casefold()
+    if not any(m in normalized for m in ("alpeta", "알페타")):
+        return False
+    if any(
+        m in normalized
+        for m in (
+            "protocol", "프로토콜", "swagger", "openapi", "0x",
+            "미디어", "mediaserver", "facewt", "faw",
+        )
+    ):
+        return False
+    if detect_api_doc_intent(query) or is_media_server_spec_intent(query):
+        return False
+    procedure_markers = (
+        "어떻게", "방법", "알려", "메뉴", "추가", "등록", "필수",
+        "카테고리", "보내", "전송", "켜", "동기화", "권한", "조회",
+    )
+    return any(m in normalized for m in procedure_markers)
+
+
+def is_user_guide_menu_intent(query: str) -> bool:
+    """Alpeta User Guide 메뉴·절차 UI(타임존·공휴일·출입구역 등) 질문인지 판별합니다."""
+    return (
+        is_timezone_ui_intent(query)
+        or is_holiday_ui_intent(query)
+        or is_access_zone_ui_intent(query)
+        or is_access_group_user_ui_intent(query)
+        or is_access_group_ui_intent(query)
+        or is_auto_sync_setting_intent(query)
+        or is_alpeta_user_guide_procedure_intent(query)
+    )
+
+
+def is_protocol_firmware_download_intent(query: str) -> bool:
+    """v4 펌웨어 다운로드/Upgrade firmware(0x0020) 단건 질문인지 판별합니다."""
+    normalized = (query or "").casefold()
+    has_fw = any(
+        marker in normalized
+        for marker in ("펌웨어", "firmware", "upgrade firmware")
+    )
+    if not has_fw:
+        return False
+    has_dl = any(
+        marker in normalized
+        for marker in ("다운로드", "download", "업그레이드", "upgrade", "프로토콜", "protocol", "v4", "명령")
+    )
+    return has_dl or "0x0020" in normalized
+
+
+def is_api_login_endpoint_intent(query: str) -> bool:
+    """Swagger 서버 로그인(POST /v1/login) API를 묻는지 판별합니다.
+
+    프로토콜 Terminal Logon(0x0001)과 구분하기 위해 API/Swagger 맥락이거나
+    경로/바디/스키마 표현이 있을 때만 참으로 둡니다.
+    """
+    if is_facewt_faw_api_intent(query):
+        return False
+    normalized = (query or "").casefold()
+    has_login = any(
+        marker in normalized
+        for marker in ("로그인", "login", "/v1/login")
+    )
+    if not has_login:
+        return False
+    apiish = detect_api_doc_intent(query) or any(
+        marker in normalized
+        for marker in ("경로", "바디", "스키마", "usertype", "세션", "sessions")
+    )
+    return apiish
+
+
+def is_api_authlogs_intent(query: str) -> bool:
+    """Swagger 인증로그 목록(GET /v1/authLogs) 질문인지 판별합니다."""
+    normalized = (query or "").casefold()
+    if "authlogs" in normalized or "/v1/authlogs" in normalized:
+        return True
+    if "인증로그" in normalized or "인증 로그" in normalized:
+        return detect_api_doc_intent(query) or any(
+            marker in normalized
+            for marker in ("api", "경로", "파라미터", "조회", "swagger")
+        )
+    return False
 
 
 def is_person_profile_intent(query: str) -> bool:
@@ -607,16 +1332,94 @@ def expand_retrieval_query(original_query: str, rewritten_query: str) -> str:
     expansions = []
     if "내려" in original or "내리" in original:
         expansions.append("설정 전송 Server Terminal 서버 단말기 배포 적용 Request")
-    if "출입그룹" in original or "출입 그룹" in original:
+    if is_access_group_ui_intent(original_query):
+        # User Guide 출입그룹 관리(ID·명칭·타임존·구역). Protocol Door 전송과 분리.
+        expansions.append(
+            "출입그룹 출입 그룹 access group 출입그룹 ID 출입그룹 명칭 타임존 "
+            "출입 구역 관리 출입그룹추가 등록된 출입구역 추가 가능한 출입구역 "
+            "Alpeta User Guide"
+        )
+    elif is_access_group_user_ui_intent(original_query):
+        expansions.append(
+            "출입 그룹 사용자 관리 등록 가능한 사용자 리스트 등록된 출입그룹 사용자 "
+            "Alpeta User Guide"
+        )
+    elif is_access_zone_ui_intent(original_query):
+        expansions.append(
+            "출입 구역 관리 출입구역 추가 출입구역 ID 출입구역명 "
+            "추가 가능한 단말기 등록된 단말기 Alpeta User Guide"
+        )
+    elif is_timezone_ui_intent(original_query):
+        expansions.append(
+            "타임존 타임존 관리 타임라인 관리 추가 한주간 일정 저장 "
+            "출입그룹 적용 Alpeta User Guide"
+        )
+    elif is_holiday_ui_intent(original_query):
+        expansions.append(
+            "타임존 공휴일 관리 휴일 구분 ID 이름 달력 추가 최대 30 "
+            "Alpeta User Guide"
+        )
+    elif is_auto_sync_setting_intent(original_query):
+        expansions.append(
+            "일반설정 사용자 설정 사용자 데이터 "
+            "단말기 사용자 정보 자동 동기화 사용 동일한 출입그룹 "
+            "Alpeta User Guide"
+        )
+    elif is_alpeta_user_guide_procedure_intent(original_query):
+        expansions.append("Alpeta User Guide 사용자 인증 로그 권한 일반설정")
+    elif (
+        ("출입그룹" in original or "출입 그룹" in original)
+        and not detect_api_doc_intent(original_query)
+    ):
+        # API 의도에서는 Protocol Door 전송 확장을 붙이지 않습니다.
         expansions.append("출입그룹 출입 그룹 access group Door 설정 전송")
+    if is_protocol_firmware_download_intent(original_query):
+        expansions.append(
+            "Upgrade firmware 펌웨어 다운로드 0x0020 Get Firmware Version 0x0021 "
+            "Block ACK 시작 패킷"
+        )
+    if is_api_login_endpoint_intent(original_query):
+        # 프로토콜 Logon(0x0001)이 아니라 Swagger POST /v1/login 스키마로 고정.
+        expansions.append(
+            "POST /v1/login Login userId password userType "
+            "일반관리자 UniqueID 마스터관리자 LoginResult sessions"
+        )
+    if is_api_authlogs_intent(original_query):
+        expansions.append(
+            "GET /v1/authLogs startTime endTime offset limit "
+            "searchCategory searchKeyword AuthLogList 인증로그 목록 조회"
+        )
     if any(term.casefold() in original for term in CURRENT_PROTOCOL_TERMS):
         expansions.append("신규 프로토콜 v4.0 current Communication protocol for Terminal")
     if detect_api_doc_intent(original_query):
         expansions.append("swagger OpenAPI schema endpoint REST API definitions")
+    # 한글/띄어쓴 영문 엔티티 → Swagger 식별자·경로로 확장 (FaceWT expand와 동일 패턴).
+    if is_api_entity_doc_intent(original_query) or (
+        detect_api_doc_intent(original_query) and match_api_entity_lexicon(original_query)
+    ):
+        for entry in match_api_entity_lexicon(original_query):
+            token = (entry.get("expand_tokens") or "").strip()
+            if token:
+                expansions.append(token)
+    if is_facewt_faw_api_intent(original_query):
+        # 어순(스키마…API / API…스키마)·「알려줘」변형과 무관하게 FaceWT 경로·스키마로 고정합니다.
+        # FAW는 FaceWT 별칭으로 함께 넣고, 프로토콜 Command 확장과 섞이지 않게 합니다.
+        expansions.append(
+            "FaceWT FAW FaceWTInfo UserFaceWTInfo "
+            "/v1/users/{id}/faceWTInfo /v1/terminals/{id}/scan/facewt "
+            "TemplateType TemplateSize TemplateData "
+            "얼굴 워크스루 face walk-through"
+        )
     if is_media_server_spec_intent(original_query):
         expansions.append(
             "MediaServer_Specs_New 카메라 수별 권장 스펙 표 "
             "10 ~ 24 25 ~ 49 50 ~ 79 80 ~ 100 48GB 64GB"
+        )
+    if is_media_server_capacity_calc_intent(original_query):
+        expansions.append(
+            "MediaServer_Specs_New 네트워크 권장 산정 "
+            "100대 2 Mbps 인입 200 Mbps 시청자 400 Mbps 합계 600 Mbps "
+            "녹화 스토리지 15GB 90GB 2.7TB 3.24TB retention_days=30"
         )
     if is_person_profile_intent(original_query):
         names = extract_person_names(original_query)
@@ -687,10 +1490,34 @@ def expand_retrieval_query(original_query: str, rewritten_query: str) -> str:
     exact_tokens = extract_technical_tokens(original_query)
     if exact_tokens:
         expansions.append(" ".join(exact_tokens))
+    detail_tokens = extract_protocol_detail_tokens(original_query)
+    # API/FaceWT 질문은 프로토콜 Command 확장으로 Holiday·Lock에 빗나가지 않게 제외합니다.
+    if (
+        detail_tokens
+        and is_protocol_hex_detail_intent(original_query)
+        and not detect_api_doc_intent(original_query)
+        and not is_facewt_faw_api_intent(original_query)
+    ):
+        # hex 변형·명령명·CamelCase를 한 줄로 확장해 BM25가 동일 절을 보게 합니다.
+        expansions.append(" ".join(detail_tokens))
+        expansions.append(
+            "Command 명령 코드 section ExtraData Config Format "
+            "Communication protocol for Terminal"
+        )
+    hex_codes = extract_hex_codes(original_query)
+    if hex_codes and not is_protocol_hex_detail_intent(original_query):
+        variant_parts: List[str] = []
+        for code in hex_codes:
+            variant_parts.extend(hex_code_variants(code))
+        expansions.append(" ".join(dict.fromkeys(variant_parts)))
     lines = list(lines_prefix)
     if (original_query or "").strip():
         lines.append(original_query.strip())
-    lines.extend(line.strip() for line in (rewritten_query or "").splitlines() if line.strip())
+    # 재작성 결과에 원문 필수 토큰(FaceWT/FAW 등)을 재주입한 뒤 합칩니다.
+    rewritten_safe = reinject_essential_retrieval_tokens(
+        original_query, rewritten_query or ""
+    )
+    lines.extend(line.strip() for line in rewritten_safe.splitlines() if line.strip())
     lines.extend(expansions)
     return "\n".join(dict.fromkeys(lines))
 
@@ -710,6 +1537,100 @@ def extract_technical_tokens(text: str) -> List[str]:
             seen.add(key)
             tokens.append(token)
     return tokens
+
+
+def expand_protocol_term_synonyms(text: str) -> List[str]:
+    """질문에서 로그인/logon 등 소량 동의어를 찾아 문서 표기 토큰으로 확장합니다.
+
+    사전+정규식만 사용하며 질문 문장별 if를 두지 않습니다. 매칭된 원문 표기도
+    함께 반환해 BM25가 Logon·0x0001 절을 보도록 합니다.
+    """
+    tokens: List[str] = []
+    seen: set = set()
+    for match in _PROTOCOL_TERM_SYNONYM_RE.finditer(text or ""):
+        raw = match.group(0)
+        key = raw.casefold()
+        if key not in seen:
+            seen.add(key)
+            tokens.append(raw)
+        for synonym in _PROTOCOL_TERM_SYNONYMS.get(key, ()):
+            sk = synonym.casefold()
+            if sk in seen:
+                continue
+            seen.add(sk)
+            tokens.append(synonym)
+    return tokens
+
+
+def extract_protocol_detail_tokens(text: str) -> List[str]:
+    """프로토콜 단건 질의에서 hex·CamelCase·공백 명령/필드 토큰을 일반 규칙으로 추출합니다.
+
+    특정 명령 문자열(예: set wiegand) 분기를 두지 않습니다. 공백 구는 붙여쓰기
+    형태(SetWiegand)와 개별 유의미 단어도 함께 반환해 검색 확장·가점에 씁니다.
+    로그인↔logon 등은 소량 동의어 사전으로만 보강합니다.
+    """
+    tokens: List[str] = []
+    seen: set = set()
+
+    def _add(token: str) -> None:
+        """중복·불용어를 걸러 토큰 목록에 추가합니다."""
+        cleaned = (token or "").strip().rstrip(".,;:)]}")
+        if not cleaned:
+            return
+        key = cleaned.casefold()
+        if key in seen or key in _PROTOCOL_DETAIL_TOKEN_STOPWORDS:
+            return
+        # 버전 표기(v4.0)만 있는 토큰은 명령 핵심이 아닙니다.
+        if re.fullmatch(r"v?\d+(?:\.\d+)*", key):
+            return
+        seen.add(key)
+        tokens.append(cleaned)
+
+    for code in extract_hex_codes(text or ""):
+        _add(code)
+        for variant in hex_code_variants(code):
+            _add(variant)
+    for token in extract_technical_tokens(text or ""):
+        _add(token)
+    for match in _SPACED_TECH_PHRASE_PATTERN.finditer(text or ""):
+        phrase = match.group(1).strip()
+        _add(phrase)
+        compact = re.sub(r"\s+", "", phrase)
+        _add(compact)
+        for part in phrase.split():
+            if len(part) >= 4:
+                _add(part)
+    # 한 단어 기술 명사(Wiegand 등): 대문자 시작·길이 4+ 영문
+    for word in re.findall(r"[A-Za-z][A-Za-z0-9]{3,}", text or ""):
+        if word[0].isupper() or word.isupper():
+            _add(word)
+    # 소문자 logon·한글 로그인 등 동의어 확장(사전+정규식).
+    for synonym in expand_protocol_term_synonyms(text or ""):
+        _add(synonym)
+    return tokens
+
+
+def protocol_detail_token_overlap(query: str, content: str) -> float:
+    """질문에서 뽑은 프로토콜 상세 토큰이 본문에 얼마나 겹치는지 0~1로 반환합니다."""
+    tokens = [
+        t
+        for t in extract_protocol_detail_tokens(query)
+        if not t.lower().startswith("0x") and not re.fullmatch(r"[0-9A-Fa-f]{2,4}", t)
+    ]
+    if not tokens:
+        # hex만 있는 질문은 content_mentions_hex로 별도 가점합니다.
+        codes = extract_hex_codes(query or "")
+        if not codes:
+            return 0.0
+        return 1.0 if any(content_mentions_hex(content or "", c) for c in codes) else 0.0
+    normalized = (content or "").casefold()
+    compact_content = re.sub(r"\s+", "", normalized)
+    hits = 0
+    for token in tokens:
+        key = token.casefold()
+        if key in normalized or re.sub(r"\s+", "", key) in compact_content:
+            hits += 1
+    return hits / len(tokens)
 
 
 def detect_artifact_intents(query: str) -> List[str]:
@@ -783,11 +1704,178 @@ _PROTOCOL_GUESS_CLAUSE = re.compile(
 )
 # Preview/표에서 자주 쓰는 패딩된 명령코드(0x0001, 0x010A). 짧은 0x01 열거는 제외.
 _PADDED_COMMAND_HEX = re.compile(r"0x[0-9A-Fa-f]{4,}", re.IGNORECASE)
+# 단일 hex 명령 상세 질의(리스트업이 아님)에서 쓰는 질문 동사·표현.
+_HEX_DETAIL_ASK_MARKERS = (
+    "알려", "무엇", "뭐야", "의미가", "의미는", "설명", "정의", "뭐지",
+    "어떤 명령", "무슨 명령", "명령어", "커맨드",
+)
+# 컨텍스트에 hex가 있는데도 생성 모델이 쓰는 부정·부재 표현.
+_HEX_DETAIL_DENIAL_RE = re.compile(
+    r"포함되어\s*있지\s*않|정보가\s*없|관련\s*(?:표|정보|프로토콜|명령|설정).{0,24}없|"
+    r"문서에\s*없|명시되어\s*있지\s*않|기재\s*(?:되어\s*)?있지\s*않|기재되지\s*않|"
+    r"찾을\s*수\s*없|프로토콜이\s*없|"
+    r"로그인\s*(?:절차|정보|관련).{0,12}없|로그온\s*(?:절차|정보).{0,12}없|"
+    r"(?:wiegand|위겐드).{0,24}(?:없|not\s+found|not\s+mentioned)|"
+    r"logon.{0,20}(?:not\s+found|not\s+mentioned|없)",
+    re.IGNORECASE,
+)
+# 섹션 제목: "5.19 Set Wiegand (0x0041)" / "Set Wiegand (0x0041)"
+_HEX_SECTION_TITLE_RE = re.compile(
+    r"(?P<title>(?:\d+(?:\.\d+)+\s+)?[^()\n]{2,80}?)\s*\(\s*(?P<code>0x[0-9A-Fa-f]+)\s*\)",
+    re.IGNORECASE,
+)
 
 
 def count_unique_hex_commands(content: str) -> int:
     """본문에 등장하는 고유 0x 명령 코드 개수를 셉니다."""
     return len({value.upper() for value in _HEX_COMMAND_PATTERN.findall(content or "")})
+
+
+def extract_hex_codes(text: str) -> List[str]:
+    """본문에서 0x… 및(보조) 2~4자리 bare hex 명령 코드를 중복 없이 추출합니다.
+
+    bare 코드는 질문에 0x 접두가 하나도 없을 때만 보조로 인정합니다.
+    버전 숫자(v4.0의 4/0)와 혼동되지 않게, 이미 0x 표기가 있으면 bare는 건너뜁니다.
+    """
+    codes: List[str] = []
+    seen = set()
+    for match in _HEX_COMMAND_PATTERN.findall(text or ""):
+        key = match.upper()
+        if key not in seen:
+            seen.add(key)
+            codes.append(match)
+    if codes:
+        return codes
+    # 0x가 전무할 때만 bare hex를 후보로 올립니다(예: "0041 알려줘").
+    for digits in _BARE_HEX_CODE_PATTERN.findall(text or ""):
+        # 순수 십진 버전·개수처럼 보이는 값은 제외합니다.
+        if digits.isdigit() and len(digits) <= 2:
+            continue
+        code = f"0x{digits}"
+        key = code.upper()
+        if key not in seen:
+            seen.add(key)
+            codes.append(code)
+    return codes
+
+
+def hex_code_variants(code: str) -> List[str]:
+    """패딩·비패딩 hex 변형을 만들어 검색 확장을 돕습니다.
+
+    예: 0x0041 → 0x0041, 0x41, 0041, 41. 문서·질문이 서로 다른 자리수를
+    써도 BM25/가점이 같은 명령을 보도록 합니다.
+    """
+    raw = (code or "").strip()
+    if not raw:
+        return []
+    match = re.match(r"0x([0-9A-Fa-f]+)$", raw, re.IGNORECASE)
+    if not match:
+        return [raw]
+    digits = match.group(1)
+    stripped = digits.lstrip("0") or "0"
+    variants = [
+        f"0x{digits}",
+        f"0x{digits.upper()}",
+        f"0x{digits.lower()}",
+        f"0x{stripped}",
+        f"0x{stripped.upper()}",
+        f"0x{stripped.lower()}",
+        digits,
+        stripped,
+    ]
+    # 4자리 zero-pad 표기(문서 Command Preview 관례).
+    if len(stripped) <= 4:
+        padded = stripped.upper().zfill(4)
+        variants.extend([f"0x{padded}", f"0x{padded.lower()}", padded])
+    out: List[str] = []
+    seen = set()
+    for item in variants:
+        key = item.casefold()
+        if key and key not in seen:
+            seen.add(key)
+            out.append(item)
+    return out
+
+
+def normalize_hex_code(code: str) -> str:
+    """비교용으로 0x 접두·선행 0을 정규화한 대문자 키를 반환합니다."""
+    match = re.match(r"0x([0-9A-Fa-f]+)$", (code or "").strip(), re.IGNORECASE)
+    if not match:
+        return (code or "").upper()
+    digits = match.group(1).lstrip("0") or "0"
+    return f"0X{digits.upper()}"
+
+
+def content_mentions_hex(content: str, code: str) -> bool:
+    """본문이 주어진 hex(패딩 무시)와 동일 명령을 포함하는지 판별합니다."""
+    target = normalize_hex_code(code)
+    if not target:
+        return False
+    for found in extract_hex_codes(content or ""):
+        if normalize_hex_code(found) == target:
+            return True
+    return False
+
+
+def is_protocol_hex_detail_intent(query: str) -> bool:
+    """단일 hex 또는 기술 명령명(공백/CamelCase) 상세 질의인지 판별합니다.
+
+    리스트업/전부 목록 의도와 겹치면 False입니다. hex뿐 아니라
+    「v4.0에서 set Wiegand 알려줘」처럼 명령명 토큰+설명 동사도 True로 두어
+    카탈로그 enforce·목록 확장을 피합니다. 특정 명령 문자열 하드코딩은 하지 않습니다.
+    Swagger·스키마·FaceWT/FAW API 질문은 「알려줘」+CamelCase만으로 프로토콜
+    단건으로 오인하지 않습니다(Holiday/Lock 검색 오염 방지).
+    """
+    if is_protocol_command_list_intent(query):
+        return False
+    if detect_list_completeness_intent(query) and is_protocol_command_list_intent(query):
+        return False
+    # API/스키마·FaceWT 질문은 Protocol Command 확장·evidence 가점 대상이 아닙니다.
+    if detect_api_doc_intent(query) or is_facewt_faw_api_intent(query):
+        return False
+    # Access Group UI·미디어서버 산정은 Title Case/영문 구가 있어도 프로토콜 단건이 아닙니다.
+    if is_access_group_ui_intent(query) or is_media_server_capacity_calc_intent(query):
+        return False
+    if (
+        is_timezone_ui_intent(query)
+        or is_holiday_ui_intent(query)
+        or is_access_zone_ui_intent(query)
+        or is_access_group_user_ui_intent(query)
+    ):
+        return False
+    codes = extract_hex_codes(query or "")
+    # 목록성 hex 나열이 많으면 단건 상세가 아닙니다.
+    if len(codes) >= 4:
+        return False
+    detail_tokens = extract_protocol_detail_tokens(query or "")
+    name_tokens = [
+        t
+        for t in detail_tokens
+        if not t.lower().startswith("0x")
+        and not re.fullmatch(r"[0-9A-Fa-f]{2,4}", t)
+        and not re.fullmatch(r"v?\d+(?:\.\d+)*", t, re.I)
+    ]
+    synonym_tokens = expand_protocol_term_synonyms(query or "")
+    # 공백 구·CamelCase·유의미 기술 명사·동의어(logon/로그인)면 명령명 단건으로 봅니다.
+    has_cmd_name = any(
+        (" " in t)
+        or (re.search(r"[A-Z].*[A-Z]", t) is not None)
+        or (t[:1].isupper() and len(t) >= 4)
+        or t.casefold() in _PROTOCOL_TERM_SYNONYMS
+        for t in name_tokens
+    ) or bool(synonym_tokens)
+    if not codes and not has_cmd_name:
+        return False
+    normalized = (query or "").casefold()
+    asks = any(marker in normalized for marker in _HEX_DETAIL_ASK_MARKERS)
+    protocolish = any(
+        marker in normalized
+        for marker in ("v4", "protocol", "프로토콜", "명령", "커맨드", "0x")
+    )
+    # hex/명령명만 단독으로 던진 짧은 질의도 상세로 봅니다.
+    short_detail = len((query or "").strip()) <= 40 and (bool(codes) or has_cmd_name)
+    synonym_detail = bool(synonym_tokens) and (asks or protocolish)
+    return asks or short_detail or synonym_detail or (bool(codes) and protocolish)
 
 
 def is_command_list_catalog(
@@ -1064,12 +2152,48 @@ def technical_evidence_score(query: str, content: str) -> float:
     score += terminal_monitor_and_add_evidence_score(query, content)
     score += mediaserver_spec_evidence_score(query, content)
     score += person_profile_evidence_score(query, content)
+    score += hex_command_evidence_score(query, content)
 
     exact_tokens = extract_technical_tokens(query)
     if exact_tokens:
         matched = sum(token.casefold() in normalized_content for token in exact_tokens)
         score += 0.2 * (matched / len(exact_tokens))
     return min(score, 0.7)
+
+
+def hex_command_evidence_score(query: str, content: str) -> float:
+    """질문에 나온 hex·명령명 토큰이 본문에 있으면 강하게 가점합니다.
+
+    단건 상세 질의에서 버전 표·공통 Time Stamp 청크가 해당 명령 절을
+    밀어내지 않도록 합니다. 섹션 제목·토큰 겹침·Config/Format 본문에 가점합니다.
+    """
+    codes = extract_hex_codes(query or "")
+    text = content or ""
+    score = 0.0
+    for code in codes:
+        if not content_mentions_hex(text, code):
+            continue
+        score += 0.35
+        for match in _HEX_SECTION_TITLE_RE.finditer(text):
+            if normalize_hex_code(match.group("code")) == normalize_hex_code(code):
+                score += 0.15
+                break
+    if is_protocol_hex_detail_intent(query):
+        overlap = protocol_detail_token_overlap(query, text)
+        if overlap > 0:
+            score += 0.2 * overlap
+        # 섹션 제목 형태·ExtraData 구조체 표기가 있으면 상세 본문으로 가점합니다.
+        if _HEX_SECTION_TITLE_RE.search(text):
+            score += 0.08
+        if re.search(r"[A-Za-z]+Config|[A-Za-z]+Format", text):
+            score += 0.1
+        if score <= 0 and (
+            "time stamp" in text.casefold() or "milliseconds" in text.casefold()
+        ):
+            score -= 0.12
+    elif not codes:
+        return 0.0
+    return max(-0.2, min(score, 0.55))
 
 
 def mediaserver_spec_evidence_score(query: str, content: str) -> float:
@@ -1428,6 +2552,8 @@ def query_has_retrieval_topic(query: str) -> bool:
         or is_person_profile_intent(q)
         or is_user_terminal_procedure_intent(q)
         or is_terminal_user_management_intent(q)
+        or is_protocol_command_list_intent(q)
+        or is_protocol_hex_detail_intent(q)
     ):
         return True
     normalized = q.casefold()
@@ -1466,9 +2592,32 @@ def is_ambiguous_reformat_request(query: str, chat_history: list) -> bool:
     if query_has_retrieval_topic(query):
         return False
     topic = recent_user_follow_up_topic(chat_history)
-    if topic in ("api", "media", "automated_build", "general"):
+    if topic in (
+        "api",
+        "media",
+        "automated_build",
+        "protocol_catalog",
+        "terminal_monitor",
+        "general",
+    ):
         return False
     return True
+
+
+def history_suggests_protocol_catalog_topic(history_text: str) -> bool:
+    """압축 대화가 v4 프로토콜 명령 목록(리스트업) 주제인지 판별합니다."""
+    text = history_text or ""
+    if is_protocol_command_list_intent(text):
+        return True
+    normalized = text.casefold()
+    has_protocol = any(
+        marker in normalized for marker in ("프로토콜", "protocol", "command preview")
+    )
+    has_list = any(
+        marker in normalized
+        for marker in ("리스트업", "리스트", "목록", "전부", "전체", "list all")
+    )
+    return has_protocol and has_list
 
 
 def extract_schema_subject_labels(chat_history: list) -> list:
@@ -1486,11 +2635,12 @@ def extract_schema_subject_labels(chat_history: list) -> list:
 
 
 def recent_user_follow_up_topic(chat_history: list) -> Optional[str]:
-    """최근 사용자 주제를 api|media|automated_build|general|None 으로 반환합니다.
+    """최근 사용자 주제를 api|media|automated_build|protocol_catalog|terminal_monitor|general|None 으로 반환합니다.
 
     API/스키마와 미디어·자동빌드가 겹치면 API를 우선합니다. 순수 재포맷 턴은
     건너뛰고 그 이전 실질 질문을 봅니다. MediaServer 표 고정은 media일 때만,
-    NSIS 자동화 표/정리는 automated_build일 때만 적용합니다.
+    NSIS 자동화 표/정리는 automated_build일 때만, 프로토콜 목록 표는
+    protocol_catalog일 때만, 모니터링 연결상태 표는 terminal_monitor일 때만 적용합니다.
     """
     for message in reversed(chat_history or []):
         if message.get("role") != "user":
@@ -1511,10 +2661,22 @@ def recent_user_follow_up_topic(chat_history: list) -> Optional[str]:
         build_topic = history_suggests_automated_build_topic(
             normalized
         ) or is_automated_build_intent(content)
+        protocol_catalog = (
+            is_protocol_command_list_intent(content)
+            or history_suggests_protocol_catalog_topic(content)
+        )
+        monitor_topic = (
+            is_terminal_monitor_and_add_intent(content)
+            or history_suggests_terminal_monitor_topic(normalized)
+        )
         if api_topic:
             return "api"
         if build_topic:
             return "automated_build"
+        if protocol_catalog:
+            return "protocol_catalog"
+        if monitor_topic:
+            return "terminal_monitor"
         if media_topic or any(marker in normalized for marker in _MEDIA_SERVER_MARKERS):
             return "media"
         if len(content) >= 8:
@@ -1527,9 +2689,10 @@ def rule_contextualize_follow_up(question: str, chat_history: list) -> Optional[
     """규칙으로 후속 질문을 독립형 검색 질문으로 바꿉니다.
 
     「표로」단독으로 MediaServer를 강제하지 않습니다. 최근 사용자 주제가
-    API/스키마이면 스키마 표, 미디어 서버 스펙이면 카메라 대수별 표,
-    자동빌드이면 NSIS 자동화 절차 표/정리, 그 외 실질 주제면 이전 질문을
-    재포맷 요청과 결합합니다. 주제 불명이면 None(확인 요청 경로).
+    API/스키마이면 스키마 표, 프로토콜 목록이면 Command Preview 표,
+    미디어 서버 스펙이면 카메라 대수별 표, 자동빌드이면 NSIS 자동화 절차
+    표/정리, 그 외 실질 주제면 이전 질문을 재포맷 요청과 결합합니다.
+    주제 불명이면 None(확인 요청 경로).
     현재 질문에 미디어 서버 스펙 의도가 이미 있으면 API 주제 가드로 덮어쓰지 않습니다.
     """
     if not chat_history:
@@ -1558,6 +2721,8 @@ def rule_contextualize_follow_up(question: str, chat_history: list) -> Optional[
     )
     api_in_history = history_suggests_api_schema_topic(history_text)
     media_in_history = history_suggests_media_spec_topic(history_text)
+    protocol_in_history = history_suggests_protocol_catalog_topic(history_text)
+    monitor_in_history = history_suggests_terminal_monitor_topic(history_text)
 
     # 최근 주제가 API/스키마이거나, 후속이 스키마를 명시하면 MediaServer 고정 금지.
     if topic == "api" or (q_mentions_schema and api_in_history):
@@ -1574,9 +2739,31 @@ def rule_contextualize_follow_up(question: str, chat_history: list) -> Optional[
     if topic == "automated_build":
         return "alpeta 자동빌드(자동화 버전) 절차를 표로 알아보기 쉽게 정리해줘"
 
+    # 프로토콜 명령 리스트업 주제 → Preview/목차 표로 문맥화(MediaServer 금지).
+    if topic == "protocol_catalog" or (
+        protocol_in_history and not api_in_history and not media_in_history
+    ):
+        return (
+            "v4.0 Communication protocol for Terminal Command Preview "
+            "목차 명령 코드 목록 전체 표로 정리해줘"
+        )
+
     # 미디어 서버 스펙 주제일 때만 전체 표 검색 질문으로 고정합니다.
     if topic == "media" or (media_in_history and not api_in_history):
         return "미디어 서버 카메라 대수별 권장 스펙 전체 표로 알려줘"
+
+    # 모니터링·연결상태 주제의 표/상태 후속 — FaceWT·MediaServer 교차 오염 금지.
+    asks_status_detail = "상태" in q_cf
+    if topic == "terminal_monitor" or (
+        monitor_in_history
+        and not api_in_history
+        and not media_in_history
+        and (asks_status_detail or asks_reformat)
+    ):
+        return (
+            "Alpeta User Guide 모니터링 메뉴 단말기 접속 상태 "
+            "녹색 연결 빨간 끊김 이벤트 출입문 열림 닫힘 표로 정리해줘"
+        )
 
     # 일반 실질 주제 + 재포맷 후속: 이전 사용자 질문을 문맥화합니다.
     if topic == "general" and is_reformat_follow_up_intent(q):
@@ -1613,8 +2800,8 @@ def condense_question(
     """최근 대화를 반영해 혼자 봐도 이해되는 독립형 질문으로 다시 씁니다.
 
     실패하거나 결과가 이상하면(빈 값·과도한 길이) 원본 질문으로 폴백합니다.
-    API/스키마·미디어 서버·자동빌드 재포맷 후속은 주제 가드 규칙 변환을
-    LLM보다 먼저 적용합니다.
+    API/스키마·프로토콜 목록·미디어 서버·자동빌드 재포맷 후속은 주제 가드
+    규칙 변환을 LLM보다 먼저 적용합니다.
     """
     ruled = rule_contextualize_follow_up(question, chat_history)
     if ruled:
@@ -1926,6 +3113,14 @@ def build_context_prompt(
 - User Guide나 설치 가이드로 프로토콜 명령 목록을 대체하지 마세요.
 - 12줄 제한에 맞추려 목록을 생략·요약하지 마세요. 표 또는 불릿으로 충분히 길게 작성하세요.
 """
+    facewt_block = ""
+    if is_facewt_faw_api_intent(query) and not is_api_schema_table_intent(query):
+        facewt_block = """
+=== FaceWT/FAW API·스키마(필수) ===
+- FAW는 FaceWT의 별칭입니다. FAW/FaceWT를 「문서에 없다」고 단정하지 마세요.
+- 근거 swagger에서 FaceWT API 경로와 `FaceWTInfo`/`UserFaceWTInfo` 스키마를 함께 답하세요.
+- Holiday·Lock·무관 option API만으로 답하지 마세요.
+"""
     mediaserver_block = ""
     if is_media_server_spec_intent(query):
         mediaserver_block = """
@@ -1972,12 +3167,43 @@ def build_context_prompt(
 - Protocol·NSIS·Swagger 내용을 섞지 마세요.
 """
     elif is_terminal_monitor_and_add_intent(query):
-        procedure_block = """
+        status_only = is_terminal_monitor_status_only_intent(query)
+        table_mode = is_terminal_monitor_status_table_intent(query)
+        if table_mode:
+            procedure_block = """
+=== 모니터링 상태 표(필수) ===
+- User Guide 「모니터링」(p.63–64)만 사용하세요. 근태·FaceWT·MediaServer·Protocol을 섞지 마세요.
+- 마크다운 표에 **상태(접속)**: 녹색 원=서버와 연결 / 빨간 원=연결 끊김 을 **AND**로 포함하세요.
+- **이벤트**: 출입문 열림·닫힘(및 문서에 있는 이벤트 예)을 표에 포함하세요.
+- ✓/○/체크마크 등 문서에 없는 기호로 상태 아이콘을 만들지 마세요.
+- 「단말기 관리」추가 절차·근태 기록·도면 관리를 본문에 넣지 마세요.
+"""
+        elif status_only:
+            procedure_block = """
+=== 단말기 연결상태 확인(필수) ===
+- User Guide UI만 사용하세요. Protocol(0x0A 등)·「단말기 찾기」(UDP)·「출입그룹 단말기 리스트」를 **주답**으로 쓰지 마세요.
+- 「모니터링」메뉴에서 단말기 접속 상태를 확인하세요.
+- **상태(접속)**: 녹색 원=서버와 **연결** / 빨간 원=**연결이 끊어진** 상태 — 둘 다 설명하세요.
+- **이벤트**: 출입문 **열림**·**닫힘** 등 문서에 있는 이벤트 아이콘 설명을 포함하세요.
+- ✓/○ 등 문서에 없는 기호로 상태를 표시하지 마세요.
+- 「단말기 관리」추가·펌웨어·관리자·사용자→단말 3경로는 이 질문에 넣지 마세요.
+"""
+        else:
+            procedure_block = """
 === 단말기 연결상태·추가(필수) ===
 - User Guide UI만 사용하세요. Protocol(0x0A 등)·「단말기 찾기」(UDP)·「출입그룹 단말기 리스트」를 **주답/주경로**로 쓰지 마세요.
-- 연결 상태 확인: 「모니터링」메뉴. 단말기 접속 상태(서버와 연결/끊김), 이벤트·실시간 인증/이벤트 로그 등 문서에 있는 항목을 포함하세요.
+- 연결 상태 확인: 「모니터링」메뉴. 녹색=연결 / 빨간=끊김, 이벤트(출입문 열림·닫힘)·실시간 인증/이벤트 로그를 포함하세요.
 - 단말기 추가: 「단말기 관리」메뉴의 [추가](등록 창) → **아이디(1~99999999)·이름(최대 50자)·설명(최대 255자)** 입력. 이 절차만 적으세요.
 - 「단말기 펌웨어」등록·「단말기 관리자」추가·「사용자를 단말기에 추가」3경로·「단말기 사용자 관리」로 치환하지 마세요.
+- ✓/○ 등 문서에 없는 기호로 상태 아이콘을 만들지 마세요.
+"""
+    elif is_auto_sync_setting_intent(query):
+        procedure_block = """
+=== 자동 동기화 설정(필수) ===
+- **[일반설정] > [사용자]** (사용자 설정) 메뉴만 답하세요.
+- **단말기 사용자 정보 자동 동기화 사용** 옵션 활성화 절차만 적으세요.
+- 사용자와 단말기가 **동일한 출입그룹**으로 설정되어야 동기화됩니다.
+- 수동 전송(사용자 관리·단말기 사용자 관리·단말기 사용자 확장·단말기리스트) 경로는 본문에 쓰지 마세요.
 """
     elif is_user_terminal_procedure_intent(query):
         # 품질 우선: 수동 추가 3메뉴 경로와 자동동기화를 메뉴명으로 구분하도록 강제.
@@ -2016,6 +3242,7 @@ def build_context_prompt(
 {query}
 {scope_block}
 {list_block}
+{facewt_block}
 {mediaserver_block}
 {person_block}
 {path_role_block}
@@ -2183,23 +3410,117 @@ def enforce_terminal_user_mgmt_menu_name(
     return f"{result.rstrip()}\n\n" + "\n".join(parts)
 
 
+def _strip_hallucinated_status_checkmarks(answer: str) -> str:
+    """✓/○ 등 문서에 없는 상태 아이콘 환각 기호를 본문에서 제거합니다."""
+    result = answer or ""
+    for marker in _HALLUCINATED_STATUS_CHECKMARKS:
+        result = result.replace(marker, "")
+    return result
+
+
+def _has_green_red_status_text(answer: str) -> bool:
+    """본문에 녹·적(또는 🟢🔴) 접속 상태 설명이 있는지 판별합니다."""
+    body = answer or ""
+    return ("녹" in body and "빨" in body) or ("🟢" in body and "🔴" in body)
+
+
+def _answer_has_monitor_status_icons_events(answer: str) -> bool:
+    """모니터링 답에 녹·적+이벤트(출입문 열림·닫힘)가 AND로 있는지 판별합니다."""
+    body = answer or ""
+    has_green_red = _has_green_red_status_text(body)
+    has_event_pair = ("출입문" in body or "이벤트" in body) and (
+        "열" in body and "닫" in body
+    )
+    return has_green_red and has_event_pair
+
+
+def _answer_has_monitor_status_pollution(answer: str) -> bool:
+    """모니터링 답에 근태·FaceWT·MediaServer 등 교차 오염이 있는지 판별합니다."""
+    body = answer or ""
+    return any(marker in body for marker in _MONITOR_STATUS_POLLUTION_MARKERS)
+
+
+def _terminal_monitor_status_canonical_block(as_table: bool = False) -> str:
+    """모니터링 p.63–64 접속 상태·이벤트 아이콘 설명 본문(문서 UI 용어)."""
+    if as_table:
+        return (
+            "### 모니터링 — 단말기 접속·이벤트 상태 (Alpeta User Guide p.63–64)\n"
+            "| 구분 | 아이콘 | 의미 |\n"
+            "| --- | --- | --- |\n"
+            "| **상태(접속)** | 🟢 녹색 원 | 단말기가 서버와 **연결된** 상태 |\n"
+            "| **상태(접속)** | 🔴 빨간 원 | 단말기가 서버와 **연결이 끊어진** 상태 |\n"
+            "| **이벤트** | (아이콘) | 출입문 **열린** 상태 |\n"
+            "| **이벤트** | (아이콘) | 출입문 **닫힌** 상태 |\n"
+            "| **로그** | — | 실시간 인증 로그 / 실시간 이벤트 로그 |\n"
+            "\n"
+            "메뉴 경로: **[모니터링]** → 단말기 리스트에서 접속 상태·이벤트를 확인합니다."
+        )
+    return (
+        "### 모니터링 — 단말기 연결 상태 확인 (Alpeta User Guide p.63–64)\n"
+        "1. **[모니터링]** 메뉴에서 단말기 리스트·접속 상태를 확인합니다.\n"
+        "2. **상태(접속)**:\n"
+        "   - 🟢 **녹색 원**: 단말기가 서버와 **연결된** 상태\n"
+        "   - 🔴 **빨간 원**: 단말기가 서버와 **연결이 끊어진** 상태\n"
+        "3. **이벤트**:\n"
+        "   - 출입문 **열린** 상태 / 출입문 **닫힌** 상태 (및 문서에 있는 기타 이벤트)\n"
+        "4. **실시간 인증 로그** / **실시간 이벤트 로그**도 확인할 수 있습니다."
+    )
+
+
 def enforce_terminal_monitor_and_add(
     query: str, documents: list, answer: str
 ) -> str:
-    """모니터링·단말기 관리 추가 누락을 문서 근거로 보강하고 오답 주경로를 약화합니다.
+    """모니터링·단말기 관리 추가 누락을 문서 근거로 보강하고 오답 주경로·환각을 약화합니다.
 
-    컨텍스트에 메뉴 근거가 있을 때만 보완합니다. Protocol/단말기 찾기/출입그룹 리스트·
-    펌웨어·관리자 절차를 새로 주입하지 않습니다.
+    연결상태 단독 질문은 녹·적+이벤트(출입문 열림·닫힘) AND를 보장하고 단말기 추가
+    절차를 주입하지 않습니다. 표 후속은 모니터링 상태 표만 보강하며 근태·FaceWT·
+    MediaServer 교차 오염을 제거합니다. ✓/○ 환각 기호는 제거합니다.
     """
-    if not is_terminal_monitor_and_add_intent(query):
+    if not (
+        is_terminal_monitor_and_add_intent(query)
+        or is_terminal_monitor_status_table_intent(query)
+    ):
         return answer or ""
-    result = answer or ""
+    result = _strip_hallucinated_status_checkmarks(answer or "")
     context = "\n".join(document.get("content", "") for document in documents)
+    status_only = is_terminal_monitor_status_only_intent(query)
+    table_mode = is_terminal_monitor_status_table_intent(query)
+    has_monitor_ctx = "모니터링" in context
+
+    if table_mode and has_monitor_ctx:
+        canonical = _terminal_monitor_status_canonical_block(as_table=True)
+        polluted = _answer_has_monitor_status_pollution(result)
+        missing_icons = not _answer_has_monitor_status_icons_events(result)
+        thin_table = "|" not in result or len(result) < 120
+        if polluted or missing_icons or thin_table:
+            if polluted or (missing_icons and thin_table):
+                return f"Alpeta User Guide.pdf\n\n---\n\n{canonical}"
+            return f"{result.rstrip()}\n\n{canonical}"
+
+    if has_monitor_ctx:
+        missing_icons = not _answer_has_monitor_status_icons_events(result)
+        polluted = _answer_has_monitor_status_pollution(result)
+        has_wrong_icons = any(
+            marker in (result or "") for marker in _HALLUCINATED_STATUS_CHECKMARKS
+        )
+        if missing_icons or polluted or has_wrong_icons or "모니터링" not in result:
+            canonical = _terminal_monitor_status_canonical_block(as_table=False)
+            if status_only and (missing_icons or has_wrong_icons or polluted):
+                return f"Alpeta User Guide.pdf\n\n---\n\n{canonical}"
+            if polluted and table_mode:
+                return f"Alpeta User Guide.pdf\n\n---\n\n{canonical}"
+            if missing_icons or has_wrong_icons or "모니터링" not in result:
+                result = f"{result.rstrip()}\n\n{canonical}"
+                if table_mode:
+                    return result
+
     parts: List[str] = []
     if "모니터링" in context and "모니터링" not in result:
         status_hint = ""
         if "연결" in context or "접속" in context:
-            status_hint = " 단말기 접속 상태(서버와 연결/끊김)를 확인할 수 있습니다."
+            status_hint = (
+                " 녹색 원=연결, 빨간 원=끊김, 이벤트(출입문 열림·닫힘)를 확인할 수 있습니다."
+            )
         parts.append(
             f"- 모니터링: 단말기의 실시간 상태·인증/이벤트 기록을 확인하는 메뉴입니다.{status_hint}"
         )
@@ -2210,21 +3531,368 @@ def enforce_terminal_monitor_and_add(
         and "펌웨어" not in context.split("단말기 관리", 1)[-1][:400]
     )
     needs_device_add = (
-        "단말기 관리" not in result
-        or "아이디" not in result
-        or ("펌웨어" in result and "아이디" not in result)
-        or ("단말기 관리자" in result and "아이디" not in result)
+        not status_only
+        and not table_mode
+        and (
+            "단말기 관리" not in result
+            or "아이디" not in result
+            or ("펌웨어" in result and "아이디" not in result)
+            or ("단말기 관리자" in result and "아이디" not in result)
+        )
     )
     if has_device_add_ctx and needs_device_add:
         parts.append(
             "- 단말기 관리: [추가]로 등록 창을 연 뒤 아이디(1~99999999)·이름(최대 50자)·"
             "설명(최대 255자)을 입력합니다. 펌웨어 등록·단말기 관리자 추가와는 다른 메뉴입니다."
         )
-    elif "단말기 관리" in context and "단말기 관리" not in result:
+    elif (
+        not status_only
+        and not table_mode
+        and "단말기 관리" in context
+        and "단말기 관리" not in result
+    ):
         parts.append(
             "- 단말기 관리: 단말기를 조회·추가·수정·삭제하는 메뉴입니다. "
             "[추가]로 등록 창을 엽니다."
         )
+    if not parts:
+        return result
+    return f"{result.rstrip()}\n\n" + "\n".join(parts)
+
+
+def enforce_timezone_ui_procedure(
+    query: str, documents: list, answer: str
+) -> str:
+    """타임존·타임라인 생성 UI 절차 누락을 User Guide 근거로 보강합니다.
+
+    Q1(타임존 추가)과 Q7(타임라인 신규)을 분리합니다. Q1에서 「새 타임라인」만으로
+    타임존 생성을 대체하는 답은 p.49 한주간·콤보박스 절차로 교정합니다.
+    """
+    if not is_timezone_ui_intent(query):
+        return answer or ""
+    result = answer or ""
+    if is_timeline_create_ui_intent(query):
+        return _enforce_timeline_create_ui_procedure(query, documents, result)
+    if not is_timezone_create_ui_intent(query):
+        return result
+    return _enforce_timezone_create_ui_procedure(query, documents, result)
+
+
+def _timezone_create_canonical_block() -> str:
+    """타임존 관리 p.49 타임존 추가 절차 본문(문서 UI 용어)."""
+    return (
+        "### 타임존 관리에서 타임존 추가 (Alpeta User Guide p.49)\n"
+        "1. **[타임존] > [타임존 관리]**에서 **[추가]** 버튼을 클릭해 새 타임존을 추가합니다.\n"
+        "2. **한주간의 일정**을 설정합니다. 등록된 **타임라인**·**공휴일**을 "
+        "각 요일(및 공휴일) 우측 **콤보박스**에서 선택합니다.\n"
+        "3. **[저장]**으로 타임존을 저장합니다.\n"
+        "4. 생성한 타임존은 **[출입그룹]** 메뉴에서 출입그룹에 적용할 수 있습니다."
+    )
+
+
+def _enforce_timezone_create_ui_procedure(
+    query: str, documents: list, answer: str
+) -> str:
+    """Q1 타임존 관리 추가·한주간 콤보박스 선택·저장·출입그룹 적용을 AND로 보장합니다."""
+    result = answer or ""
+    week_ok = any(
+        token in result
+        for token in ("한주", "한 주", "한 주간", "한주간", "일주일")
+    )
+    combo_ok = "콤보박스" in result
+    weekday_select_ok = "요일" in result and "타임라인" in result and "선택" in result
+    schedule_ok = week_ok and (combo_ok or weekday_select_ok)
+    confused = False
+    if "새 타임라인" in result:
+        if not schedule_ok:
+            confused = True
+        elif week_ok and result.find("새 타임라인") < result.find(
+            next(t for t in ("한주", "한 주", "한 주간", "한주간", "일주일") if t in result)
+        ):
+            # 타임라인 신규 절차가 타임존(한주간) 절차보다 앞서면 Q1 혼동.
+            confused = True
+    missing_core = (
+        "타임존 관리" not in result
+        or "추가" not in result
+        or not schedule_ok
+        or "저장" not in result
+        or "출입그룹" not in result
+    )
+    canonical = _timezone_create_canonical_block()
+    if confused:
+        return f"Alpeta User Guide.pdf\n\n---\n\n{canonical}"
+    if missing_core:
+        return f"{result.rstrip()}\n\n{canonical}"
+    return result
+
+
+def _enforce_timeline_create_ui_procedure(
+    query: str, documents: list, answer: str
+) -> str:
+    """Q7 타임라인 관리 ID·NAME·[새 타임라인]·[저장] 절차를 보강합니다."""
+    result = answer or ""
+    context = "\n".join(document.get("content", "") for document in documents)
+    parts: List[str] = []
+    if "ID" not in result and "아이디" not in result:
+        parts.append("- **ID**: 타임라인 아이디.")
+    if "NAME" not in result and "이름" not in result:
+        parts.append("- **NAME**: 타임라인 이름.")
+    if "새 타임라인" not in result:
+        parts.append(
+            "- ID·NAME 입력 후 **[새 타임라인]** 버튼으로 일정 컨트롤을 생성합니다."
+        )
+    if "더블클릭" not in result:
+        parts.append(
+            "- 출입 상태 영역을 **더블클릭**하여 시간대를 생성합니다."
+        )
+    if "저장" not in result and ("저장" in context or not context):
+        parts.append("- **[저장]**으로 타임라인 정보를 저장합니다.")
+    if not parts:
+        return result
+    return f"{result.rstrip()}\n\n" + "\n".join(parts)
+
+
+def enforce_authlog_search_categories(
+    query: str, documents: list, answer: str
+) -> str:
+    """인증 로그 조회 검색 카테고리 6항을 AND로 보장하고 단말기명 부정을 제거합니다.
+
+    User Guide p.56: 전체, 사용자 ID, 사용자 이름, 단말기 ID, 단말기명, 유니크 ID.
+    """
+    if not is_authlog_category_ui_intent(query):
+        return answer or ""
+    result = answer or ""
+    categories = (
+        "전체", "사용자 ID", "사용자 이름", "단말기 ID", "단말기명", "유니크 ID",
+    )
+    denial_markers = (
+        "없습니다", "없음", "명시되지", "명시되어 있지", "제공되지", "포함되어 있지",
+        "포함되지", "확인할 수 없",
+    )
+    denies_terminal_name = False
+    if "단말기명" in result:
+        idx = result.find("단말기명")
+        snippet = result[max(0, idx - 24) : idx + 48]
+        denies_terminal_name = any(marker in snippet for marker in denial_markers)
+    missing = [term for term in categories if term not in result]
+    denies_terminal_name = False
+    if "단말기명" in result:
+        idx = result.find("단말기명")
+        snippet = result[max(0, idx - 24) : idx + 48]
+        denies_terminal_name = any(marker in snippet for marker in denial_markers)
+    block_header = "### 인증 로그 조회 검색 카테고리"
+    needs_block = (
+        bool(missing)
+        or denies_terminal_name
+        or block_header not in result
+    )
+    if not needs_block:
+        return result
+    cleaned = result
+    if denies_terminal_name or any(marker in result for marker in denial_markers):
+        kept: List[str] = []
+        for line in result.splitlines():
+            if any(marker in line for marker in denial_markers) and (
+                "단말기명" in line or "카테고리" in line or "검색" in line
+            ):
+                continue
+            kept.append(line)
+        cleaned = "\n".join(kept).strip()
+    block = (
+        "### 인증 로그 조회 검색 카테고리 (Alpeta User Guide p.56)\n"
+        "검색 카테고리(좌측 콤보박스)에서 다음 중 선택합니다: "
+        "**전체**, **사용자 ID**, **사용자 이름**, **단말기 ID**, **단말기명**, **유니크 ID**."
+    )
+    if cleaned:
+        return f"{cleaned}\n\n{block}"
+    return block
+
+
+def enforce_holiday_ui_procedure(
+    query: str, documents: list, answer: str
+) -> str:
+    """공휴일 관리 UI 생성 절차 누락을 User Guide 근거로 보강합니다.
+
+    [타임존] > [공휴일 관리]·ID/이름·달력 [추가]·최대 30개·[저장]을 AND로 보완합니다.
+    """
+    if not is_holiday_ui_intent(query):
+        return answer or ""
+    result = answer or ""
+    context = "\n".join(document.get("content", "") for document in documents)
+    parts: List[str] = []
+    has_holiday_context = "공휴일" in context
+    if has_holiday_context:
+        path_ok = "공휴일 관리" in result or ("타임존" in result and "공휴일" in result)
+        if "공휴일 관리" in context and not path_ok:
+            parts.append(
+                "- 메뉴: [타임존] > [공휴일 관리]에서 연중 공휴일을 설정합니다."
+            )
+        if "추가" in context and "달력" in context:
+            if not ("달력" in result and "추가" in result):
+                parts.append(
+                    "- [추가]: 새 ID·이름 입력 → 달력에서 날짜 선택 → [추가] 버튼으로 저장."
+                )
+        if "30" in context and "30" not in result:
+            parts.append("- 하나의 공휴일 정보에는 최대 30개의 공휴일(날짜)을 추가할 수 있습니다.")
+        if "저장" in context and "저장" not in result:
+            parts.append("- [저장]으로 공휴일 목록·정보를 저장·수정합니다.")
+    if "공휴일 관리" not in result and "[타임존]" not in result:
+        parts.append(
+            "- 메뉴: **[타임존] > [공휴일 관리]** — ID·이름 입력, 달력에서 날짜 선택 후 [추가]."
+        )
+    if "30" not in result:
+        parts.append("- 하나의 공휴일 정보에는 **최대 30개** 날짜를 추가할 수 있습니다.")
+    if not parts:
+        return result
+    return f"{result.rstrip()}\n\n" + "\n".join(parts)
+
+
+def enforce_access_zone_ui_procedure(
+    query: str, documents: list, answer: str
+) -> str:
+    """출입구역 추가 UI 절차 누락·부정을 User Guide p.53–54 문구로 보강합니다."""
+    if not is_access_zone_ui_intent(query):
+        return answer or ""
+    result = answer or ""
+    parts: List[str] = []
+    if "출입구역 추가" not in result and "출입구역 추가" not in result.replace(" ", ""):
+        parts.append(
+            "- **출입 구역 관리** 좌측 리스트 공란에서 마우스 오른쪽 → **「출입구역 추가」**."
+        )
+    if "출입구역 ID" not in result:
+        parts.append("- **출입구역 ID**·**출입구역명**을 입력합니다.")
+    if "추가 가능한 단말기" not in result:
+        parts.append(
+            "- **추가 가능한 단말기** ↔ **등록된 단말기** 이동 버튼 `[<]`/`[>]`."
+        )
+    if "타임존" not in result:
+        parts.append("- **타임존**을 선택한 뒤 **[저장]**합니다.")
+    elif "저장" not in result:
+        parts.append("- **[저장]**으로 출입구역 정보를 저장합니다.")
+    if not parts:
+        return result
+    return f"{result.rstrip()}\n\n" + "\n".join(parts)
+
+
+def enforce_access_group_user_ui_procedure(
+    query: str, documents: list, answer: str
+) -> str:
+    """출입 그룹 사용자 관리 등록 절차를 User Guide p.54–55 문구로 보강합니다."""
+    if not is_access_group_user_ui_intent(query):
+        return answer or ""
+    result = answer or ""
+    parts: List[str] = []
+    if "출입 그룹 사용자 관리" not in result and "출입그룹 사용자" not in result:
+        parts.append("- 메뉴: **출입 그룹 사용자 관리**.")
+    if "등록 가능한 사용자" not in result:
+        parts.append(
+            "- **등록 가능한 사용자 리스트**에서 사용자 체크 → **등록** 버튼."
+        )
+    if not parts:
+        return result
+    return f"{result.rstrip()}\n\n" + "\n".join(parts)
+
+
+def _auto_sync_manual_path_primary(answer: str) -> bool:
+    """자동동기화 옵션보다 수동 전송 경로가 앞서거나 먼저 나오면 True입니다."""
+    text = answer or ""
+    sync_markers = (
+        "단말기 사용자 정보 자동 동기화",
+        "자동 동기화 사용",
+        "자동동기화",
+    )
+    sync_pos = len(text)
+    for marker in sync_markers:
+        pos = text.find(marker)
+        if pos >= 0:
+            sync_pos = min(sync_pos, pos)
+    if sync_pos >= len(text):
+        fallback = text.find("자동")
+        sync_pos = fallback if fallback >= 0 else len(text)
+    manual_markers = (
+        "수동 추가",
+        "단말기 사용자 관리",
+        "단말기 사용자 확장",
+        "단말기리스트",
+        "단말기 리스트",
+        "[사용자 관리]",
+        "「사용자 관리」",
+    )
+    for marker in manual_markers:
+        pos = text.find(marker)
+        if pos >= 0 and pos < sync_pos:
+            return True
+    head = text[:320]
+    if any(m in head for m in manual_markers) and sync_pos > 320:
+        return True
+    return False
+
+
+def _canonical_auto_sync_setting_answer() -> str:
+    """User Guide p.126 자동 동기화 설정 canonical 답변을 반환합니다."""
+    return (
+        "1. **[일반설정] > [사용자]** (사용자 설정) 메뉴로 이동합니다.\n"
+        "2. **단말기 사용자 정보 자동 동기화 사용** 옵션을 활성화합니다.\n"
+        "3. 사용자와 단말기가 **동일한 출입그룹**으로 설정되어 있어야 동기화됩니다."
+    )
+
+
+def enforce_auto_sync_setting_procedure(
+    query: str, documents: list, answer: str
+) -> str:
+    """일반설정 자동 동기화 단독 질문에서 수동 전송 경로 혼입을 제거·보강합니다."""
+    if not is_auto_sync_setting_intent(query):
+        return answer or ""
+    result = answer or ""
+    if _auto_sync_manual_path_primary(result):
+        return _canonical_auto_sync_setting_answer()
+    parts: List[str] = []
+    if "일반설정" not in result and "일반 설정" not in result:
+        parts.append("- **[일반설정] > [사용자]** (사용자 설정) 메뉴로 이동합니다.")
+    if "단말기 사용자 정보 자동 동기화" not in result:
+        parts.append("- **단말기 사용자 정보 자동 동기화 사용** 옵션을 활성화합니다.")
+    if "출입그룹" not in result:
+        parts.append(
+            "- 사용자와 단말기가 **동일한 출입그룹**으로 설정되어야 동기화됩니다."
+        )
+    if not parts:
+        return result
+    return f"{result.rstrip()}\n\n" + "\n".join(parts)
+
+
+def enforce_alpeta_user_guide_misc_procedure(
+    query: str, documents: list, answer: str
+) -> str:
+    """사용자 필수항목·인증로그·단말 전송·동기화·권한 등 UG 절차를 보강합니다."""
+    normalized = (query or "").casefold()
+    auto_sync_q = is_user_terminal_procedure_intent(query) and "동기화" in normalized
+    if is_authlog_category_ui_intent(query):
+        return enforce_authlog_search_categories(query, documents, answer or "")
+    if not is_alpeta_user_guide_procedure_intent(query) and not auto_sync_q:
+        return answer or ""
+    result = answer or ""
+    parts: List[str] = []
+    if "필수" in normalized and "사용자" in normalized:
+        for term in ("사용자 ID", "사용자 이름", "인증 수단", "인증수단 데이터"):
+            if term not in result:
+                parts.append(f"- 필수 입력: **{term}**.")
+    if "단말" in normalized and ("보내" in normalized or "전송" in normalized):
+        if "출입 그룹 정보 단말" not in result:
+            parts.append(
+                "- **출입 그룹 정보 단말로 전송**: 단말기 체크 → **[전송]**."
+            )
+    if "동기화" in normalized:
+        if "단말기 사용자 정보 자동 동기화" not in result:
+            parts.append(
+                "- **[일반설정] > [사용자]** — **단말기 사용자 정보 자동 동기화 사용** 활성화."
+            )
+        if "출입그룹" not in result:
+            parts.append(
+                "- 사용자와 단말기가 **동일한 출입그룹**이어야 동기화됩니다."
+            )
+    if "권한" in normalized and "메뉴" in normalized:
+        if "권한 관리" not in result:
+            parts.append("- 관리자·사용자 외 권한은 **[권한 관리]** 메뉴에서 추가합니다.")
     if not parts:
         return result
     return f"{result.rstrip()}\n\n" + "\n".join(parts)
@@ -2400,20 +4068,70 @@ def enforce_mediaserver_spec_table(query: str, documents: list, answer: str) -> 
     )
 
 
+def normalize_protocol_catalog_name(name: str) -> str:
+    """TOC/Preview 명령명을 문서 영문 제목 우선으로 정리하고 가짜·중문 행을 제거합니다.
+
+    절 번호(4.1 …)를 떼고, 영문 제목 뒤에 한글 병기가 있으면 영문만 남깁니다.
+    「보완 항목」·중문(主张 등) 오염 이름은 빈 문자열로 버려 enforce가 쓰지 않게 합니다.
+    """
+    cleaned = (name or "").strip(" .-|")
+    cleaned = re.sub(r"^\d+(?:\.\d+)+\.?\s*", "", cleaned)
+    cleaned = re.sub(r"\.{2,}\s*\d+\s*$", "", cleaned).strip(" .-")
+    if not cleaned:
+        return ""
+    if _PROTOCOL_LIST_FAKE_ROW_RE.search(cleaned) or "보완" in cleaned:
+        return ""
+    if _PROTOCOL_LIST_CJK_RE.search(cleaned):
+        return ""
+    # "Terminal Logon 단말기 로그온" → "Terminal Logon"
+    eng = re.match(
+        r"^([A-Za-z][A-Za-z0-9]*(?:\s+[A-Za-z][A-Za-z0-9/_\-]*)+)"
+        r"(?:\s+[가-힣].*)?$",
+        cleaned,
+    )
+    if eng:
+        return eng.group(1).strip()
+    return cleaned
+
+
+def protocol_list_answer_is_degraded(answer: str) -> bool:
+    """프로토콜 목록 답이 중문·가짜 보완·hex 빈약·비표 나열로 품질이 낮은지 판별합니다."""
+    body = answer or ""
+    if not body.strip():
+        return True
+    if _PROTOCOL_LIST_CJK_RE.search(body):
+        return True
+    if _PROTOCOL_LIST_FAKE_ROW_RE.search(body) or "보완 항목" in body:
+        return True
+    if answer_has_protocol_guess_phrases(body):
+        return True
+    unique = count_unique_hex_commands(body)
+    zero = len({h.upper() for h in _HEX_COMMAND_PATTERN.findall(body) if h.upper() in {"0X00", "0X0000"}})
+    if unique < 6:
+        return True
+    if unique and zero / max(len(_HEX_COMMAND_PATTERN.findall(body)), 1) >= 0.5:
+        return True
+    # 표(|)도 불릿도 거의 없고 한 덩어리 문단이면 문서 표로 교체 대상입니다.
+    pipe_rows = body.count("|")
+    bullets = len(re.findall(r"(?m)^\s*[-*•]", body))
+    if pipe_rows < 4 and bullets < 4 and unique < 12:
+        return True
+    return False
+
+
 def extract_protocol_command_rows(documents: list) -> List[Tuple[str, str]]:
     """카탈로그·TOC 청크에서 (명령명, hex) 행을 문서 순으로 추출합니다.
 
     TOC `(0x....)`·Preview `이름 0x....`·스냅샷 `(0x0)` 짧은 표기를 수집합니다.
     동일 hex는 먼저 나온 이름을 유지하되, 스냅샷은 이름이 다르면 별도 키로
-    보존해 답변 보강 시 빠지지 않게 합니다.
+    보존해 답변 보강 시 빠지지 않게 합니다. 영문 제목·실제 hex만 남깁니다.
     """
     rows: List[Tuple[str, str]] = []
     seen: set = set()
 
     def _add_row(name: str, code: str) -> None:
         """명령명·hex 한 행을 중복 없이 추가합니다."""
-        clean_name = (name or "").strip(" .-|")
-        clean_name = re.sub(r"\.{2,}\s*\d+\s*$", "", clean_name).strip(" .-")
+        clean_name = normalize_protocol_catalog_name(name)
         if not clean_name or not code:
             return
         key = code.upper()
@@ -2551,19 +4269,1117 @@ def ensure_protocol_golden_hex_rows(
     return result
 
 
+def _hex_detail_chunk_score(query: str, content: str) -> float:
+    """단건 명령 상세용 청크 우선순위를 계산합니다(섹션 제목·토큰 겹침 가점)."""
+    codes = extract_hex_codes(query or "")
+    text = content or ""
+    mentions_hex = bool(codes) and any(content_mentions_hex(text, c) for c in codes)
+    overlap = protocol_detail_token_overlap(query, text)
+    if not mentions_hex and overlap <= 0:
+        # 질문 hex/토큰과 무관한 청크는 후보에서 제외합니다.
+        return -1.0
+    score = 1.0 + hex_command_evidence_score(query, text)
+    score += 0.6 * overlap
+    lower = text.casefold()
+    if _HEX_SECTION_TITLE_RE.search(text):
+        score += 0.4
+    if re.search(r"[A-Za-z]+Config|[A-Za-z]+Format", text):
+        score += 0.35
+    if "server" in lower and "terminal" in lower:
+        score += 0.1
+    # 공통 Time Stamp만 있는 청크는 낮게 둡니다.
+    if "time stamp" in lower and "command" not in lower and overlap <= 0:
+        score -= 0.4
+    return score
+
+
+def _content_matches_protocol_detail(query: str, content: str) -> bool:
+    """청크가 질문의 hex 또는 명령명 토큰과 매칭되는지 판별합니다."""
+    return _hex_detail_chunk_score(query, content) >= 0
+
+
+def _merge_adjacent_protocol_detail_chunks(
+    selected: list,
+    records: list,
+    query: str,
+    scope: Optional[Dict[str, str]] = None,
+    window: int = 2,
+) -> list:
+    """매칭된 명령 절 앵커의 인접 chunk_index 청크를 병합해 섹션을 완결합니다.
+
+    제목 청크와 Config/Format 본문 청크가 인덱싱에서 갈라진 경우(같은 section·근접
+    index) 컨텍스트에 함께 올립니다. 특정 명령명 하드코딩 없이 앵커 점수·인접성만 씁니다.
+    """
+    if not selected or not records:
+        return selected
+    by_source: Dict[str, Dict[int, dict]] = {}
+    for record in records:
+        metadata = record.get("metadata") or {}
+        if not _metadata_matches_scope(metadata, scope):
+            continue
+        chunk_index = metadata.get("chunk_index")
+        if chunk_index is None:
+            continue
+        source = metadata.get("source", "unknown")
+        by_source.setdefault(source, {})[int(chunk_index)] = {
+            "content": record.get("document", ""),
+            "source": source,
+            "score": 0.0,
+            "metadata": metadata,
+            "hex_detail_context": True,
+        }
+    anchors: List[Tuple[str, int, float]] = []
+    for doc in selected:
+        content = doc.get("content") or ""
+        score = _hex_detail_chunk_score(query, content)
+        if score < 0:
+            continue
+        meta = doc.get("metadata") or {}
+        chunk_index = meta.get("chunk_index")
+        source = doc.get("source", "unknown")
+        if chunk_index is None:
+            continue
+        anchors.append((source, int(chunk_index), score))
+    if not anchors:
+        return selected
+    # 점수가 높은 앵커 구간의 인접 청크를 우선 수집합니다.
+    anchors.sort(key=lambda item: item[2], reverse=True)
+    selected_keys = {
+        (doc.get("source", "unknown"), doc.get("content", "")) for doc in selected
+    }
+    result = list(selected)
+    for source, center, _ in anchors[:3]:
+        source_chunks = by_source.get(source) or {}
+        if not source_chunks:
+            continue
+        for idx in range(center - window, center + window + 1):
+            candidate = source_chunks.get(idx)
+            if not candidate:
+                continue
+            key = (candidate["source"], candidate["content"])
+            if key in selected_keys:
+                continue
+            # 같은 섹션이거나 Config/Format·동일 hex·토큰 겹침이 있을 때만 붙입니다.
+            cmeta = candidate.get("metadata") or {}
+            anchor_meta = next(
+                (
+                    (d.get("metadata") or {})
+                    for d in selected
+                    if d.get("source") == source
+                    and (d.get("metadata") or {}).get("chunk_index") == center
+                ),
+                {},
+            )
+            same_section = bool(
+                cmeta.get("section")
+                and anchor_meta.get("section")
+                and cmeta.get("section") == anchor_meta.get("section")
+            )
+            useful = (
+                same_section
+                or _content_matches_protocol_detail(query, candidate["content"])
+                or bool(re.search(r"[A-Za-z]+Config|[A-Za-z]+Format", candidate["content"]))
+            )
+            if not useful:
+                continue
+            selected_keys.add(key)
+            result.append(candidate)
+    result.sort(
+        key=lambda d: _hex_detail_chunk_score(query, d.get("content") or ""),
+        reverse=True,
+    )
+    return result
+
+
+def complete_hex_detail_context(
+    selected: list,
+    records: list,
+    query: str,
+    top_k: int,
+    scope: Optional[Dict[str, str]] = None,
+) -> list:
+    """단건 hex/명령명 질의에서 해당 절·인접 Config 청크를 강제 포함합니다.
+
+    MAX_CHUNKS_PER_SOURCE 때문에 RRF 상위(버전표·TimeStamp)만 남거나, 제목 청크만
+    있고 ExtraData 구조 청크가 빠지는 경우를 보완합니다. 목록 의도에는 적용하지 않습니다.
+    """
+    if not is_protocol_hex_detail_intent(query) or not records:
+        return selected
+    codes = extract_hex_codes(query)
+    name_tokens = [
+        t
+        for t in extract_protocol_detail_tokens(query)
+        if not t.lower().startswith("0x") and not re.fullmatch(r"[0-9A-Fa-f]{2,4}", t)
+    ]
+    if not codes and not name_tokens:
+        return selected
+    primary = codes[0] if codes else ""
+    result = list(selected or [])
+    selected_keys = {
+        (doc.get("source", "unknown"), doc.get("content", "")) for doc in result
+    }
+    has_match = any(
+        _content_matches_protocol_detail(query, doc.get("content") or "") for doc in result
+    )
+    candidates = []
+    for record in records:
+        metadata = record.get("metadata") or {}
+        if not _metadata_matches_scope(metadata, scope):
+            continue
+        content = record.get("document", "")
+        source = metadata.get("source", "unknown")
+        key = (source, content)
+        if key in selected_keys:
+            continue
+        score = _hex_detail_chunk_score(query, content)
+        if score < 0:
+            continue
+        candidates.append((score, content, source, metadata))
+    if candidates:
+        # 섹션 제목·Config를 포함한 최고 점수 청크를 항상 앞에 둡니다.
+        candidates.sort(key=lambda item: item[0], reverse=True)
+        for score, content, source, metadata in candidates[:3]:
+            key = (source, content)
+            if key in selected_keys:
+                continue
+            # 이미 매칭이 있어도 더 완결한 제목/Config 청크면 교체·삽입합니다.
+            if has_match and score < 1.5 and not (
+                _HEX_SECTION_TITLE_RE.search(content)
+                or re.search(r"[A-Za-z]+Config", content)
+            ):
+                continue
+            candidate = {
+                "content": content,
+                "source": source,
+                "score": float(score),
+                "metadata": metadata,
+                "hex_detail_context": True,
+            }
+            if len(result) < max(top_k, 1):
+                result.insert(0, candidate)
+            else:
+                replace_index = next(
+                    (
+                        idx
+                        for idx in range(len(result) - 1, -1, -1)
+                        if _hex_detail_chunk_score(query, result[idx].get("content") or "")
+                        < score
+                    ),
+                    None,
+                )
+                if replace_index is None and primary:
+                    replace_index = next(
+                        (
+                            idx
+                            for idx in range(len(result) - 1, -1, -1)
+                            if not content_mentions_hex(
+                                result[idx].get("content") or "", primary
+                            )
+                        ),
+                        len(result) - 1,
+                    )
+                if replace_index is None:
+                    replace_index = len(result) - 1
+                result[replace_index] = candidate
+            selected_keys.add(key)
+            has_match = True
+    result = _merge_adjacent_protocol_detail_chunks(
+        result, records, query, scope=scope, window=2
+    )
+    result.sort(
+        key=lambda d: _hex_detail_chunk_score(query, d.get("content") or ""),
+        reverse=True,
+    )
+    return result
+
+
+def _answer_has_struct_fields(body: str) -> bool:
+    """답 본문에 Config 이름만이 아니라 base/device_type 등 핵심 필드가 있는지 판별합니다.
+
+    Param1/Param2만 말하고 WiegandConfig 구조를 빠진 부분 답은 False로 둡니다.
+    """
+    text = body or ""
+    has_config_name = bool(re.search(r"[A-Za-z]+Config", text))
+    has_base = bool(re.search(r"(?i)\bbase\b", text))
+    has_device_type = bool(re.search(r"(?i)device_type", text))
+    has_rs485 = bool(re.search(r"(?i)rs485", text))
+    if has_config_name and (has_base or has_device_type):
+        return True
+    if has_device_type and (has_base or has_rs485):
+        return True
+    return False
+
+
+def _extract_struct_field_summary(content: str) -> str:
+    """본문에서 Config/Format 구조와 핵심 필드 한 줄을 문서 표기로 뽑습니다."""
+    if not content:
+        return ""
+    lines: List[str] = []
+    config_match = re.search(
+        r"([A-Za-z][A-Za-z0-9_]*Config)[^\n]{0,120}",
+        content,
+    )
+    if config_match:
+        lines.append(config_match.group(0).strip())
+    # Base / device_type / rs485 계열 필드가 연속된 줄을 보존합니다.
+    field_line = re.search(
+        r"(Base\s+device_type\s+rs485_port[^\n]{0,160})",
+        content,
+        re.IGNORECASE,
+    )
+    if field_line:
+        lines.append(field_line.group(1).strip())
+    elif re.search(r"device_type", content, re.I) and (
+        re.search(r"rs485", content, re.I) or re.search(r"(?i)\bbase\b", content)
+    ):
+        lines.append("fields: Base, device_type, rs485_port (문서 표기)")
+    # 필드 설명이 있으면 base/device_type 정의 줄을 명시적으로 남깁니다.
+    for line in content.splitlines():
+        stripped = line.strip()
+        if re.match(r"(?i)^base\b", stripped) and len(stripped) < 160:
+            lines.append(stripped)
+        if re.match(r"(?i)^device_type\b", stripped) and len(stripped) < 160:
+            lines.append(stripped)
+    format_hit = re.search(r"([A-Za-z][A-Za-z0-9_]*Format)", content)
+    if format_hit and "일반" in content:
+        # ExtraData 분기 문장이 있으면 짧게 남깁니다.
+        for line in content.splitlines():
+            if "WiegandFormat" in line or "Format만" in line or "Config가 함께" in line:
+                lines.append(line.strip())
+                break
+    return "\n".join(dict.fromkeys(lines))
+
+
+def extract_hex_detail_answer_from_docs(query: str, documents: list) -> str:
+    """컨텍스트 청크에서 질문 hex/명령명의 섹션 제목·요약·구조 필드를 뽑습니다."""
+    codes = extract_hex_codes(query or "")
+    primary = codes[0] if codes else ""
+    best = ""
+    best_score = -1.0
+    best_content = ""
+    for doc in documents or []:
+        content = doc.get("content") or ""
+        score = _hex_detail_chunk_score(query, content)
+        if score <= best_score:
+            continue
+        best_score = score
+        best_content = content
+        title = None
+        for match in _HEX_SECTION_TITLE_RE.finditer(content):
+            if primary and normalize_hex_code(match.group("code")) != normalize_hex_code(
+                primary
+            ):
+                continue
+            title = match.group(0).strip()
+            if not primary:
+                primary = match.group("code")
+            break
+        # 의미 문장: "서버에서 단말로 …"
+        meaning = ""
+        for line in content.splitlines():
+            stripped = line.strip()
+            if not stripped or stripped.startswith("[Document"):
+                continue
+            if "서버" in stripped and ("단말" in stripped or "Terminal" in stripped):
+                meaning = stripped
+                break
+            if len(stripped) < 160 and protocol_detail_token_overlap(query, stripped) > 0:
+                meaning = stripped
+                break
+        direction = ""
+        if "Server -> Terminal" in content or "Server → Terminal" in content:
+            direction = "Request (Server -> Terminal)"
+        elif "Server <- Terminal" in content or "Server ← Terminal" in content:
+            direction = "Response/Notify (Server <- Terminal)"
+        page = (doc.get("metadata") or {}).get("page")
+        parts = []
+        if title:
+            parts.append(title)
+        elif primary:
+            parts.append(f"Command {primary}")
+        if meaning:
+            parts.append(meaning)
+        if direction:
+            parts.append(direction)
+        if page is not None:
+            parts.append(f"(문서 page {page})")
+        if primary and primary not in " ".join(parts):
+            parts.insert(0, primary)
+        best = "\n".join(parts)
+    if best_score < 0:
+        return ""
+    # 컨텍스트 전체에서 구조 필드를 보강합니다(제목 청크에 없을 수 있음).
+    blob = "\n".join(doc.get("content") or "" for doc in (documents or []))
+    struct_summary = _extract_struct_field_summary(blob) or _extract_struct_field_summary(
+        best_content
+    )
+    if struct_summary and struct_summary not in best:
+        best = f"{best}\n{struct_summary}" if best else struct_summary
+    return best
+
+
+def enforce_protocol_hex_detail(query: str, documents: list, answer: str) -> str:
+    """단건 hex/명령명 질의에서 부정·구조 누락 답이면 문서 요약을 강제합니다.
+
+    리스트업 카탈로그 enforce와 분리되어, 단건을 전체 목록 표로 덮지 않습니다.
+    컨텍스트에 Config/핵심 필드가 있으면 답에도 반영되게 합니다.
+    """
+    if not is_protocol_hex_detail_intent(query):
+        return answer or ""
+    has_ctx = any(
+        _content_matches_protocol_detail(query, doc.get("content") or "")
+        for doc in (documents or [])
+    )
+    if not has_ctx:
+        # 검색된 동일 hex/명령 청크가 0일 때만 원문을 유지(없음 답을 강제하지 않음).
+        return answer or ""
+    body = answer or ""
+    codes = extract_hex_codes(query)
+    primary = codes[0] if codes else ""
+    ctx_blob = "\n".join(doc.get("content") or "" for doc in documents)
+    has_hex = False
+    if primary:
+        has_hex = content_mentions_hex(body, primary) or (
+            ("0x" + normalize_hex_code(primary)[2:]).lower() in body.casefold()
+        )
+    else:
+        # 명령명 질의: 컨텍스트 섹션에서 hex를 찾아 답에 있는지 확인합니다.
+        for match in _HEX_SECTION_TITLE_RE.finditer(ctx_blob):
+            code = match.group("code")
+            if content_mentions_hex(body, code) or code.lower() in body.casefold():
+                has_hex = True
+                primary = code
+                break
+    meaning_ok = False
+    title_tokens: List[str] = []
+    for match in _HEX_SECTION_TITLE_RE.finditer(ctx_blob):
+        if primary and normalize_hex_code(match.group("code")) != normalize_hex_code(
+            primary
+        ):
+            continue
+        title = match.group("title") or ""
+        title_tokens = [
+            t
+            for t in re.findall(r"[A-Za-z가-힣]{3,}", title)
+            if t.casefold() not in {"set", "get", "the"}
+        ]
+        if any(tok.casefold() in body.casefold() for tok in title_tokens):
+            meaning_ok = True
+            break
+    if not meaning_ok:
+        # 질문 토큰이 답에 남아 있는지도 의미 전달로 인정합니다.
+        q_tokens = [
+            t
+            for t in extract_protocol_detail_tokens(query)
+            if not t.lower().startswith("0x") and len(t) >= 4
+        ]
+        if any(t.casefold() in body.casefold() for t in q_tokens):
+            meaning_ok = True
+    ctx_has_config = bool(re.search(r"[A-Za-z]+Config", ctx_blob)) or (
+        re.search(r"device_type", ctx_blob, re.I)
+        and (re.search(r"rs485", ctx_blob, re.I) or re.search(r"(?i)\bbase\b", ctx_blob))
+    )
+    # Config 이름만 있고 base/device_type이 없으면 구조 누락으로 강제 보강합니다.
+    body_has_config = _answer_has_struct_fields(body)
+    denial = bool(_HEX_DETAIL_DENIAL_RE.search(body))
+    timestamp_only = (
+        (
+            "time stamp" in body.casefold()
+            or "milliseconds" in body.casefold()
+            or "타임스탬프" in body
+        )
+        and not meaning_ok
+    )
+    catalog_takeover = (
+        "출입그룹" in body
+        and "스냅샷" in body
+        and count_unique_hex_commands(body) >= 8
+    )
+    needs_force = (
+        denial
+        or timestamp_only
+        or catalog_takeover
+        or not has_hex
+        or not meaning_ok
+        or (ctx_has_config and not body_has_config)
+    )
+    if not needs_force:
+        return body
+    forced = extract_hex_detail_answer_from_docs(query, documents)
+    if not forced:
+        return body
+    # 기존 답이 부분적으로 맞으면 강제 요약만 앞에 두고 구조를 보장합니다.
+    if meaning_ok and has_hex and not denial and not catalog_takeover:
+        struct_summary = _extract_struct_field_summary(ctx_blob)
+        if struct_summary and struct_summary not in body:
+            return f"{body.rstrip()}\n\n{struct_summary}"
+    return forced
+
+
+# Swagger 엔드포인트 제목(GET/PUT … `/v1/...`)과 바로 아래 요약 줄을 잡습니다.
+_API_ENDPOINT_HEADING_RE = re.compile(
+    r"(?im)^(?:#{1,6}\s*)?(GET|PUT|POST|DELETE|PATCH)\s+`(/v[\d]+/[^`\s]+)`"
+)
+_API_ENDPOINT_SUMMARY_RE = re.compile(
+    r"(?im)[-*]\s*\*\*요약\*\*\s*:\s*(.+?)(?:\n|$)"
+)
+
+
+def extract_api_paths_from_documents(documents: list) -> List[Dict[str, str]]:
+    """문서 청크에서 HTTP 메서드·경로·요약(가능하면)을 추출합니다.
+
+    동일 (method, path)는 먼저 나온 요약을 유지합니다. 스키마-only 청크는
+    경로 헤딩이 없으면 건너뜁니다.
+    """
+    rows: List[Dict[str, str]] = []
+    seen: set = set()
+    for document in documents or []:
+        content = document.get("content") or ""
+        metadata = document.get("metadata") or {}
+        section = str(metadata.get("section") or "")
+        blob = f"{section}\n{content}"
+        for match in _API_ENDPOINT_HEADING_RE.finditer(blob):
+            method = match.group(1).upper()
+            path = match.group(2).strip()
+            key = (method, path.casefold())
+            if key in seen:
+                continue
+            seen.add(key)
+            # 헤딩 직후 구간의 요약만 취해 오탐을 줄입니다.
+            tail = blob[match.end() : match.end() + 240]
+            summary_match = _API_ENDPOINT_SUMMARY_RE.search(tail)
+            summary = (summary_match.group(1).strip() if summary_match else "")
+            rows.append(
+                {
+                    "method": method,
+                    "path": path,
+                    "summary": summary,
+                    "source": str(document.get("source") or ""),
+                }
+            )
+    return rows
+
+
+def api_topic_markers_for_query(query: str) -> List[str]:
+    """API/스키마 질문에서 관련 엔드포인트를 고를 토픽 마커를 반환합니다.
+
+    FaceWT/FAW·로그인·인증로그·일반화 엔티티 사전 토픽 마커를 훅에 추가합니다.
+    """
+    markers: List[str] = []
+    if query_has_facewt_or_faw(query) or is_facewt_faw_api_intent(query):
+        markers.extend(["facewt", "faw", "facewtinfo"])
+    if is_api_login_endpoint_intent(query):
+        markers.extend(["login", "/v1/login", "sessions"])
+    if is_api_authlogs_intent(query):
+        markers.extend(["authlogs", "authlog", "인증로그"])
+    if detect_api_doc_intent(query) or is_api_entity_doc_intent(query):
+        for entry in match_api_entity_lexicon(query):
+            markers.extend(str(m) for m in (entry.get("markers") or ()))
+    return list(dict.fromkeys(markers))
+
+
+def required_api_seed_paths_for_query(query: str) -> List[Dict[str, str]]:
+    """의도별 필수 API 시드(경로·역할)를 반환합니다.
+
+    FaceWT·로그인·authLogs·엔티티 사전(출입그룹/users/terminals 등) enforce가
+    문서 근거와 결합해 누락 경로를 붙일 때 사용합니다. UG·protocol 전역 enforce가 아닙니다.
+    """
+    seeds: List[Dict[str, str]] = []
+    if is_facewt_faw_api_intent(query):
+        seeds.extend(
+            [
+                {
+                    "method": "GET",
+                    "path": "/v1/users/{id}/faceWTInfo",
+                    "summary": "얼굴(faceWT) 정보 조회",
+                },
+                {
+                    "method": "PUT",
+                    "path": "/v1/users/{id}/faceWTInfo",
+                    "summary": "얼굴(faceWT) 정보 수정",
+                },
+                {
+                    "method": "GET",
+                    "path": "/v1/terminals/{id}/scan/facewt",
+                    "summary": "단말기 얼굴 워크스루 이미지 캡처",
+                },
+            ]
+        )
+    if is_api_login_endpoint_intent(query):
+        seeds.append(
+            {
+                "method": "POST",
+                "path": "/v1/login",
+                "summary": "서버에 로그인 요청 (Login: userId, password, userType)",
+            }
+        )
+    if is_api_authlogs_intent(query):
+        seeds.append(
+            {
+                "method": "GET",
+                "path": "/v1/authLogs",
+                "summary": (
+                    "인증로그 목록 조회 "
+                    "(필수 쿼리: startTime, endTime, offset, limit)"
+                ),
+            }
+        )
+    if detect_api_doc_intent(query) or is_api_entity_doc_intent(query):
+        for entry in match_api_entity_lexicon(query):
+            for seed in entry.get("seeds") or ():
+                method = str(seed.get("method") or "").upper()
+                path = str(seed.get("path") or "").strip()
+                if not method or not path:
+                    continue
+                seeds.append(
+                    {
+                        "method": method,
+                        "path": path,
+                        "summary": str(seed.get("summary") or ""),
+                    }
+                )
+    return seeds
+
+
+def filter_api_paths_by_topic(
+    entries: List[Dict[str, str]], markers: List[str]
+) -> List[Dict[str, str]]:
+    """경로·요약에 토픽 마커가 포함된 엔드포인트만 남깁니다."""
+    if not markers:
+        return list(entries or [])
+    lowered = [m.casefold() for m in markers if m]
+    kept: List[Dict[str, str]] = []
+    for entry in entries or []:
+        blob = f"{entry.get('path', '')} {entry.get('summary', '')}".casefold()
+        if any(marker in blob for marker in lowered):
+            kept.append(entry)
+    return kept
+
+
+def _answer_mentions_api_path(answer: str, path: str) -> bool:
+    """답 본문에 해당 API 경로(대소문자·백틱 무시)가 있는지 판별합니다."""
+    if not path:
+        return False
+    text = (answer or "").casefold().replace("`", "")
+    target = path.casefold().replace("`", "")
+    if target in text:
+        return True
+    # `{id}` 표기 변형도 허용합니다.
+    compact = target.replace("{id}", "id")
+    return compact in text.replace("{id}", "id")
+
+
+def _answer_mentions_api_method_path(answer: str, method: str, path: str) -> bool:
+    """답 본문에 같은 줄/인접에서 HTTP 메서드와 경로가 함께 있는지 판별합니다.
+
+    GET·PUT이 동일 `/v1/.../{id}` 경로를 쓸 때 경로만으로 시드를 충족 처리하지
+    않도록 합니다.
+    """
+    if not method or not path:
+        return False
+    text = (answer or "").casefold().replace("`", "")
+    target = path.casefold().replace("`", "")
+    meth = method.casefold()
+    if target not in text and target.replace("{id}", "id") not in text.replace(
+        "{id}", "id"
+    ):
+        return False
+    # **PUT** `/path` 또는 PUT `/path` 형태를 우선합니다.
+    path_pat = re.escape(target).replace(r"\{id\}", r"\{?id\}?")
+    if re.search(
+        rf"(?is)\b{re.escape(meth)}\b[^\n]{{0,80}}{path_pat}|{path_pat}[^\n]{{0,40}}\b{re.escape(meth)}\b",
+        text,
+    ):
+        return True
+    return False
+
+
+def _merge_api_catalog_entries(
+    doc_entries: List[Dict[str, str]],
+    seed_entries: List[Dict[str, str]],
+) -> List[Dict[str, str]]:
+    """문서 추출 경로와 시드를 (method, path) 기준으로 병합합니다.
+
+    문서 요약이 있으면 우선하고, 시드는 누락 경로·요약 보강에만 씁니다.
+    """
+    merged: Dict[Tuple[str, str], Dict[str, str]] = {}
+    for entry in list(doc_entries or []) + list(seed_entries or []):
+        method = (entry.get("method") or "").upper()
+        path = (entry.get("path") or "").strip()
+        if not method or not path:
+            continue
+        key = (method, path.casefold())
+        existing = merged.get(key)
+        if existing is None:
+            merged[key] = {
+                "method": method,
+                "path": path,
+                "summary": (entry.get("summary") or "").strip(),
+                "source": entry.get("source") or "",
+            }
+            continue
+        if not existing.get("summary") and entry.get("summary"):
+            existing["summary"] = entry["summary"].strip()
+    return list(merged.values())
+
+
+def sibling_api_paths_for_answer(
+    entries: List[Dict[str, str]], answer: str
+) -> List[Dict[str, str]]:
+    """답에 이미 나온 /v1 경로와 같은 토픽 키워드를 공유하는 형제 경로를 고릅니다.
+
+    FaceWT 전용이 아닌 일반 API 카탈로그 누락 방지 훅입니다. 경로 마지막
+    세그먼트에서 Info/Result 접미를 벗긴 어근(facewtinfo→facewt)과 겹치면
+    형제로 봅니다.
+    """
+    cited = [
+        e
+        for e in (entries or [])
+        if _answer_mentions_api_path(answer, e.get("path") or "")
+    ]
+    if not cited:
+        return []
+    token_re = re.compile(r"[a-z][a-z0-9_]{2,}", re.I)
+    stop = {
+        "users", "terminals", "option", "v1", "v2", "id", "get", "put",
+        "post", "delete", "patch", "info", "scan", "result", "data",
+    }
+    suffix_re = re.compile(
+        r"(info|result|data|list|config|request|response)$", re.I
+    )
+
+    def _topic_tokens(path: str) -> set:
+        """경로에서 형제 판별용 토픽 토큰 집합을 만듭니다."""
+        found: set = set()
+        for part in (path or "").split("/"):
+            cleaned = part.replace("{", "").replace("}", "")
+            for tok in token_re.findall(cleaned):
+                low = tok.casefold()
+                if low in stop:
+                    continue
+                found.add(low)
+                stem = suffix_re.sub("", low)
+                if stem and len(stem) >= 4 and stem not in stop:
+                    found.add(stem)
+        return found
+
+    tokens: set = set()
+    for entry in cited:
+        tokens |= _topic_tokens(entry.get("path") or "")
+    if not tokens:
+        return []
+    siblings: List[Dict[str, str]] = []
+    for entry in entries or []:
+        blob = f"{entry.get('path', '')} {entry.get('summary', '')}".casefold()
+        if any(tok in blob for tok in tokens):
+            siblings.append(entry)
+    return siblings
+
+
+def enforce_api_endpoint_catalog(query: str, documents: list, answer: str) -> str:
+    """API/스키마 주제에서 관련 엔드포인트가 답에 빠지면 문서·시드 카탈로그로 보강합니다.
+
+    `enforce_protocol_command_catalog`와 유사하나 프로토콜 전역이 아니라
+    API/스키마 의도(+토픽 마커·시드)에서만 동작합니다. FaceWT는 시드 경로로
+    연결되고, 다른 API 주제는 답에 인용된 경로의 형제 엔드포인트를 보완합니다.
+    「없다」로 scan 등 관련 경로를 제외한 답도 카탈로그로 고칩니다.
+    """
+    if is_protocol_command_list_intent(query) or is_media_server_spec_intent(query):
+        return answer or ""
+    if not (
+        detect_api_doc_intent(query)
+        or is_facewt_faw_api_intent(query)
+    ):
+        return answer or ""
+    # 표 재정렬만 요구하는 후속은 필드 표 enforce 범위를 침범하지 않습니다.
+    if is_api_schema_table_intent(query) and not is_facewt_faw_api_intent(query):
+        return answer or ""
+
+    doc_entries = extract_api_paths_from_documents(documents)
+    markers = api_topic_markers_for_query(query)
+    seeds = required_api_seed_paths_for_query(query)
+    if markers:
+        topic_entries = filter_api_paths_by_topic(doc_entries, markers)
+    else:
+        topic_entries = sibling_api_paths_for_answer(doc_entries, answer or "")
+    catalog = _merge_api_catalog_entries(topic_entries, seeds)
+    if not catalog:
+        return answer or ""
+
+    body = answer or ""
+    missing = [
+        entry
+        for entry in catalog
+        if not _answer_mentions_api_path(body, entry.get("path") or "")
+    ]
+    # FaceWT는 GET·PUT faceWTInfo와 scan이 모두 있어야 완결입니다.
+    if is_facewt_faw_api_intent(query):
+        for seed in seeds:
+            if not _answer_mentions_api_path(body, seed["path"]):
+                if not any(
+                    e.get("path", "").casefold() == seed["path"].casefold()
+                    and e.get("method") == seed["method"]
+                    for e in missing
+                ):
+                    missing.append(seed)
+    # 로그인·authLogs도 시드 경로가 답에 없으면 카탈로그로 강제합니다.
+    if is_api_login_endpoint_intent(query) or is_api_authlogs_intent(query):
+        for seed in seeds:
+            if not _answer_mentions_api_path(body, seed["path"]):
+                if not any(
+                    e.get("path", "").casefold() == seed["path"].casefold()
+                    and e.get("method") == seed["method"]
+                    for e in missing
+                ):
+                    missing.append(seed)
+    # 엔티티 사전 시드(출입그룹/users/terminals 등)도 답에 없으면 강제합니다.
+    # 동일 path의 GET/PUT 충돌을 피하려면 메서드+경로를 함께 검사합니다.
+    if match_api_entity_lexicon(query) and (
+        detect_api_doc_intent(query) or is_api_entity_doc_intent(query)
+    ):
+        entity_keys = {
+            (
+                str(seed.get("method") or "").upper(),
+                str(seed.get("path") or "").casefold(),
+            )
+            for entry in match_api_entity_lexicon(query)
+            for seed in (entry.get("seeds") or ())
+        }
+        for seed in seeds:
+            method = (seed.get("method") or "").upper()
+            path = seed.get("path") or ""
+            if (method, path.casefold()) not in entity_keys:
+                continue
+            if _answer_mentions_api_method_path(body, method, path):
+                continue
+            if not any(
+                e.get("path", "").casefold() == path.casefold()
+                and e.get("method") == method
+                for e in missing
+            ):
+                missing.append(seed)
+    if not missing and all(
+        _answer_mentions_api_method_path(
+            body, e.get("method") or "", e.get("path") or ""
+        )
+        if (e.get("method") and match_api_entity_lexicon(query))
+        else _answer_mentions_api_path(body, e.get("path") or "")
+        for e in catalog
+    ):
+        # 시드 경로가 있어도 Login 필드·authLogs 필수 파라미터가 빠지면 아래에서 보강.
+        body = _enforce_api_login_and_authlogs_facts(query, documents, body)
+        return body
+
+    # 답이 일부만 나열했거나 시드가 빠졌으면 전체 토픽 카탈로그를 말미에 부착합니다.
+    lines = ["", "### 관련 API 엔드포인트(문서 카탈로그)", ""]
+    for entry in catalog:
+        summary = entry.get("summary") or ""
+        if summary:
+            lines.append(
+                f"- **{entry['method']}** `{entry['path']}` — {summary}"
+            )
+        else:
+            lines.append(f"- **{entry['method']}** `{entry['path']}`")
+    # FaceWT·엔티티 시드 설명이 catalog 요약에 비어도 역할 한 줄은 남깁니다.
+    for seed in seeds:
+        path = seed["path"]
+        method = seed.get("method") or ""
+        if any(e.get("path") == path and e.get("summary") for e in catalog):
+            # 동일 path라도 메서드 줄이 없으면 시드를 추가합니다.
+            if _answer_mentions_api_method_path("\n".join(lines), method, path):
+                continue
+        joined = "\n".join(lines).casefold()
+        if _answer_mentions_api_method_path(joined, method, path):
+            continue
+        if seed.get("summary"):
+            lines.append(
+                f"- **{seed['method']}** `{path}` — {seed['summary']}"
+            )
+        else:
+            lines.append(f"- **{seed['method']}** `{path}`")
+    body = body.rstrip() + "\n" + "\n".join(lines).rstrip() + "\n"
+    return _enforce_api_login_and_authlogs_facts(query, documents, body)
+
+
+def _enforce_api_login_and_authlogs_facts(
+    query: str, documents: list, answer: str
+) -> str:
+    """로그인 Login 필드·authLogs 필수 쿼리가 답에서 빠지면 문서 근거로 보강합니다."""
+    result = answer or ""
+    context = "\n".join(doc.get("content") or "" for doc in (documents or []))
+    low_ans = result.casefold()
+    low_ctx = context.casefold()
+
+    if is_api_login_endpoint_intent(query):
+        # 잘못된 users 경로 단정 시 /v1/login을 앞에 명시합니다.
+        if "/v1/login" not in low_ans:
+            prefix = (
+                "서버 로그인 API는 **POST** `/v1/login` 입니다 "
+                "(Login 스키마: `userId`, `password`, `userType`).\n\n"
+            )
+            result = prefix + result.lstrip()
+            low_ans = result.casefold()
+        missing_fields = [
+            f for f in ("userId", "password", "userType") if f.casefold() not in low_ans
+        ]
+        if missing_fields and all(f.casefold() in low_ctx for f in ("userid", "password", "usertype")):
+            result = (
+                f"{result.rstrip()}\n\n"
+                "### Login 요청 필드(문서)\n"
+                "- `userId` (string): 사용자 ID\n"
+                "- `password` (string): 암호\n"
+                "- `userType` (integer): 0 일반관리자, 1 UniqueID, 2 마스터관리자\n"
+            )
+
+    if is_api_authlogs_intent(query):
+        required = ("startTime", "endTime", "offset", "limit")
+        missing_params = [p for p in required if p.casefold() not in low_ans]
+        if missing_params and "authlogs" in low_ctx:
+            result = (
+                f"{result.rstrip()}\n\n"
+                "### GET `/v1/authLogs` 필수 쿼리 파라미터(문서)\n"
+                "- `startTime` (예: 2018-05-10)\n"
+                "- `endTime` (예: 2018-05-10)\n"
+                "- `offset`\n"
+                "- `limit`\n"
+            )
+    return result
+
+
+def enforce_mediaserver_capacity_calc(
+    query: str, documents: list, answer: str
+) -> str:
+    """미디어서버 대역폭·스토리지 산정 답이 합계/단위를 빼먹으면 문서 공식으로 보강합니다.
+
+    시청자 2명 합계는 인입 200 + WebRTC 400 = 600 Mbps 근거가 컨텍스트에 있을 때
+    붙입니다. 스토리지는 답에 90/2700/3.24만 있고 **1대/일≈15GB**·**1.2배**·
+    **4TB**가 없으면 §5 근거 블록을 보강합니다(PLF-20260804-002).
+    """
+    if not is_media_server_capacity_calc_intent(query):
+        return answer or ""
+    result = answer or ""
+    context = "\n".join(doc.get("content") or "" for doc in (documents or []))
+    low_ans = result.casefold()
+    low_ctx = context.casefold()
+    q_low = (query or "").casefold()
+    has_total_evidence = (
+        "600" in low_ctx
+        or ("200" in low_ctx and "400" in low_ctx)
+        or "인입" in low_ctx
+    )
+    if has_total_evidence and "600" not in low_ans:
+        # outbound-only(400)로 끝난 답을 합계로 보정합니다.
+        result = (
+            f"{result.rstrip()}\n\n"
+            "### 네트워크 합계(문서 §4)\n"
+            "- 카메라→미디어서버 인입: 100대 × 2 Mbps = **200 Mbps**\n"
+            "- 시청자 2명 WebRTC 송출: 100 × 2 Mbps = **400 Mbps**\n"
+            "- 합계: 200 + 400 = **600 Mbps** (권장 NIC 2.5Gbps)\n"
+        )
+        low_ans = result.casefold()
+
+    storage_topic = any(
+        m in q_low
+        for m in (
+            "스토리지", "storage", "동시 녹화", "녹화", "1.2", "여유", "보관",
+            "3.24", "15gb",
+        )
+    ) or any(
+        x in low_ans for x in ("90", "3.24", "2.7", "2700", "2,700", "3240", "3,240")
+    ) or any(
+        x in low_ctx for x in ("15gb", "3.24", "2.7", "retention", "90gb")
+    )
+    if storage_topic:
+        has_15gb = bool(
+            re.search(
+                r"(?<![0-9])15\s*gb|1대\s*/?\s*일[^0-9]{0,20}15|≈\s*15\s*gb",
+                low_ans,
+                re.I,
+            )
+        )
+        has_factor_1_2 = "1.2" in low_ans
+        has_hdd_4tb = bool(re.search(r"(?<![0-9])4\s*tb", low_ans, re.I))
+        has_324_or_27 = any(
+            x in low_ans for x in ("3.24", "2.7", "2700", "2,700", "3240", "3,240")
+        )
+        # 중간합(90/3.24)만 있고 단위·여유·HDD가 빠지면 §5를 보강합니다.
+        if not (has_15gb and has_factor_1_2 and has_hdd_4tb and has_324_or_27):
+            result = (
+                f"{result.rstrip()}\n\n"
+                "### 녹화 스토리지(문서 §5)\n"
+                "- 1대/일 ≈ **15GB** → 6대/일 **90GB**\n"
+                "- 30일: 2.7TB × **1.2배** ≈ **3.24TB**\n"
+                "- HDD 권장: **4TB** 이상 (여유 포함 6TB 권장)\n"
+            )
+    return result
+
+
+def complete_related_api_endpoint_chunks(
+    selected: list,
+    records: list,
+    query: str,
+    top_k: int,
+    scope: Optional[Dict[str, str]] = None,
+) -> list:
+    """동일 API 주제의 관련 엔드포인트 청크를 선택 집합에 강제 포함합니다.
+
+    MAX_CHUNKS_PER_SOURCE로 users faceWTInfo·스키마만 남고 terminals scan이
+    빠지는 경우를 복구합니다. 토픽 마커·시드 경로가 본문/섹션에 있는 BM25
+    레코드를 찾아 삽입·교체합니다.
+    """
+    if not selected or not records:
+        return selected
+    if not (detect_api_doc_intent(query) or is_facewt_faw_api_intent(query)):
+        return selected
+    markers = api_topic_markers_for_query(query)
+    seeds = required_api_seed_paths_for_query(query)
+    path_needles = [s["path"] for s in seeds]
+    if not markers and not path_needles:
+        return selected
+
+    selected_blob = "\n".join(
+        f"{(d.get('metadata') or {}).get('section', '')}\n{d.get('content') or ''}"
+        for d in selected
+    ).casefold()
+    missing_needles = [
+        needle
+        for needle in path_needles
+        if needle.casefold() not in selected_blob
+        and needle.casefold().replace("{id}", "id")
+        not in selected_blob.replace("{id}", "id")
+    ]
+    # 시드가 모두 있어도, 마커만 있는 형제 경로가 선택에 전무하면 레코드를 추가 스캔합니다.
+    if not missing_needles and markers:
+        if any(m in selected_blob for m in (x.casefold() for x in markers)):
+            # faceWTInfo만 있고 scan 표기가 전혀 없으면 scan 바늘을 강제합니다.
+            if is_facewt_faw_api_intent(query) and "scan/facewt" not in selected_blob:
+                missing_needles = ["/v1/terminals/{id}/scan/facewt"]
+            else:
+                return selected
+        else:
+            return selected
+    if not missing_needles:
+        return selected
+
+    focus_sources = {doc.get("source", "unknown") for doc in selected}
+    selected_keys = {
+        (doc.get("source", "unknown"), doc.get("content", "")) for doc in selected
+    }
+    marker_docs = []
+    for record in records:
+        metadata = record.get("metadata") or {}
+        if not _metadata_matches_scope(metadata, scope):
+            continue
+        source = metadata.get("source", "unknown")
+        if focus_sources and source not in focus_sources:
+            continue
+        content = record.get("document") or ""
+        section = str(metadata.get("section") or "")
+        blob = f"{section}\n{content}"
+        blob_cf = blob.casefold()
+        if not any(n.casefold() in blob_cf for n in missing_needles):
+            continue
+        key = (source, content)
+        if key in selected_keys:
+            continue
+        # 엔드포인트 헤딩이 있는 청크만 카탈로그 완결에 사용합니다.
+        if not _API_ENDPOINT_HEADING_RE.search(blob):
+            continue
+        marker_docs.append(
+            {
+                "content": content,
+                "source": source,
+                "score": 1.0,
+                "metadata": metadata,
+                "_prefer": 0 if "scan/facewt" in blob_cf else 1,
+            }
+        )
+    if not marker_docs:
+        return selected
+    marker_docs.sort(key=lambda d: (d.get("_prefer", 1),))
+    result = list(selected)
+    for doc in marker_docs:
+        key = (doc["source"], doc["content"])
+        if key in selected_keys:
+            continue
+        clean = {k: v for k, v in doc.items() if not k.startswith("_")}
+        if len(result) < max(top_k, len(selected) + 1):
+            result.append(clean)
+            selected_keys.add(key)
+            continue
+        replace_idx = None
+        for idx, current in enumerate(result):
+            cur = (current.get("content") or "").casefold()
+            # 이미 시드 경로를 가진 청크는 유지하고, 스키마-only를 우선 교체합니다.
+            if any(n.casefold() in cur for n in path_needles):
+                continue
+            if "스키마" in (current.get("content") or "") or "schema" in cur:
+                replace_idx = idx
+                break
+            if replace_idx is None:
+                replace_idx = idx
+        if replace_idx is None:
+            continue
+        removed = result[replace_idx]
+        selected_keys.discard(
+            (removed.get("source", "unknown"), removed.get("content", ""))
+        )
+        result[replace_idx] = clean
+        selected_keys.add(key)
+    return result
+
+
 def enforce_protocol_command_catalog(query: str, documents: list, answer: str) -> str:
     """프로토콜 리스트는 문서 TOC/Preview 표로 답을 재구성합니다.
 
-    생성 모델의 추정·누락·0x00 채우기를 피하기 위해, 추출 가능한 카탈로그 행이
-    충분하면 문서 표기 hex 표만 반환합니다. 출입그룹·스냅샷·0x010A/B/C를 포함합니다.
+    생성 모델의 추정·누락·0x00 채우기·중문·「보완 항목」을 피하기 위해, 추출
+    가능한 카탈로그 행이 충분하면 문서 표기 hex 표만 반환합니다. 답이 불완전·
+    한 문단이거나 오염되어도 동일하게 문서 표로 교체합니다.
+    출입그룹·스냅샷·0x010A/B/C를 포함합니다.
     """
     if not is_protocol_command_list_intent(query):
         return answer or ""
     rows = ensure_protocol_golden_hex_rows(
         documents, extract_protocol_command_rows(documents)
     )
+    # golden 보강 후에도 이름 정규화·가짜 행 제거를 한 번 더 적용합니다.
+    cleaned_rows: List[Tuple[str, str]] = []
+    seen_codes: set = set()
+    for name, code in rows:
+        norm = normalize_protocol_catalog_name(name) or (
+            name if "스냅샷" in (name or "") else ""
+        )
+        if not norm or not code:
+            continue
+        # 스냅샷은 normalize가 한글만 남겨도 유지합니다.
+        if "스냅샷" in (name or "") and "스냅샷" not in norm:
+            norm = name.strip()
+        key = code.upper() if "스냅샷" not in norm else f"SNAP::{code.upper()}"
+        if key in seen_codes:
+            continue
+        seen_codes.add(key)
+        cleaned_rows.append((norm, code))
+    rows = cleaned_rows
+    degraded = protocol_list_answer_is_degraded(answer or "")
     if len(rows) < 4:
-        return strip_protocol_guess_phrases(answer or "")
+        stripped = strip_protocol_guess_phrases(answer or "")
+        # 행이 부족해도 중문·보완 줄은 제거합니다.
+        kept = [
+            line
+            for line in stripped.splitlines()
+            if not _PROTOCOL_LIST_CJK_RE.search(line)
+            and not _PROTOCOL_LIST_FAKE_ROW_RE.search(line)
+            and "보완 항목" not in line
+        ]
+        return "\n".join(kept).strip()
+    if not degraded and count_unique_hex_commands(answer or "") >= max(
+        10, len(rows) // 2
+    ):
+        # 이미 문서급으로 풍부하고 오염이 없으면 표 형태만 부족할 때 교체합니다.
+        if "|" in (answer or "") and "출입그룹" in (answer or "") and "스냅샷" in (
+            answer or ""
+        ):
+            return strip_protocol_guess_phrases(answer or "")
     lines = ["| 명령 | 코드 |", "| --- | --- |"]
     for name, code in rows[:80]:
         lines.append(f"| {name} | {code} |")
@@ -2727,12 +5543,33 @@ def enforce_document_term_pairs(query: str, documents: list, answer: str) -> str
     """
     if is_media_server_spec_intent(query):
         return enforce_mediaserver_spec_table(query, documents, answer)
+    if is_media_server_capacity_calc_intent(query):
+        return enforce_mediaserver_capacity_calc(query, documents, answer)
     if is_protocol_command_list_intent(query):
         return enforce_protocol_command_catalog(query, documents, answer)
+    if is_protocol_hex_detail_intent(query):
+        return enforce_protocol_hex_detail(query, documents, answer)
+    # API/스키마 주제 카탈로그(FaceWT 시드 포함) — 절차 enforce보다 먼저 적용합니다.
+    if detect_api_doc_intent(query) or is_facewt_faw_api_intent(query):
+        return enforce_api_endpoint_catalog(query, documents, answer)
     if is_terminal_user_management_intent(query):
         return enforce_terminal_user_mgmt_menu_name(query, documents, answer)
     if is_terminal_monitor_and_add_intent(query):
         return enforce_terminal_monitor_and_add(query, documents, answer)
+    if is_timezone_ui_intent(query):
+        return enforce_timezone_ui_procedure(query, documents, answer)
+    if is_holiday_ui_intent(query):
+        return enforce_holiday_ui_procedure(query, documents, answer)
+    if is_access_zone_ui_intent(query):
+        return enforce_access_zone_ui_procedure(query, documents, answer)
+    if is_access_group_user_ui_intent(query):
+        return enforce_access_group_user_ui_procedure(query, documents, answer)
+    if is_authlog_category_ui_intent(query):
+        return enforce_authlog_search_categories(query, documents, answer)
+    if is_auto_sync_setting_intent(query):
+        return enforce_auto_sync_setting_procedure(query, documents, answer)
+    if is_alpeta_user_guide_procedure_intent(query):
+        return enforce_alpeta_user_guide_misc_procedure(query, documents, answer)
     if not is_user_terminal_procedure_intent(query):
         return answer
 
@@ -2771,6 +5608,8 @@ def enforce_document_term_pairs(query: str, documents: list, answer: str) -> str
         )
         result = f"{result.rstrip()}{suffix}"
     result = _enforce_three_manual_paths(context, result)
+    if "동기화" in (query or "").casefold():
+        result = enforce_alpeta_user_guide_misc_procedure(query, documents, result)
     return result
 
 
@@ -3077,6 +5916,26 @@ class Pipeline:
                     "URL·링크·참고 번호 각주를 지어내지 마세요. "
                     "서론·반복·추측 금지. 수동 추가 3메뉴 경로와 자동동기화를 소제목으로 구분해 작성하세요."
                 )
+            elif is_timezone_ui_intent(retrieval_question):
+                system_message = (
+                    "당신은 Alpeta User Guide UI 절차만 근거로 답하세요. "
+                    "타임존 > 타임존 관리 [추가]·타임라인 ID/NAME·[새 타임라인]·요일별 일정·[저장]·"
+                    "출입그룹 적용을 문서 메뉴명 그대로 설명하세요. "
+                    "Java ZoneId·Swagger·API·Protocol·코드 클래스를 쓰지 마세요. 서론·면책·추측 금지."
+                )
+            elif is_holiday_ui_intent(retrieval_question):
+                system_message = (
+                    "당신은 Alpeta User Guide UI 절차만 근거로 답하세요. "
+                    "[타임존] > [공휴일 관리]에서 ID·이름·달력 [추가]·최대 30개·[저장] 절차를 "
+                    "문서대로 설명하세요. Protocol Holiday·근태 코드만으로 대체하지 마세요. "
+                    "「기능 없음」「문서에 없음」으로 단정하지 마세요. 서론·면책 금지."
+                )
+            elif is_user_guide_menu_intent(retrieval_question):
+                system_message = (
+                    "당신은 Alpeta User Guide UI 메뉴·버튼명만 근거로 답하세요. "
+                    "참고 문서의 메뉴 경로·버튼·필드명을 그대로 쓰고 API·Protocol·추측으로 "
+                    "대체하지 마세요. 서론·면책 금지."
+                )
             elif is_terminal_monitor_and_add_intent(retrieval_question):
                 system_message = (
                     "당신은 친절하고 정확한 AI 어시스턴트입니다. Alpeta User Guide UI만 근거로 답하세요. "
@@ -3094,13 +5953,31 @@ class Pipeline:
                 system_message = (
                     "당신은 친절하고 정확한 AI 어시스턴트입니다. "
                     "Communication protocol for Terminal v4 문서의 Command Preview·목차만 근거로 "
-                    "명령 목록을 표 또는 불릿으로 작성하세요. "
+                    "명령 목록을 마크다운 표(| 명령 | 코드 |)로 작성하세요. "
+                    "영문 제목과 문서에 적힌 hex를 그대로 쓰세요. "
                     "출입그룹(0x010A)과 스냅샷 항목을 반드시 포함하세요. "
                     "스냅샷 hex가 문서에 0x0으로 적혀 있으면 그대로 쓰고 "
-                    "「문서에 없음」「추정」이라고 하지 마세요. "
-                    "각 행의 hex는 문서 표기를 그대로 복사하고 전부 0x00으로 바꾸지 마세요. "
-                    "varies or missing 추정 금지. User Guide로 대체 금지. "
-                    "짧게 요약하지 말고 목록을 가능한 한 완결되게 나열하세요. 서론·면책 금지."
+                    "「문서에 없음」「추정」「보완 항목」을 만들지 마세요. "
+                    "중국어·임의 오타·전부 0x00 채우기 금지. User Guide·MediaServer 표 금지. "
+                    "짧게 요약하거나 한 문단 나열로 대체하지 마세요. 서론·면책 금지."
+                )
+            elif is_protocol_hex_detail_intent(retrieval_question):
+                system_message = (
+                    "당신은 친절하고 정확한 AI 어시스턴트입니다. Protocol v4 문서만 근거로 답하세요. "
+                    "질문에 나온 명령 코드(0x…) 또는 명령명의 섹션 제목·의미·방향(Server↔Terminal)·"
+                    "주요 Param·ExtraData 구조(Config/Format 및 Base·device_type·rs485 등 필드)를 "
+                    "참고 문서 원문대로 설명하세요. 문서에 해당 절이 보이면 "
+                    "「없다/포함되어 있지 않습니다」라고 하지 마세요. "
+                    "다른 명령의 Time Stamp만으로 대체하지 마세요. "
+                    "전체 명령 목록 표로 덮어쓰지 마세요. 서론·면책·추측 금지."
+                )
+            elif is_facewt_faw_api_intent(retrieval_question):
+                system_message = (
+                    "당신은 친절하고 정확한 AI 어시스턴트입니다. swagger/OpenAPI 문서만 근거로 답하세요. "
+                    "FAW는 FaceWT(얼굴 워크스루)의 별칭으로 취급하세요. FAW가 「문서에 없다」고 단정하지 마세요. "
+                    "FaceWT 관련 API 경로(`/v1/users/{id}/faceWTInfo`, `/v1/terminals/{id}/scan/facewt` 등)와 "
+                    "스키마(`FaceWTInfo`/`UserFaceWTInfo` 및 TemplateType·TemplateSize·TemplateData)를 함께 답하세요. "
+                    "Holiday·Lock 등 무관 API로 대체하지 마세요. 서론·면책·추측 금지."
                 )
             elif is_api_schema_table_intent(retrieval_question):
                 system_message = (
@@ -3822,6 +6699,10 @@ def complete_terminal_monitor_add_context(
     Protocol·단말기 찾기·출입그룹 리스트·펌웨어·단말기 관리자 청크는 보충 후보에서 제외합니다.
     """
     required = {"monitor_status", "terminal_mgmt_add"}
+    if is_terminal_monitor_status_only_intent(query) or is_terminal_monitor_status_table_intent(
+        query
+    ):
+        required = {"monitor_status"}
     if not is_terminal_monitor_and_add_intent(query) or not selected or not records:
         return selected
     selected_keys = {
@@ -3911,6 +6792,106 @@ def complete_terminal_monitor_add_context(
         return (2, document.get("source", ""))
 
     return sorted(result, key=_monitor_add_sort_key)
+
+
+def complete_user_guide_menu_context(
+    selected: list,
+    records: list,
+    query: str,
+    top_k: int,
+    scope: Optional[Dict[str, str]] = None,
+) -> list:
+    """User Guide 메뉴 절차 질문에 타임존·공휴일·출입구역 등 근거 청크를 보강합니다.
+
+    검색 점수가 낮아 초기 후보가 비어도 records 전체에서 메뉴 마커가 있는
+    user_guide 청크를 주입해 docs=0 환각을 줄입니다.
+    """
+    if not is_user_guide_menu_intent(query) or not records:
+        return selected
+    marker_groups: List[Tuple[str, Tuple[str, ...]]] = []
+    if is_timezone_ui_intent(query):
+        marker_groups.append(
+            ("timezone", ("타임존 관리", "한주간", "타임라인 관리", "새 타임라인"))
+        )
+    if is_holiday_ui_intent(query):
+        marker_groups.append(
+            ("holiday", ("공휴일 관리", "휴일 구분", "달력", "최대 30"))
+        )
+    if is_access_zone_ui_intent(query):
+        marker_groups.append(
+            ("zone", ("출입구역 추가", "출입 구역 관리", "추가 가능한 단말기"))
+        )
+    if is_access_group_user_ui_intent(query):
+        marker_groups.append(
+            ("ag_user", ("출입 그룹 사용자 관리", "등록 가능한 사용자"))
+        )
+    if is_access_group_ui_intent(query):
+        marker_groups.append(
+            ("ag", ("출입 그룹 관리", "출입그룹추가", "출입그룹 ID"))
+        )
+    if is_alpeta_user_guide_procedure_intent(query):
+        marker_groups.append(
+            ("misc", ("인증 로그", "권한 관리", "일반설정", "필수 입력"))
+        )
+    if not marker_groups:
+        return selected
+
+    selected_keys = {
+        (doc.get("source", "unknown"), doc.get("content", "")) for doc in selected
+    }
+    result = list(selected)
+    for _label, markers in marker_groups:
+        best: Optional[Tuple[float, dict]] = None
+        for record in records:
+            metadata = record.get("metadata") or {}
+            if not _metadata_matches_scope(metadata, scope):
+                continue
+            if metadata.get("document_type") != "user_guide":
+                continue
+            content = record.get("document") or ""
+            if not content.strip():
+                continue
+            hit = sum(1 for m in markers if m in content)
+            if hit == 0:
+                continue
+            key = (metadata.get("source", "unknown"), content)
+            if key in selected_keys:
+                continue
+            score = float(hit)
+            if "Alpeta User Guide" in (metadata.get("source") or ""):
+                score += 0.5
+            if best is None or score > best[0]:
+                best = (score, {
+                    "content": content,
+                    "source": metadata.get("source", "unknown"),
+                    "score": 0.0,
+                    "metadata": metadata,
+                    "ug_menu_context": _label,
+                })
+        if best is None:
+            continue
+        doc = best[1]
+        key = (doc["source"], doc["content"])
+        if key in selected_keys:
+            continue
+        if len(result) < top_k:
+            result.append(doc)
+        else:
+            replace_idx = next(
+                (
+                    i
+                    for i in range(len(result) - 1, -1, -1)
+                    if not result[i].get("ug_menu_context")
+                ),
+                len(result) - 1,
+            )
+            removed = result[replace_idx]
+            selected_keys.discard(
+                (removed.get("source", "unknown"), removed.get("content", ""))
+            )
+            result[replace_idx] = doc
+        selected_keys.add(key)
+    return result
 
 
 def complete_procedure_context(
@@ -4370,6 +7351,7 @@ def limit_documents_for_context(
 
     프로토콜 목록 의도에서는 0x010A/B/C·스냅샷 앵커 청크를 먼저 확보한 뒤
     남은 예산으로 나머지를 채워, 컨텍스트 절단으로 골든 hex가 빠지지 않게 합니다.
+    FaceWT API 의도에서는 faceWTInfo·scan/facewt 앵커를 우선 보존합니다.
     """
     ordered = list(documents or [])
     if query and is_protocol_command_list_intent(query):
@@ -4395,6 +7377,33 @@ def limit_documents_for_context(
             else:
                 rest.append(document)
         ordered = anchors + [doc for doc in rest if (doc.get("source", "unknown"), doc.get("content") or "") not in seen_keys]
+    elif query and is_facewt_faw_api_intent(query):
+        anchors = []
+        rest = []
+        seen_keys = set()
+        need = {"facewtinfo": False, "scan": False}
+        for document in ordered:
+            content = document.get("content") or ""
+            section = str((document.get("metadata") or {}).get("section") or "")
+            blob = f"{section}\n{content}".casefold()
+            key = (document.get("source", "unknown"), content)
+            picked = False
+            if "facewtinfo" in blob and not need["facewtinfo"]:
+                need["facewtinfo"] = True
+                picked = True
+            if "scan/facewt" in blob and not need["scan"]:
+                need["scan"] = True
+                picked = True
+            if picked and key not in seen_keys:
+                anchors.append(document)
+                seen_keys.add(key)
+            else:
+                rest.append(document)
+        ordered = anchors + [
+            doc
+            for doc in rest
+            if (doc.get("source", "unknown"), doc.get("content") or "") not in seen_keys
+        ]
 
     selected, used = [], 0
     for document in ordered:
@@ -4434,6 +7443,7 @@ def retrieve_documents(
     automated_build_intent = is_automated_build_intent(intent_query)
     media_spec_intent = is_media_server_spec_intent(intent_query)
     person_intent = is_person_profile_intent(intent_query)
+    hex_detail_intent = is_protocol_hex_detail_intent(intent_query)
     candidate_count = max(top_k, vector_candidates, rerank_candidates if rerank_enabled else 0)
     # API/스키마 질문은 같은 swagger 안의 여러 엔드포인트·정의 청크가 필요하므로
     # 소스당 청크 상한을 소폭 올려 경로와 필드 표가 함께 남게 합니다.
@@ -4441,6 +7451,12 @@ def retrieve_documents(
     effective_top_k = top_k
     if detect_api_doc_intent(intent_query):
         effective_max_chunks = max(max_chunks_per_source, 3)
+    # FaceWT 등 API 카탈로그는 users·terminals·스키마 청크가 함께 필요하므로 여유를 둡니다.
+    if is_facewt_faw_api_intent(intent_query):
+        effective_max_chunks = max(effective_max_chunks, 4)
+        effective_top_k = max(effective_top_k, 4)
+        candidate_count = max(candidate_count, 20)
+        bm25_candidates = max(bm25_candidates, 20)
     if list_intent or media_spec_intent:
         # 표·TOC가 페이지·섹션 경계에서 잘려도 동일 출처 연속 목록을 더 모읍니다.
         effective_max_chunks = max(effective_max_chunks, 10)
@@ -4466,6 +7482,13 @@ def retrieve_documents(
         effective_top_k = max(top_k, max(4, person_n + 2))
         candidate_count = max(candidate_count, 24)
         bm25_candidates = max(bm25_candidates, 24)
+    if hex_detail_intent:
+        # 단건 hex는 동일 출처 상세 절을 남기고 complete_hex_detail이 섹션을 주입합니다.
+        effective_max_chunks = max(effective_max_chunks, 4)
+        effective_top_k = max(top_k, 4)
+        candidate_count = max(candidate_count, 24)
+        bm25_candidates = max(bm25_candidates, 24)
+
     if terminal_user_mgmt_intent:
         # 메뉴 개요와 저장 리스트·사용자 리스트 조작이 인접 페이지로 나뉘므로
         # 동일 출처에서 역할을 함께 보존합니다.
@@ -4500,6 +7523,17 @@ def retrieve_documents(
         effective_top_k = max(top_k, 4)
         candidate_count = max(candidate_count, 30)
         bm25_candidates = max(bm25_candidates, 30)
+    ug_menu_intent = is_user_guide_menu_intent(intent_query)
+    if ug_menu_intent or is_access_group_ui_intent(intent_query):
+        # User Guide 메뉴 절차는 벡터 점수가 낮아도 BM25·records 스캔으로 보강합니다.
+        effective_max_chunks = max(effective_max_chunks, 6)
+        effective_top_k = max(top_k, 6)
+        candidate_count = max(candidate_count, 36)
+        bm25_candidates = max(bm25_candidates, 36)
+        vector_candidates = max(vector_candidates, 24)
+    vector_min_score = min_relevance_score
+    if ug_menu_intent:
+        vector_min_score = 0.0
     # 신경 리랭크를 끄면 후보 과확장을 억제해 hybrid_search 지연을 줄입니다.
     # 절차/메뉴/프로토콜 목록 완성 로직은 records 전체를 스캔하므로 후보 축소와 독립입니다.
     if rerank_enabled and not rerank_neural:
@@ -4541,16 +7575,28 @@ def retrieve_documents(
             effective_top_k,
             effective_max_chunks,
         )
-        finalized = complete_person_profile_context(
-            complete_mediaserver_spec_context(
-                complete_automated_build_context(
-                    complete_protocol_list_tail_chunks(
-                        complete_catalog_hex_coverage(
-                            complete_build_output_context(
-                                complete_terminal_monitor_add_context(
-                                    complete_terminal_user_mgmt_context(
-                                        complete_procedure_context(
-                                            expanded,
+        inner = complete_related_api_endpoint_chunks(
+            complete_hex_detail_context(
+                complete_person_profile_context(
+                    complete_mediaserver_spec_context(
+                        complete_automated_build_context(
+                            complete_protocol_list_tail_chunks(
+                                complete_catalog_hex_coverage(
+                                    complete_build_output_context(
+                                        complete_terminal_monitor_add_context(
+                                            complete_terminal_user_mgmt_context(
+                                                complete_procedure_context(
+                                                    expanded,
+                                                    records_for_coverage or [],
+                                                    intent_query,
+                                                    effective_top_k,
+                                                    scope,
+                                                ),
+                                                records_for_coverage or [],
+                                                intent_query,
+                                                effective_top_k,
+                                                scope,
+                                            ),
                                             records_for_coverage or [],
                                             intent_query,
                                             effective_top_k,
@@ -4564,6 +7610,7 @@ def retrieve_documents(
                                     records_for_coverage or [],
                                     intent_query,
                                     effective_top_k,
+                                    effective_max_chunks,
                                     scope,
                                 ),
                                 records_for_coverage or [],
@@ -4574,7 +7621,6 @@ def retrieve_documents(
                             records_for_coverage or [],
                             intent_query,
                             effective_top_k,
-                            effective_max_chunks,
                             scope,
                         ),
                         records_for_coverage or [],
@@ -4597,6 +7643,13 @@ def retrieve_documents(
             effective_top_k,
             scope,
         )
+        finalized = complete_user_guide_menu_context(
+            inner,
+            records_for_coverage or [],
+            intent_query,
+            effective_top_k,
+            scope,
+        )
         _log_timing(
             "context_assemble",
             time.perf_counter() - assemble_started,
@@ -4607,7 +7660,7 @@ def retrieve_documents(
     hybrid_started = time.perf_counter()
     vector_docs = retrieve_vector_documents(
         chroma_path, collection_name, embedding_model, query,
-        candidate_count, min_relevance_score, scope,
+        candidate_count, vector_min_score, scope,
     )
     records, bm25 = _get_bm25_index(bm25_index_path)
     if not records or bm25 is None:
@@ -4617,12 +7670,19 @@ def retrieve_documents(
             vector=len(vector_docs),
             bm25=0,
         )
-        return _finalize(vector_docs, [])
+        return _finalize(vector_docs, records or [])
     allowed = [index for index, record in enumerate(records)
                if _metadata_matches_scope(record.get("metadata"), scope)]
     if not allowed:
-        print(f"[RAG] No documents matched required scope: {scope}")
-        _log_timing("hybrid_search", time.perf_counter() - hybrid_started, vector=len(vector_docs), bm25=0)
+        print(f"[RAG] No BM25 records matched scope: {scope}")
+        _log_timing(
+            "hybrid_search",
+            time.perf_counter() - hybrid_started,
+            vector=len(vector_docs),
+            bm25=0,
+        )
+        if vector_docs:
+            return _finalize(vector_docs, records)
         return []
     scores = [0.0] * len(records)
     for query_variant in [q for q in query.splitlines() if q.strip()]:

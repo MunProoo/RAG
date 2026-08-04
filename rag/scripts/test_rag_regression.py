@@ -146,6 +146,158 @@ class ScopedRetrievalTests(unittest.TestCase):
         self.assertIn("facewt", tokens)
         self.assertIn("faw", tokens)
 
+    def test_facewt_api_schema_questions_not_protocol_hex_intent(self):
+        """FaceWT swagger A/B(알려줘 포함)가 프로토콜 hex 단건으로 오인되지 않아야 합니다."""
+        question_a = (
+            "alpeta swagger에서 FAW 또는 FaceWT 관련한 "
+            "스키마 구조와 사용하는 API 명세 줘"
+        )
+        question_b = (
+            "alpeta swagger에서 FAW 또는 FaceWT 관련한 "
+            "API와 스키마구조 알려줘"
+        )
+        self.assertTrue(rag_pipeline.is_facewt_faw_api_intent(question_a))
+        self.assertTrue(rag_pipeline.is_facewt_faw_api_intent(question_b))
+        self.assertFalse(rag_pipeline.is_protocol_hex_detail_intent(question_a))
+        self.assertFalse(rag_pipeline.is_protocol_hex_detail_intent(question_b))
+        # 위겐드 단건은 여전히 hex 상세여야 합니다.
+        self.assertTrue(
+            rag_pipeline.is_protocol_hex_detail_intent(
+                "v4.0에서 set wiegand 알려줘"
+            )
+        )
+
+    def test_facewt_ab_expand_converges_without_protocol_command(self):
+        """A·B expand가 FaceWT 경로·스키마로 수렴하고 Command 프로토콜 확장을 넣지 않습니다."""
+        question_a = (
+            "alpeta swagger에서 FAW 또는 FaceWT 관련한 "
+            "스키마 구조와 사용하는 API 명세 줘"
+        )
+        question_b = (
+            "alpeta swagger에서 FAW 또는 FaceWT 관련한 "
+            "API와 스키마구조 알려줘"
+        )
+        for question in (question_a, question_b):
+            expanded = rag_pipeline.expand_retrieval_query(question, "")
+            self.assertIn("FaceWTInfo", expanded)
+            self.assertIn("/v1/users/{id}/faceWTInfo", expanded)
+            self.assertIn("/v1/terminals/{id}/scan/facewt", expanded)
+            self.assertIn("FAW", expanded)
+            self.assertNotIn("Command 명령 코드", expanded)
+            self.assertNotIn(
+                "Communication protocol for Terminal", expanded
+            )
+
+    def test_reinject_essential_facewt_tokens_after_rewrite_drop(self):
+        """재작성에서 FaceWT/FAW가 빠지면 필수 토큰이 재주입되어야 합니다."""
+        original = (
+            "alpeta swagger에서 FAW 또는 FaceWT 관련한 API와 스키마구조 알려줘"
+        )
+        rewritten = "alpeta swagger holiday lock option API schema"
+        reinjected = rag_pipeline.reinject_essential_retrieval_tokens(
+            original, rewritten
+        )
+        lower = reinjected.casefold()
+        self.assertIn("facewt", lower)
+        self.assertIn("faw", lower)
+        self.assertIn("facewtinfo", lower)
+
+    def test_extract_api_paths_and_enforce_catalog_includes_scan(self):
+        """API 카탈로그 헬퍼가 문서 경로를 추출하고 누락 scan을 AND로 보강해야 합니다."""
+        query = (
+            "alpeta swagger에서 FAW 또는 FaceWT 관련한 "
+            "스키마 구조와 사용하는 API 명세 줘"
+        )
+        docs = [
+            {
+                "source": "swagger_kr.md",
+                "content": (
+                    "## GET `/v1/users/{id}/faceWTInfo`\n"
+                    "- **요약**: 얼굴(faceWT) 정보 조회\n"
+                ),
+                "score": 1.0,
+                "metadata": {"section": "GET `/v1/users/{id}/faceWTInfo`"},
+            },
+            {
+                "source": "swagger_kr.md",
+                "content": (
+                    "## PUT `/v1/users/{id}/faceWTInfo`\n"
+                    "- **요약**: 얼굴(faceWT) 정보 수정\n"
+                ),
+                "score": 0.9,
+                "metadata": {"section": "PUT `/v1/users/{id}/faceWTInfo`"},
+            },
+            {
+                "source": "swagger_kr.md",
+                "content": (
+                    "## GET `/v1/terminals/{id}/scan/facewt`\n"
+                    "- **요약**: 얼굴 이미지 캡쳐 (faceWt)\n"
+                ),
+                "score": 0.8,
+                "metadata": {"section": "GET `/v1/terminals/{id}/scan/facewt`"},
+            },
+        ]
+        extracted = rag_pipeline.extract_api_paths_from_documents(docs)
+        paths = {e["path"] for e in extracted}
+        self.assertIn("/v1/users/{id}/faceWTInfo", paths)
+        self.assertIn("/v1/terminals/{id}/scan/facewt", paths)
+        weak = (
+            "FaceWT API는 GET/PUT `/v1/users/{id}/faceWTInfo` 만 있습니다."
+        )
+        enforced = rag_pipeline.enforce_api_endpoint_catalog(query, docs, weak)
+        self.assertIn("/v1/users/{id}/faceWTInfo", enforced)
+        self.assertIn("/v1/terminals/{id}/scan/facewt", enforced)
+        self.assertRegex(enforced, r"캡처|캡쳐")
+        siblings = rag_pipeline.sibling_api_paths_for_answer(extracted, weak)
+        sibling_paths = {e["path"] for e in siblings}
+        self.assertIn("/v1/terminals/{id}/scan/facewt", sibling_paths)
+
+    def test_complete_related_api_endpoint_chunks_injects_scan(self):
+        """선택 청크에 scan이 없으면 BM25 레코드에서 scan 엔드포인트를 주입해야 합니다."""
+        query = (
+            "alpeta swagger에서 FAW 또는 FaceWT 관련한 API와 스키마구조 알려줘"
+        )
+        selected = [
+            {
+                "source": "swagger_kr.md",
+                "content": "## GET `/v1/users/{id}/faceWTInfo`\n- **요약**: 조회\n",
+                "score": 1.0,
+                "metadata": {
+                    "source": "swagger_kr.md",
+                    "section": "GET `/v1/users/{id}/faceWTInfo`",
+                    "document_type": "api",
+                },
+            },
+            {
+                "source": "swagger_kr.md",
+                "content": "### 스키마 `FaceWTInfo`\n| TemplateType | integer |\n",
+                "score": 0.9,
+                "metadata": {
+                    "source": "swagger_kr.md",
+                    "section": "스키마 `FaceWTInfo`",
+                    "document_type": "api",
+                },
+            },
+        ]
+        records = [
+            {
+                "document": (
+                    "## GET `/v1/terminals/{id}/scan/facewt`\n"
+                    "- **요약**: 얼굴 이미지 캡쳐 (faceWt)\n"
+                ),
+                "metadata": {
+                    "source": "swagger_kr.md",
+                    "section": "GET `/v1/terminals/{id}/scan/facewt`",
+                    "document_type": "api",
+                },
+            }
+        ]
+        completed = rag_pipeline.complete_related_api_endpoint_chunks(
+            selected, records, query, top_k=4, scope={"document_type": "api"}
+        )
+        blob = "\n".join(d.get("content") or "" for d in completed).casefold()
+        self.assertIn("scan/facewt", blob)
+
     def test_api_intent_ranks_swagger_over_user_guide(self):
         """API/스키마 의도에서는 swagger 청크가 User Guide FAW 설명보다 근거 점수가 높아야 합니다."""
         query = "alpeta swagger에서 FaceWT 스키마와 API 명세 줘"
@@ -522,6 +674,285 @@ class TechnicalEvidenceTests(unittest.TestCase):
         self.assertFalse(
             rag_pipeline.answer_has_protocol_guess_phrases(enforced_guess)
         )
+
+    def test_protocol_detail_token_extraction_hex_and_command_name(self):
+        """hex·명령명 질의 토큰 추출이 하드코딩 분기 없이 핵심을 공유하는지 검증합니다."""
+        hex_q = "v4.0에서 0x0041 알려줘"
+        name_q = "v4.0에서 set Wiegand 알려줘"
+        name_q_case = "v4.0에서 Set Wiegand 알려줘"
+        hex_tokens = {t.casefold() for t in rag_pipeline.extract_protocol_detail_tokens(hex_q)}
+        name_tokens = {t.casefold() for t in rag_pipeline.extract_protocol_detail_tokens(name_q)}
+        name_tokens_case = {
+            t.casefold() for t in rag_pipeline.extract_protocol_detail_tokens(name_q_case)
+        }
+        # 대소문자 변형은 동일 핵심 토큰을 내야 합니다.
+        self.assertEqual(name_tokens, name_tokens_case)
+        self.assertTrue(any("wiegand" in t for t in name_tokens))
+        self.assertTrue(
+            any(t.replace(" ", "") == "setwiegand" or t == "set wiegand" for t in name_tokens)
+        )
+        self.assertTrue(any(t in {"0x0041", "0x41", "0041", "41"} for t in hex_tokens))
+        # 두 질문 모두 단건 상세 intent이며 목록 intent가 아닙니다.
+        self.assertTrue(rag_pipeline.is_protocol_hex_detail_intent(hex_q))
+        self.assertTrue(rag_pipeline.is_protocol_hex_detail_intent(name_q))
+        self.assertTrue(rag_pipeline.is_protocol_hex_detail_intent(name_q_case))
+        self.assertFalse(rag_pipeline.is_protocol_command_list_intent(name_q))
+        # 표현별 하드코딩 분기 문자열이 추출기 소스에 없어야 합니다.
+        src = Path(rag_pipeline.__file__).read_text(encoding="utf-8")
+        self.assertNotIn('if "set wiegand" in', src.casefold())
+        self.assertNotIn("if 'set wiegand' in", src.casefold())
+
+    def test_protocol_logon_synonym_tokens_and_intent(self):
+        """logon/로그인 동의어가 토큰·단건 intent로 잡혀 목록 enforce와 분리됩니다."""
+        en_q = "v4.0 logon 프로토콜 알려줘"
+        ko_q = "v4.0 단말기 로그인 프로토콜 알려줘"
+        en_tokens = {t.casefold() for t in rag_pipeline.extract_protocol_detail_tokens(en_q)}
+        ko_tokens = {t.casefold() for t in rag_pipeline.extract_protocol_detail_tokens(ko_q)}
+        self.assertTrue(any("logon" in t for t in en_tokens))
+        self.assertTrue(any(t == "0x0001" or t == "0x1" for t in en_tokens))
+        self.assertTrue(any("logon" in t for t in ko_tokens))
+        self.assertTrue(rag_pipeline.is_protocol_hex_detail_intent(en_q))
+        self.assertTrue(rag_pipeline.is_protocol_hex_detail_intent(ko_q))
+        self.assertFalse(rag_pipeline.is_protocol_command_list_intent(en_q))
+        self.assertFalse(rag_pipeline.is_protocol_command_list_intent(ko_q))
+        docs = [
+            {
+                "source": "Communication protocol for Terminal v4.0_Re19.pdf",
+                "content": (
+                    "4.1 Terminal Logon 단말기 로그온 (0x0001)\n"
+                    "단말은 서버로 Logon을 시도한다.\n"
+                    "Request ] (Server <- Terminal)\n"
+                    "Command 0x0001 Param1 Terminal IP\n"
+                ),
+                "metadata": {"page": 11, "chunk_index": 20},
+            }
+        ]
+        weak = "제공된 문서에는 로그인 절차가 없습니다. Overview 포트는 9003입니다."
+        enforced = rag_pipeline.enforce_protocol_hex_detail(en_q, docs, weak)
+        self.assertIn("0x0001", enforced)
+        self.assertRegex(enforced, r"(?i)logon")
+        self.assertNotRegex(enforced, r"로그인\s*절차가\s*없")
+
+    def test_protocol_wiegand_synonym_tokens_and_struct_enforce(self):
+        """위겐드/wiegand 동의어 intent·검색 토큰과 Config 필드 강제 보강을 검증합니다."""
+        ko_q = "v4.0에서 위겐드 설정하는 프로토콜 알려줘"
+        en_q = "v4.0에서 wiegand 설정하는 프로토콜 알려줘"
+        plain_q = "v4.0에서 set wiegand 알려줘"
+        ko_tokens = {t.casefold() for t in rag_pipeline.extract_protocol_detail_tokens(ko_q)}
+        en_tokens = {t.casefold() for t in rag_pipeline.extract_protocol_detail_tokens(en_q)}
+        self.assertTrue(any("wiegand" in t for t in ko_tokens))
+        self.assertTrue(any(t in {"0x0041", "0x41"} for t in ko_tokens))
+        self.assertTrue(any("wiegand" in t for t in en_tokens))
+        self.assertTrue(any(t in {"0x0041", "0x41"} for t in en_tokens))
+        self.assertTrue(rag_pipeline.is_protocol_hex_detail_intent(ko_q))
+        self.assertTrue(rag_pipeline.is_protocol_hex_detail_intent(en_q))
+        self.assertTrue(rag_pipeline.is_protocol_hex_detail_intent(plain_q))
+        self.assertFalse(rag_pipeline.is_protocol_command_list_intent(ko_q))
+        docs = [
+            {
+                "source": "Communication protocol for Terminal v4.0_Re19.pdf",
+                "content": (
+                    "5.19 Set Wiegand (0x0041)\n"
+                    "서버에서 단말로 Wiegand 정보를 얻거나 설정할 경우 사용한다.\n"
+                    "Command 0x0041 Param1 사용안함 Param2 사용안함\n"
+                    "ControlBase의 경우 WiegandConfig가 함께 전달된다.\n"
+                    "WiegandConfig\n"
+                    "Base device_type rs485_port device_cp_id\n"
+                    "base 0: ControlBase\n"
+                    "device_type 5: Wiegand\n"
+                ),
+                "metadata": {"page": 65, "chunk_index": 158},
+            }
+        ]
+        denial = "제공된 문서에는 위겐드 설정 관련 프로토콜이 없습니다."
+        enforced_ko = rag_pipeline.enforce_protocol_hex_detail(ko_q, docs, denial)
+        self.assertIn("0x0041", enforced_ko)
+        self.assertRegex(enforced_ko, r"(?i)set\s*wiegand|wiegand")
+        self.assertRegex(enforced_ko, r"(?i)wiegandconfig|device_type")
+        self.assertNotRegex(enforced_ko, r"프로토콜이\s*없")
+        # Config 이름만 있고 필드 없는 부분 답은 base/device_type을 붙입니다.
+        partial = "Set Wiegand(0x0041)는 Param1·Param2 사용안함이며 WiegandConfig를 전달합니다."
+        enforced_plain = rag_pipeline.enforce_protocol_hex_detail(plain_q, docs, partial)
+        self.assertIn("0x0041", enforced_plain)
+        self.assertRegex(enforced_plain, r"(?i)\bbase\b")
+        self.assertRegex(enforced_plain, r"(?i)device_type")
+        src = Path(rag_pipeline.__file__).read_text(encoding="utf-8")
+        self.assertNotIn('if "위겐드" in', src)
+        self.assertNotIn("if 'wiegand' in query", src.casefold())
+
+    def test_protocol_listup_spaced_and_table_followup_topic(self):
+        """공백 리스트업·표 후속이 protocol_catalog로 문맥화되고 MediaServer로 가지 않습니다."""
+        list_q = "v4.0 프로토콜 리스트업 해줘"
+        list_q_nospace = "v4.0 프로토콜 리스트업해줘"
+        self.assertNotEqual(list_q, list_q_nospace)
+        self.assertTrue(rag_pipeline.is_protocol_command_list_intent(list_q))
+        follow_up = "보기 좋게 표로 정리해줘"
+        history = [
+            {"role": "user", "content": list_q},
+            {"role": "assistant", "content": "명령 일부: 0x010A 출입그룹"},
+        ]
+        self.assertEqual(
+            rag_pipeline.recent_user_follow_up_topic(history), "protocol_catalog"
+        )
+        ruled = rag_pipeline.rule_contextualize_follow_up(follow_up, history)
+        self.assertIsNotNone(ruled)
+        self.assertTrue(rag_pipeline.is_protocol_command_list_intent(ruled))
+        self.assertTrue(rag_pipeline.query_has_retrieval_topic(ruled))
+        self.assertFalse(
+            rag_pipeline.is_ambiguous_reformat_request(follow_up, history)
+        )
+        self.assertNotIn("미디어 서버", ruled)
+        self.assertNotIn("MediaServer", ruled or "")
+        degraded = (
+            "主张 请求 Termainl 스냅썸트\n"
+            "| 보완 항목 | 0x00 |\n"
+            "출입그룹 0x010A만 있습니다."
+        )
+        documents = [
+            {
+                "source": "Communication protocol for Terminal v4.0_Re19.pdf",
+                "content": (
+                    "3 Command Preview Command Value Content "
+                    "Terminal Logon 0x0001 "
+                    "출입그룹 Door 설정 전송 0x010A "
+                    "주장치 초기화 요청 0x010B "
+                    "주장치 관리자 계정 설정 요청 0x010C "
+                    "5.18 스냅샷 (주장치 설정 정보) 요청 (0x0)"
+                ),
+                "metadata": {"catalog_page": True},
+            }
+        ]
+        enforced = rag_pipeline.enforce_protocol_command_catalog(
+            list_q, documents, degraded
+        )
+        self.assertIn("0x0001", enforced)
+        self.assertIn("0x010A", enforced)
+        self.assertIn("스냅샷", enforced)
+        self.assertIn("|", enforced)
+        self.assertNotIn("主张", enforced)
+        self.assertNotIn("보완 항목", enforced)
+        self.assertNotIn("MediaServer", enforced)
+
+    def test_protocol_hex_detail_intent_and_enforce(self):
+        """단건 hex/명령명 질의는 목록 enforce를 피하고 섹션·Config 요약을 강제합니다."""
+        question = "v4.0에서 0x0041 알려줘"
+        name_q = "v4.0에서 set Wiegand 알려줘"
+        listup = "v4.0 프로토콜 리스트업해줘"
+        self.assertTrue(rag_pipeline.is_protocol_hex_detail_intent(question))
+        self.assertTrue(rag_pipeline.is_protocol_hex_detail_intent(name_q))
+        self.assertFalse(rag_pipeline.is_protocol_command_list_intent(question))
+        self.assertFalse(rag_pipeline.is_protocol_hex_detail_intent(listup))
+        variants = rag_pipeline.hex_code_variants("0x0041")
+        # 변형에 짧은 표기 0x41이 포함되는지 확인합니다.
+        self.assertTrue(any(v.lower() == "0x41" for v in variants))
+        expanded = rag_pipeline.expand_retrieval_query(question, "")
+        self.assertIn("0x0041", expanded)
+        self.assertIn("0x41", expanded.casefold())
+        expanded_name = rag_pipeline.expand_retrieval_query(name_q, "")
+        self.assertRegex(expanded_name, r"(?i)wiegand")
+        scope = rag_pipeline.detect_retrieval_scope(question)
+        self.assertEqual(scope.get("document_type"), "protocol")
+        self.assertEqual(scope.get("protocol_generation"), "current")
+        scope_name = rag_pipeline.detect_retrieval_scope(name_q)
+        self.assertEqual(scope_name.get("document_type"), "protocol")
+        docs = [
+            {
+                "source": "Communication protocol for Terminal v4.0_Re19.pdf",
+                "content": (
+                    "5.19 Set Wiegand (0x0041)\n"
+                    "서버에서 단말로 Wiegand 정보를 얻거나 설정할 경우 사용한다.\n"
+                    "Request ] (Server -> Terminal)\n"
+                    "Command   0x0041\n"
+                    "일반 단말의 경우 WiegandFormat만 전달되며, "
+                    "ControlBase의 경우 WiegandConfig가 함께 전달된다.\n"
+                    "WiegandConfig Base device_type rs485_port device_cp_id\n"
+                ),
+                "metadata": {
+                    "page": 65,
+                    "section": "5.19 Set Wiegand (0x0041)",
+                    "chunk_index": 158,
+                },
+            }
+        ]
+        weak = "제공된 참고 문서에는 0x0041 관련 표가 포함되어 있지 않습니다. Time Stamp는 ms 8bytes입니다."
+        enforced = rag_pipeline.enforce_protocol_hex_detail(question, docs, weak)
+        self.assertIn("0x0041", enforced)
+        self.assertRegex(enforced, r"(?i)wiegand")
+        self.assertRegex(enforced, r"(?i)wiegandconfig|device_type")
+        self.assertNotRegex(enforced, r"포함되어\s*있지\s*않")
+        # 명령명 질의도 동일 문서 요약을 강제합니다.
+        partial = "Set Wiegand(0x0041)는 Param3로 얻거나 설정합니다."
+        enforced_name = rag_pipeline.enforce_protocol_hex_detail(name_q, docs, partial)
+        self.assertRegex(enforced_name, r"(?i)wiegandconfig|device_type")
+        # 목록 enforce가 단건을 표로 덮지 않는지
+        cataloged = rag_pipeline.enforce_protocol_command_catalog(question, docs, weak)
+        self.assertEqual(cataloged, weak)
+
+    def test_complete_hex_detail_context_injects_section(self):
+        """RRF 상위가 TimeStamp여도 BM25에서 절·인접 Config 청크를 주입합니다."""
+        query = "v4.0에서 0x0041 알려줘"
+        selected = [
+            {
+                "source": "Communication protocol for Terminal v4.0_Re19.pdf",
+                "content": "Time Stamp Milliseconds(ms) 8 bytes",
+                "score": 0.04,
+                "metadata": {
+                    "page": 25,
+                    "chunk_index": 53,
+                    "document_type": "protocol",
+                    "protocol_generation": "current",
+                },
+            }
+        ]
+        records = [
+            {
+                "document": selected[0]["content"],
+                "metadata": selected[0]["metadata"] | {"source": selected[0]["source"]},
+            },
+            {
+                "document": (
+                    "5.19 Set Wiegand (0x0041) 서버에서 단말로 Wiegand 정보를 얻거나 설정. "
+                    "WiegandConfig Base device_type rs485_port"
+                ),
+                "metadata": {
+                    "source": "Communication protocol for Terminal v4.0_Re19.pdf",
+                    "page": 65,
+                    "chunk_index": 158,
+                    "section": "5.19 Set Wiegand (0x0041)",
+                    "document_type": "protocol",
+                    "protocol_generation": "current",
+                },
+            },
+            {
+                "document": "| WiegandConfig | Base | device type | rs485 port |",
+                "metadata": {
+                    "source": "Communication protocol for Terminal v4.0_Re19.pdf",
+                    "page": 65,
+                    "chunk_index": 160,
+                    "section": "5.19 Set Wiegand (0x0041)",
+                    "document_type": "protocol",
+                    "protocol_generation": "current",
+                },
+            },
+        ]
+        completed = rag_pipeline.complete_hex_detail_context(
+            selected, records, query, top_k=2, scope={"document_type": "protocol"}
+        )
+        blob = "\n".join(doc.get("content") or "" for doc in completed)
+        self.assertIn("0x0041", blob)
+        self.assertRegex(blob, r"(?i)wiegand")
+        self.assertRegex(blob, r"(?i)wiegandconfig")
+        # 명령명 질의도 동일 절을 끌어옵니다.
+        completed_name = rag_pipeline.complete_hex_detail_context(
+            selected,
+            records,
+            "v4.0에서 set Wiegand 알려줘",
+            top_k=2,
+            scope={"document_type": "protocol"},
+        )
+        blob_name = "\n".join(doc.get("content") or "" for doc in completed_name)
+        self.assertRegex(blob_name, r"(?i)0x0041|wiegandconfig")
+
 
     def test_ensure_protocol_golden_hex_rows_fills_010c(self):
         """extract가 0x010C를 빠뜨려도 문서 blob에 있으면 보강합니다."""
@@ -1466,6 +1897,21 @@ class FollowUpContextTests(unittest.TestCase):
             mocked.assert_not_called()
         self.assertEqual(condensed, ruled)
 
+    def test_monitor_status_table_follow_up_not_mediaserver(self):
+        """모니터링 연결상태 후 「표로」후속은 녹·적·이벤트 표로 문맥화됩니다."""
+        history = [
+            {"role": "user", "content": "alpeta 단말기 연결 상태는 어떻게 확인해?"},
+            {"role": "assistant", "content": "모니터링 메뉴에서 확인합니다."},
+        ]
+        follow = "상태에 대한 정보를 포함해서 표로 정리해서 보여줘"
+        self.assertEqual(rag_pipeline.recent_user_follow_up_topic(history), "terminal_monitor")
+        ruled = rag_pipeline.rule_contextualize_follow_up(follow, history)
+        self.assertIsNotNone(ruled)
+        self.assertIn("모니터링", ruled or "")
+        self.assertIn("녹", ruled or "")
+        self.assertNotIn("FaceWT", ruled or "")
+        self.assertNotIn("카메라", ruled or "")
+
     def test_mediaserver_solo_spec_not_follow_up_or_api_hijack(self):
         """「미디어서버 스펙 알려줘」는 len<=12여도 UG/FaceWT history 후속으로 오탐되지 않습니다."""
         question = "미디어서버 스펙 알려줘"
@@ -1999,6 +2445,74 @@ class TerminalMonitorAndAddIntentTests(unittest.TestCase):
         self.assertIn("모니터링", enforced)
         self.assertIn("단말기 관리", enforced)
 
+    def test_status_only_intent_excludes_device_add(self):
+        """연결상태 단독 질문은 status_only이고 추가-only 질문과 구분됩니다."""
+        status_q = "alpeta 단말기 연결 상태는 어떻게 확인해?"
+        combined_q = (
+            "alpeta 단말기 연결 상태는 어떻게 확인해? 그리고 단말기 어떻게 추가해?"
+        )
+        self.assertTrue(rag_pipeline.is_terminal_monitor_status_only_intent(status_q))
+        self.assertFalse(rag_pipeline.is_terminal_monitor_status_only_intent(combined_q))
+
+    def test_monitor_table_follow_up_contextualize(self):
+        """모니터링 후속 표 질문은 녹·적·이벤트 키워드로 문맥화됩니다."""
+        history = [
+            {"role": "user", "content": "alpeta 단말기 연결 상태는 어떻게 확인해?"},
+            {"role": "assistant", "content": "모니터링 메뉴에서 확인합니다."},
+        ]
+        follow = "상태에 대한 정보를 포함해서 표로 정리해서 보여줘"
+        topic = rag_pipeline.recent_user_follow_up_topic(history)
+        self.assertEqual(topic, "terminal_monitor")
+        ruled = rag_pipeline.rule_contextualize_follow_up(follow, history)
+        self.assertIsNotNone(ruled)
+        self.assertIn("모니터링", ruled or "")
+        self.assertIn("녹", ruled or "")
+        self.assertIn("출입문", ruled or "")
+
+    def test_enforce_status_only_adds_green_red_and_events(self):
+        """status_only enforce는 녹·적+이벤트 AND를 보장하고 추가 절차를 넣지 않습니다."""
+        status_q = "alpeta 단말기 연결 상태는 어떻게 확인해?"
+        docs = [
+            {
+                "source": "Alpeta User Guide.pdf",
+                "content": (
+                    "모니터링 단말기 상태 접속 상태 연결 끊어진 출입문 열린 닫힌 이벤트."
+                ),
+                "score": 1.0,
+                "metadata": {"document_type": "user_guide"},
+            }
+        ]
+        thin = "모니터링 메뉴에서 확인하세요."
+        enforced = rag_pipeline.enforce_terminal_monitor_and_add(
+            status_q, docs, thin
+        )
+        self.assertIn("녹", enforced)
+        self.assertIn("빨", enforced)
+        self.assertIn("출입문", enforced)
+        self.assertNotIn("단말기 관리", enforced)
+
+    def test_enforce_table_followup_replaces_pollution(self):
+        """표 후속 enforce는 근태 오염 답을 모니터링 상태 표로 교체합니다."""
+        table_q = (
+            "Alpeta User Guide 모니터링 메뉴 단말기 접속 상태 "
+            "녹색 연결 빨간 끊김 이벤트 출입문 열림 닫힘 표로 정리해줘"
+        )
+        docs = [
+            {
+                "source": "Alpeta User Guide.pdf",
+                "content": "모니터링 상태 연결 끊어진 출입문 열린 닫힌",
+                "score": 1.0,
+                "metadata": {"document_type": "user_guide"},
+            }
+        ]
+        polluted = "근태 결근 조퇴 지각 기록 | 표 |"
+        enforced = rag_pipeline.enforce_terminal_monitor_and_add(
+            table_q, docs, polluted
+        )
+        self.assertIn("|", enforced)
+        self.assertIn("녹", enforced)
+        self.assertNotIn("근태", enforced)
+
     def test_context_completes_monitor_and_add_facets(self):
         """모니터링만 선택되면 단말기 관리 추가 청크를 같은 가이드에서 보충합니다."""
         selected = [
@@ -2051,6 +2565,327 @@ class TerminalMonitorAndAddIntentTests(unittest.TestCase):
         self.assertNotIn("단말기 찾기", joined)
         self.assertNotIn("펌웨어", joined)
 
+
+class Loop32DocQaIntentTests(unittest.TestCase):
+    """Loop32 핵심 문서 Q&A: 펌웨어·로그인·출입그룹 UI·대역폭 산정 의도 회귀."""
+
+    def test_protocol_firmware_download_expands_0x0020(self):
+        """한글 펌웨어 다운로드 질문이 Upgrade firmware 0x0020으로 확장됩니다."""
+        q = "v4.0에서 펌웨어 다운로드 프로토콜이 뭐야?"
+        self.assertTrue(rag_pipeline.is_protocol_firmware_download_intent(q))
+        expanded = rag_pipeline.expand_retrieval_query(q, q)
+        self.assertIn("0x0020", expanded)
+        self.assertIn("Upgrade firmware", expanded)
+
+    def test_api_login_expands_post_v1_login_not_protocol_logon(self):
+        """Swagger 로그인 API는 POST /v1/login으로 확장되고 protocol 전용 확장을 피합니다."""
+        q = "alpeta swagger에서 서버 로그인 API 경로랑 요청 바디 필드 알려줘"
+        self.assertTrue(rag_pipeline.is_api_login_endpoint_intent(q))
+        self.assertTrue(rag_pipeline.detect_api_doc_intent(q))
+        self.assertFalse(rag_pipeline.is_protocol_hex_detail_intent(q))
+        expanded = rag_pipeline.expand_retrieval_query(q, q)
+        self.assertIn("/v1/login", expanded)
+        self.assertIn("userType", expanded)
+        self.assertNotIn("Command Preview", expanded)
+
+    def test_access_group_ui_scopes_user_guide_not_protocol(self):
+        """영문 Alpeta access group UI 질문은 user_guide로 한정됩니다."""
+        q = "Alpeta access group 만들 때 ID·명칭·타임존이랑 구역 지정 방법 알려줘"
+        self.assertTrue(rag_pipeline.is_access_group_ui_intent(q))
+        self.assertFalse(rag_pipeline.is_protocol_hex_detail_intent(q))
+        scope = rag_pipeline.detect_retrieval_scope(q)
+        self.assertEqual(scope.get("document_type"), "user_guide")
+        expanded = rag_pipeline.expand_retrieval_query(q, q)
+        self.assertIn("타임존", expanded)
+        self.assertNotIn("Communication protocol for Terminal", expanded)
+
+    def test_mediaserver_capacity_calc_expands_600mbps(self):
+        """시청자 합계 대역폭 질문은 600 Mbps 산정 앵커로 확장됩니다."""
+        q = "미디어서버에서 시청자 2명일 때 인입+WebRTC 합계 대역폭은 얼마로 잡혀 있어?"
+        self.assertTrue(rag_pipeline.is_media_server_capacity_calc_intent(q))
+        self.assertFalse(rag_pipeline.is_media_server_spec_intent(q))
+        expanded = rag_pipeline.expand_retrieval_query(q, q)
+        self.assertIn("600 Mbps", expanded)
+        self.assertIn("200 Mbps", expanded)
+
+    def test_storage_calc_intent_without_mediaserver_word(self):
+        """「미디어서버」없이 동시 녹화·1.2배·스토리지 질문도 capacity intent입니다."""
+        q = "동시 녹화 6대·30일 보관일 때 여유 1.2배 반영 스토리지는 약 얼마야?"
+        self.assertTrue(rag_pipeline.is_media_server_capacity_calc_intent(q))
+        expanded = rag_pipeline.expand_retrieval_query(q, q)
+        self.assertIn("15GB", expanded)
+        self.assertIn("3.24TB", expanded)
+
+    def test_protocol_access_group_download_not_ui_intent(self):
+        """「protocol에서 출입그룹 내려」는 UI가 아니라 protocol 전송 확장입니다."""
+        q = "신규 protocol에서 출입그룹 어떻게 내려?"
+        self.assertFalse(rag_pipeline.is_access_group_ui_intent(q))
+        self.assertEqual(
+            rag_pipeline.detect_retrieval_scope(q).get("document_type"),
+            "protocol",
+        )
+        expanded = rag_pipeline.expand_retrieval_query(q, "신규 프로토콜 출입그룹")
+        self.assertIn("Door 설정 전송", expanded)
+
+    def test_enforce_mediaserver_capacity_adds_600_total(self):
+        """아웃바운드만 답한 경우 문서 근거가 있으면 600 Mbps 합계를 보강합니다."""
+        q = "MediaServer network calc: 100 streams at 2Mbps with 2 viewers — total Mbps?"
+        docs = [
+            {
+                "content": (
+                    "인입 100×2=200 Mbps. 시청자 2명 400 Mbps. 합계 600 Mbps"
+                ),
+                "source": "MediaServer_Specs_New.md",
+            }
+        ]
+        out = rag_pipeline.enforce_mediaserver_capacity_calc(
+            q, docs, "WebRTC only: 400 Mbps"
+        )
+        self.assertIn("600", out)
+        self.assertIn("200", out)
+
+    def test_enforce_storage_adds_15gb_and_1_2_and_4tb(self):
+        """90/3240만 있는 스토리지 답에 15GB·1.2배·4TB를 보강합니다."""
+        q = "동시 녹화 6대·30일 보관일 때 여유 1.2배 반영 스토리지는 약 얼마야?"
+        docs = [
+            {
+                "content": "1대/일 15GB. 90GB/일×30=2.7TB×1.2≈3.24TB. HDD 4TB 이상",
+                "source": "MediaServer_Specs_New.md",
+            }
+        ]
+        out = rag_pipeline.enforce_mediaserver_capacity_calc(
+            q,
+            docs,
+            "하루 90GB, 총 2700GB, 권장 3240GB 입니다.",
+        )
+        self.assertRegex(out, r"(?i)15\s*GB")
+        self.assertIn("1.2", out)
+        self.assertRegex(out, r"(?i)4\s*TB")
+        self.assertIn("3.24", out)
+
+    def test_timezone_create_ui_scopes_user_guide(self):
+        """「alpeta에서 타임존 어떻게 만들어?」는 타임존 UI·user_guide로 한정됩니다."""
+        q = "alpeta에서 타임존 어떻게 만들어?"
+        self.assertTrue(rag_pipeline.is_timezone_ui_intent(q))
+        self.assertFalse(rag_pipeline.is_access_group_ui_intent(q))
+        self.assertFalse(rag_pipeline.is_protocol_hex_detail_intent(q))
+        scope = rag_pipeline.detect_retrieval_scope(q)
+        self.assertEqual(scope.get("document_type"), "user_guide")
+        expanded = rag_pipeline.expand_retrieval_query(q, q)
+        self.assertIn("타임존 관리", expanded)
+        self.assertNotIn("Door 설정 전송", expanded)
+
+    def test_holiday_create_ui_scopes_user_guide(self):
+        """「alpeta에서 공휴일 어떻게 만들어?」는 공휴일 UI·user_guide로 한정됩니다."""
+        q = "alpeta에서 공휴일 어떻게 만들어?"
+        self.assertTrue(rag_pipeline.is_holiday_ui_intent(q))
+        self.assertFalse(rag_pipeline.is_protocol_hex_detail_intent(q))
+        scope = rag_pipeline.detect_retrieval_scope(q)
+        self.assertEqual(scope.get("document_type"), "user_guide")
+        expanded = rag_pipeline.expand_retrieval_query(q, q)
+        self.assertIn("공휴일 관리", expanded)
+        self.assertIn("30", expanded)
+
+    def test_access_group_user_register_not_access_group_create(self):
+        """출입그룹 사용자 등록은 access group 생성 UI와 분리됩니다."""
+        q = "알페타 출입그룹에 사용자를 등록하려면 어떻게 해?"
+        self.assertTrue(rag_pipeline.is_access_group_user_ui_intent(q))
+        self.assertFalse(rag_pipeline.is_access_group_ui_intent(q))
+
+    def test_enforce_holiday_ui_adds_menu_and_30(self):
+        """공휴일 생성 enforce는 메뉴·달력 추가·30개를 AND로 보강합니다."""
+        q = "alpeta에서 공휴일 어떻게 만들어?"
+        docs = [
+            {
+                "content": (
+                    "[타임존] > [공휴일 관리]. 최대 30 개. ID 와 이름. "
+                    "달력 [추가]. 저장"
+                ),
+                "source": "Alpeta User Guide.pdf",
+            }
+        ]
+        out = rag_pipeline.enforce_holiday_ui_procedure(q, docs, "공휴일은 설정합니다.")
+        self.assertIn("공휴일 관리", out)
+        self.assertIn("달력", out)
+        self.assertIn("30", out)
+
+    def test_timezone_create_enforce_corrects_timeline_confusion(self):
+        """Q1 enforce는 새 타임라인 혼동 시 한주간·콤보박스 절차로 교정합니다."""
+        q = "alpeta에서 타임존 어떻게 만들어?"
+        wrong = (
+            "1. **[새 타임라인]** 버튼으로 시작합니다. "
+            "타임존 관리 [추가] 후 ID·NAME 입력. "
+            "3. **한주간의 일정**을 콤보박스에서 선택. [저장] [출입그룹]."
+        )
+        out = rag_pipeline.enforce_timezone_ui_procedure(q, [], wrong)
+        self.assertIn("한주", out)
+        self.assertIn("콤보박스", out)
+        self.assertNotIn("1. **[새 타임라인]**", out)
+        bare = "타임존 관리에서 [추가] 후 [새 타임라인] 버튼으로 일정을 만듭니다."
+        out2 = rag_pipeline.enforce_timezone_ui_procedure(q, [], bare)
+        self.assertIn("콤보박스", out2)
+
+    def test_timeline_create_separate_from_timezone_create(self):
+        """Q7 타임라인 신규는 is_timeline_create_ui_intent로 Q1과 분리됩니다."""
+        q_tz = "alpeta에서 타임존 어떻게 만들어?"
+        q_tl = "알페타 타임라인 새로 만들 때 뭘 입력해야 해?"
+        self.assertTrue(rag_pipeline.is_timezone_create_ui_intent(q_tz))
+        self.assertFalse(rag_pipeline.is_timeline_create_ui_intent(q_tz))
+        self.assertTrue(rag_pipeline.is_timeline_create_ui_intent(q_tl))
+        self.assertFalse(rag_pipeline.is_timezone_create_ui_intent(q_tl))
+
+    def test_enforce_authlog_categories_six_and_no_denial(self):
+        """인증 로그 카테고리 enforce는 6항 AND·단말기명 부정 제거."""
+        q = "알페타 인증 로그 조회할 때 검색 카테고리에는 뭐가 있어?"
+        wrong = (
+            "전체, 사용자 ID, 단말기 ID, 유니크 ID. "
+            "[단말기명]은 명시되어 있지 않습니다."
+        )
+        out = rag_pipeline.enforce_authlog_search_categories(q, [], wrong)
+        self.assertIn("단말기명", out)
+        self.assertIn("전체", out)
+        self.assertNotIn("명시되어 있지", out.split("단말기명")[-1][:80])
+
+    def test_enforce_access_zone_adds_timezone_before_save(self):
+        """Q3 enforce는 타임존 선택 단계를 AND로 보강합니다."""
+        q = "알페타에서 출입구역 추가하는 방법 알려줘"
+        wrong = (
+            "출입구역 ID·출입구역명 입력. "
+            "추가 가능한 단말기 ↔ 등록된 단말기 이동 후 [저장]."
+        )
+        out = rag_pipeline.enforce_access_zone_ui_procedure(q, [], wrong)
+        self.assertIn("타임존", out)
+        self.assertIn("저장", out)
+
+    def test_enforce_timeline_create_adds_double_click(self):
+        """Q7 enforce는 출입 상태 더블클릭 시간대 생성 단계를 보강합니다."""
+        q = "알페타 타임라인 새로 만들 때 뭘 입력해야 해?"
+        wrong = (
+            "ID와 NAME 입력 후 [새 타임라인] 버튼 클릭. [저장]으로 저장."
+        )
+        out = rag_pipeline._enforce_timeline_create_ui_procedure(q, [], wrong)
+        self.assertIn("더블클릭", out)
+        self.assertIn("새 타임라인", out)
+
+    def test_auto_sync_setting_intent_excludes_combined_manual_sync(self):
+        """일반설정 자동동기화 단독 질문만 auto_sync 의도이고 복합 절차는 user_terminal입니다."""
+        solo = "알페타 일반설정에서 단말기 사용자 정보 자동 동기화 켜는 방법 알려줘"
+        combined = (
+            "alpeta에서 사용자를 단말기에 어떻게 추가해? 그리고 자동동기화는 어떻게 해?"
+        )
+        self.assertTrue(rag_pipeline.is_auto_sync_setting_intent(solo))
+        self.assertFalse(rag_pipeline.is_user_terminal_procedure_intent(solo))
+        self.assertFalse(rag_pipeline.is_auto_sync_setting_intent(combined))
+        self.assertTrue(rag_pipeline.is_user_terminal_procedure_intent(combined))
+
+    def test_enforce_auto_sync_setting_replaces_manual_primary(self):
+        """자동동기화 단독 질문에서 수동 3경로가 앞서면 canonical으로 교체합니다."""
+        q = "알페타 일반설정에서 단말기 사용자 정보 자동 동기화 켜는 방법 알려줘"
+        manual_first = (
+            "### [사용자 관리]\n단말기리스트에서 사용자를 내려갑니다.\n\n"
+            "### [자동동기화]\n단말기 사용자 정보 자동 동기화 사용."
+        )
+        out = rag_pipeline.enforce_auto_sync_setting_procedure(q, [], manual_first)
+        self.assertIn("일반설정", out)
+        self.assertIn("단말기 사용자 정보 자동 동기화", out)
+        self.assertIn("출입그룹", out)
+        self.assertNotIn("단말기리스트", out)
+        self.assertNotIn("사용자 관리", out)
+
+    def test_auto_sync_prompt_excludes_manual_paths(self):
+        """자동동기화 단독 질문 프롬프트에 수동 전송 금지 지침이 있습니다."""
+        q = "알페타 일반설정에서 단말기 사용자 정보 자동 동기화 켜는 방법 알려줘"
+        prompt = rag_pipeline.build_context_prompt(
+            q,
+            [{"source": "Alpeta User Guide.pdf", "score": 1.0, "content": "사용자 설정"}],
+        )
+        self.assertIn("자동 동기화 설정", prompt)
+        self.assertIn("단말기 사용자 정보 자동 동기화 사용", prompt)
+        self.assertIn("수동 전송", prompt)
+        self.assertNotIn("서로 다른 메뉴 3경로", prompt)
+
+
+class ApiEntitySynonymIntentRegression(unittest.TestCase):
+    """Loop36: 한글↔영문 API 엔티티 동의어·의도 우선순위 일반화."""
+
+    def test_access_group_api_ko_not_ui_scope(self):
+        """출입그룹+API는 UG UI intent가 아니고 api scope·accessGroups 확장입니다."""
+        q = "alpeta 출입그룹 관련한 API 알려줘"
+        self.assertTrue(rag_pipeline.detect_api_doc_intent(q))
+        self.assertTrue(rag_pipeline.is_api_entity_doc_intent(q))
+        self.assertFalse(rag_pipeline.is_access_group_ui_intent(q))
+        scope = rag_pipeline.detect_retrieval_scope(q)
+        self.assertEqual(scope.get("document_type"), "api")
+        expanded = rag_pipeline.expand_retrieval_query(q, q)
+        self.assertIn("/v1/accessGroups", expanded)
+        self.assertIn("accessGroups", expanded)
+
+    def test_access_group_swagger_and_spaced_en(self):
+        """swagger 한글·Access Group 띄어쓰기도 api scope와 시드 경로를 씁니다."""
+        questions = (
+            "alpeta swagger에서 출입그룹 관련한 API 알려줘",
+            "alpeta에서 Access Group 관련 API 알려줘",
+            "alpeta에서 AccessGroup API 알려줘",
+        )
+        for q in questions:
+            with self.subTest(q=q):
+                self.assertTrue(rag_pipeline.detect_api_doc_intent(q))
+                self.assertFalse(rag_pipeline.is_access_group_ui_intent(q))
+                self.assertEqual(
+                    rag_pipeline.detect_retrieval_scope(q).get("document_type"),
+                    "api",
+                )
+                seeds = rag_pipeline.required_api_seed_paths_for_query(q)
+                paths = {s["path"] for s in seeds}
+                self.assertIn("/v1/accessGroups", paths)
+
+    def test_access_group_ui_howto_stays_user_guide(self):
+        """API 키워드 없는 출입그룹 추가 질문은 user_guide를 유지합니다."""
+        q = "alpeta에서 출입그룹 어떻게 추가해?"
+        self.assertFalse(rag_pipeline.detect_api_doc_intent(q))
+        self.assertTrue(rag_pipeline.is_access_group_ui_intent(q))
+        self.assertEqual(
+            rag_pipeline.detect_retrieval_scope(q).get("document_type"),
+            "user_guide",
+        )
+
+    def test_users_and_terminals_entity_lexicon(self):
+        """사용자/단말기 한글·영문 API 질문이 동일 엔티티 시드를 받습니다."""
+        pairs = (
+            (
+                "alpeta에서 사용자 API 알려줘",
+                "alpeta에서 users API 알려줘",
+                "/v1/users",
+            ),
+            (
+                "alpeta에서 단말기 API 알려줘",
+                "alpeta에서 terminals API 알려줘",
+                "/v1/terminals",
+            ),
+        )
+        for ko, en, path in pairs:
+            with self.subTest(path=path):
+                for q in (ko, en):
+                    self.assertTrue(rag_pipeline.is_api_entity_doc_intent(q))
+                    seeds = rag_pipeline.required_api_seed_paths_for_query(q)
+                    self.assertTrue(any(s["path"] == path for s in seeds))
+
+    def test_enforce_access_groups_catalog_seeds(self):
+        """출입그룹 API 답에 경로가 없으면 시드 카탈로그로 POST/GET/PUT을 보강합니다."""
+        q = "alpeta 출입그룹 관련한 API 알려줘"
+        docs = [
+            {
+                "content": "## GET `/v1/accessGroups`\n출입그룹 목록",
+                "source": "swagger_kr.md",
+            }
+        ]
+        out = rag_pipeline.enforce_api_endpoint_catalog(
+            q, docs, "출입그룹 API는 User Guide에만 있습니다."
+        )
+        self.assertIn("/v1/accessGroups", out)
+        self.assertIn("POST", out)
+        self.assertIn("PUT", out)
+        self.assertIn("/v1/accessGroups/{id}", out)
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

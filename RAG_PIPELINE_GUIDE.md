@@ -58,7 +58,8 @@ RAG_MJY/
 │       ├── docs/
 │       ├── eval/
 │       │   ├── golden_questions.json
-│       │   └── artifacts/ideal_answer_*.md
+│       │   ├── doc_qa/<slug>/{questions,expected_answers}.md
+│       │   └── artifacts/  (ideal_*, *_root_cause.md, 루프별 검증 산출)
 │       ├── chroma_db/
 │       └── assets/
 └── ImageServer/
@@ -68,10 +69,11 @@ RAG_MJY/
 - `rag/scripts/index_documents.py`: 문서를 청크로 나눠 ChromaDB와 BM25에 저장
 - `rag/scripts/swagger_yaml_to_md.py`: Swagger YAML → `swagger_kr.md` 변환(엔드포인트별 스키마 인라인)
 - `rag/scripts/eval_retrieval.py`: 골든 질문셋으로 검색 품질 평가
-- `rag/scripts/test_rag_regression.py`: 검색·스트림 회귀 테스트(**약 60개** `test_` 메서드)
+- `rag/scripts/test_rag_regression.py`: 검색·스트림 회귀 테스트(**약 137개** `test_` 메서드)
 - `rag/data/docs`: 검색할 원본 문서
 - `rag/data/chroma_db`: 벡터 DB와 `bm25_index.json` 저장 위치
-- `rag/data/eval/artifacts/ideal_answer_*.md`: 주요 질문의 이상적 답변 기준
+- `rag/data/eval/doc_qa/`: 문서별 직접 작성 질문·원본 근거 예상 답(분리 md)
+- `rag/data/eval/artifacts/`: 이상적 답·루프별 root_cause/compare/pipe 원문 근거
 
 ## 1. 문서를 검색 가능하게 준비하는 과정
 
@@ -171,6 +173,7 @@ docker compose up -d --force-recreate pipelines
 - 최근 주제가 **MediaServer 스펙**이면 「스펙을 표로」→ MediaServer §1-2 전체 표(10~24…80~100).
 - 최근 주제가 **FaceWT/스키마/API**이면 「스키마 … 표로」→ swagger 스키마 표(MediaServer 표 금지).
 - 최근 주제가 **NSIS 자동빌드**이면 「정리/표」→ 자동화 버전 절차 표·단계.
+- 최근 주제가 **단말기 모니터링(연결 상태)**이면 「상태에 대한 정보…표로」→ 모니터링 녹/적 연결·출입문 이벤트 아이콘 설명 유지.
 - 주제가 있는 짧은 단독 질문(「미디어서버 스펙 알려줘」)은 후속으로 오인하지 않는다.
 - 이전 주제를 알 수 없으면 확인을 요청하고 검색·무관 문서 채움을 하지 않는다.
 
@@ -182,7 +185,7 @@ docker compose up -d --force-recreate pipelines
 
 `USE_QUERY_REWRITE=true`이면 LLM이 질문을 검색에 유리한 2~4개의 표현으로 재작성한다. 이후 규칙 기반 확장으로 도메인 동의어와 버전 표현도 추가한다.
 
-자동화 빌드·FaceWT·단말기 UI 표기 등 의도별 확장 키워드가 추가로 붙을 수 있다.
+자동화 빌드·FaceWT·위겐드·단말기 UI·한글 API 엔티티 등 의도별 확장 키워드가 추가로 붙을 수 있다. `USE_QUERY_REWRITE`는 기본 `false`(규칙 확장 위주)로 두어 재작성 비결정성을 줄인다.
 
 ### 2.3 검색 범위 결정
 
@@ -199,7 +202,9 @@ docker compose up -d --force-recreate pipelines
 
 **API/Swagger 의도**에서는 `document_type=api`로 스코프하고, product 미태그 문서(`swagger_kr.md` 등)가 배제되지 않도록 **product 필터를 완화**한다. FaceWT처럼 CamelCase 식별자도 기술 토큰으로 보존한다.
 
-**User Guide 절차**(사용자 단말기 추가·동기화 등)는 명시적 문서명이 없어도 `user_guide` 범위로 제한해 Protocol/NSIS가 섞이지 않게 한다.
+**한글 UI명 ↔ Swagger 식별자**(`_API_ENTITY_LEXICON`): 「출입그룹 API」「Access Group 관련 API」처럼 자연어여도 `accessGroups` 등으로 확장한다. 질문에 **API/swagger/엔드포인트**가 있으면 Access Group UI intent보다 **api 스코프가 우선**한다. 「출입그룹 어떻게 추가해?」처럼 UI 절차만 물으면 `user_guide`를 유지한다.
+
+**User Guide 절차**(타임존·공휴일·출입구역·사용자·모니터링·일반설정 자동동기화 등)는 명시적 문서명이 없어도 `user_guide` 범위로 제한해 Protocol/NSIS/Swagger가 섞이지 않게 한다. API를 물은 경우에는 이 고정을 적용하지 않는다.
 
 벡터 검색에는 ChromaDB `where` 조건으로 적용하고, BM25 결과에도 동일한 메타데이터 조건을 적용한다.
 
@@ -293,30 +298,41 @@ qwen3.5 계열은 Ollama 기본이 thinking이라 **`think: false`** 없이 호�
 
 - swagger/openapi/api 파일 → `document_type=api`
 - API 의도: api 스코프 + product 필터 완화
+- **한글 UI명 ↔ 식별자 lexicon**: 출입그룹↔`accessGroups`, 사용자/단말기/타임존/공휴일 등. 「출입그룹 API」도 CamelCase 없이 swagger 검색
+- API/swagger 키워드가 있으면 Access Group **UI** user_guide 고정보다 api 스코프 우선
+- FaceWT/FAW: `faceWTInfo` **및** `/scan/facewt` 등 관련 엔드포인트 카탈로그 보충·enforce
 - Swagger 근거가 있으면 User Guide/Protocol로 API를 대체하지 않음
-- FaceWT/FAW 등 CamelCase·대문자 식별자 보존
-- 이상적 답변 참고: `rag/data/eval/artifacts/ideal_answer_facewt_swagger_kr.md`
+- 이상적 답변·Q&A: `ideal_answer_facewt_swagger_kr.md`, `doc_qa/swagger_kr/`
 
-### 3.3 v4 프로토콜 전체 리스트
+### 3.3 v4 프로토콜 전체 리스트·단건
 
 - TOC/카탈로그 페이지는 큰 청크로 인덱싱
 - “전부/전체/리스트업” 의도 시 소스당·top-k 상한 확대, 동일 출처 카탈로그 보충
-- 답변 프롬프트에 **목록 완결성** 규칙(중간 Preview만으로 끝내지 않음)
-- 특정 command hex 하드코딩 없음
+- 출입그룹 **AND** 스냅샷 등 TOC 후반 완결; 「추정/문서에 없음」으로 hex 회피 금지
+- 위겐드/`wiegand`/`0x0041` → Set Wiegand + WiegandConfig(`base`/`device_type`) enforce (목록으로 단건 덮어쓰기 금지)
 
-### 3.4 절차형 User Guide (단말기·자동동기화)
+### 3.4 절차형 User Guide
 
-두 방법을 **독립적으로** 설명한다. 하나로 합치지 않는다.
+타임존·공휴일·출입구역·인증로그·권한·모니터링·사용자→단말기 등 UI 의도 시 `user_guide` 스코프.
+
+**사용자→단말기 추가** — 두 방법을 **독립적으로** 설명한다.
 
 1. 사용자 정보 화면의 **`[단말기리스트]`** (띄어쓰기 없는 문서 표기 유지)
    - 화면 구성 3가지를 원문 그대로: `출입그룹 단말기 리스트`, `등록된 단말기`, `추가가능한 단말기`
 2. 단말기 관리의 **`단말기 사용자 리스트` → [추가]** 절차
-3. **자동 동기화**: `[일반설정] > [사용자] > [사용자 데이터]`, 동일 출입그룹, `덮어쓰기`, `다시 다운로드` 등 문서 용어 보존
+3. **일반설정 자동 동기화**(별도 질문): `[일반설정] > [사용자]`에서 「단말기 사용자 정보 자동 동기화 사용」— 수동 전송 경로로 주답을 대체하지 않음. 동일 출입그룹 조건·`덮어쓰기` 등 문서 용어 보존
 
-Protocol/NSIS를 이 절차 답에 섞지 않는다.  
+**모니터링 연결 상태**: 녹색 원=서버 연결, 빨간 원=연결 끊김, 출입문 열림/닫힘/잠금해제 이벤트 아이콘 의미를 포함. 후속 「표로」도 주제를 유지한다.
+
+Protocol/NSIS/Swagger를 UI 절차 답에 섞지 않는다.  
+문서별 Q&A: `rag/data/eval/doc_qa/alpeta_user_guide*`.  
 이상적 답변: `rag/data/eval/artifacts/ideal_answer_terminal_user_sync.md`
 
-### 3.5 NSIS 자동화 버전 전체 절차
+### 3.5 문서별 Q&A 대조
+
+`rag/data/eval/doc_qa/<slug>/questions.md`와 `expected_answers.md`에 원본 근거 예상 답을 두고, pipe 답을 필수 사실 **AND**로 대조한다. expected를 문서와 다르게 맞추지 않는다.
+
+### 3.6 NSIS 자동화 버전 전체 절차
 
 “자동화 버전 / 자동빌드” 의도일 때 **알페타 설치 패키지 빌드(자동화 버전)** 섹션 1~7단계를 문서 순서대로 완결한다.
 
@@ -335,7 +351,7 @@ Protocol/NSIS를 이 절차 답에 섞지 않는다.
 
 ### 회귀 테스트
 
-모델 없이 실행 가능한 단위/계약 테스트다. `test_rag_regression.py`에 **약 60개** `test_` 메서드가 있다.
+모델 없이 실행 가능한 단위/계약 테스트다. `test_rag_regression.py`에 **약 137개** `test_` 메서드가 있다.
 
 ```bash
 docker compose run --rm --no-deps --entrypoint python \

@@ -378,7 +378,7 @@
           <li><code>index_documents.py</code>: 문서를 ChromaDB와 BM25에 저장한다. <code>document_type</code>에 <code>api</code> 포함.</li>
           <li><code>swagger_yaml_to_md.py</code>: Swagger YAML을 md로 변환(스키마 인라인).</li>
           <li><code>eval_retrieval.py</code>: 골든 질문셋으로 검색 품질을 평가한다.</li>
-          <li><code>test_rag_regression.py</code>: 검색·스트림 회귀 약 60개.</li>
+          <li><code>test_rag_regression.py</code>: 검색·스트림 회귀 약 137개.</li>
         </ul>
       </section>
 
@@ -517,19 +517,22 @@ document_type = protocol | user_guide | install | api</code></pre>
         <ul>
           <li>파일명 swagger/openapi/api → <code>document_type=api</code></li>
           <li>API 의도 시 product 필터 완화, CamelCase(FaceWT 등) 보존</li>
+          <li>한글 UI명↔식별자 lexicon(출입그룹↔accessGroups 등). API/swagger면 UI user_guide 고정보다 api 우선</li>
+          <li>FaceWT: <code>faceWTInfo</code> <strong>및</strong> <code>/scan/facewt</code> 카탈로그 완결</li>
           <li>Swagger 근거가 있으면 UI/프로토콜로 API 대체 금지</li>
         </ul>
 
-        <h3>v4 프로토콜 전체 리스트</h3>
+        <h3>v4 프로토콜 전체 리스트·단건</h3>
         <ul>
-          <li>TOC/카탈로그 큰 청크 + 목록 완결성 규칙</li>
-          <li>전부/전체/리스트업 의도에서 top-k·소스당 상한 확대</li>
+          <li>TOC/카탈로그 큰 청크 + 목록 완결성(출입그룹 AND 스냅샷)</li>
+          <li>위겐드/wiegand/0x0041 → Set Wiegand + WiegandConfig 필드 enforce</li>
         </ul>
 
         <h3>User Guide 절차</h3>
         <ul>
           <li><code>[단말기리스트]</code> 방법과 <code>단말기 사용자 리스트</code> 추가 방법을 분리</li>
-          <li>화면 구성 3항목·덮어쓰기·다시 다운로드 등 문서 표기 보존</li>
+          <li>타임존·공휴일·모니터링(녹/적 원)·일반설정 자동동기화 UI intent·enforce</li>
+          <li>문서별 Q&amp;A: <code>rag/data/eval/doc_qa/</code></li>
         </ul>
 
         <h3>NSIS 자동화 버전</h3>
@@ -537,13 +540,13 @@ document_type = protocol | user_guide | install | api</code></pre>
           <li>1~7단계 완결, <code>build_install.bat</code> 하위 작업 포함</li>
           <li>결과 <code>D:\nsis\install</code>, MakeNSISW 등 수동 혼입 금지</li>
         </ul>
-        <p>이상적 답변: <code>rag/data/eval/artifacts/ideal_answer_*.md</code> (facewt, nsis_auto_build, terminal_user_sync)</p>
+        <p>이상적 답변·루프 근거: <code>rag/data/eval/artifacts/</code> (<code>ideal_*</code>, <code>*_root_cause.md</code>, <code>25_*</code>~<code>36_*</code>)</p>
       </section>
 
       <section id="eval">
         <h2>4. 평가·회귀</h2>
         <ul>
-          <li>회귀: <code>test_rag_regression.py</code> 약 60개 (모델 불필요)</li>
+          <li>회귀: <code>test_rag_regression.py</code> 약 137개 (모델 불필요)</li>
           <li>골든: 출처 + <strong>필수 키워드 전부</strong>일 때만 성공</li>
           <li>품질 변경 후: recreate → Ollama readiness → pipe → eval → regression [PLF-20260802-002]</li>
         </ul>
@@ -622,7 +625,7 @@ docker compose run --rm --no-deps --entrypoint python \
         <ol>
           <li>문서를 추가하거나 수정하면 인덱서를 다시 실행한다.</li>
           <li>임베딩·청킹·메타데이터 변경 시 <code>--reset</code> 재인덱싱한다.</li>
-          <li>검색 로직 변경 후 회귀(약 60개)와 골든 평가를 실행한다. 평가는 출처+필수 키워드. [PLF-20260801-002]</li>
+          <li>검색 로직 변경 후 회귀(약 137개)와 골든 평가를 실행한다. 평가는 출처+필수 키워드. [PLF-20260801-002]</li>
           <li>pipelines와 indexer의 <code>chromadb</code> 버전을 동일하게 유지한다.</li>
           <li>답변이 점만 보이면 qwen <code>think:false</code>·빈 content를 확인한다. [PLF-20260801-001]</li>
           <li>도우미가 안 보이면 pipelines URL·chat 스키마·config를 확인한다. [PLF-20260802-001]</li>

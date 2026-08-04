@@ -40,8 +40,155 @@
 - [PLF-20260803-004] 「정리/표도/알아보기 편하게/표를 활용/보기 쉽게」같은 **일반 재포맷 후속**은 최근 사용자 주제(자동빌드·API·미디어 등)로 문맥화한다. 마커는 `표 활용`(공백)만이 아니라 **`표를 활용`·`보기 쉽게`** 등 실제 UI 문구 변형을 포함해야 한다. 주제 불명이면 확인 요청. S1·`표를 활용해서 더 보기 쉽게 해줘`·S4와 S2/S3/S5를 함께 회귀한다.
 - [PLF-20260803-004] 복수 인물 질문(`박준언, 방인재에 대해…`)은 단일 `extract_query_focus`만으로 intent를 끄지 말고 **이름 목록 추출** 후 Test.md 근거만 답하게 한다. MediaServer/UG 혼입·「없다」오진 금지.
 - [PLF-20260803-005] v4 프로토콜 「리스트업/전부 리스트」답변은 probe가 `출입그룹 OR 스냅샷`처럼 느슨하면 안 된다. **출입그룹 AND 스냅샷**(골든·ideal 후반 TOC)을 본문에 요구하고, 「추정」「문서에 없음」「varies or missing」문구가 있으면 FAIL. pipe JSON `pass:true`만으로 B를 통과시키지 말고 answer 원문을 재계산한다.
+- [PLF-20260804-001] 근본 원인(`*_root_cause.md`)은 **같은 루프의 baseline JSON/diagnose 수치와 반드시 일치**해야 한다. 가설·이전 이슈(27 검색 누락)을 현재 baseline에 덮어쓰지 말 것. Windows에서 probe artifact 키/`QUESTIONS` 키는 **대소문자만 다른 이름 금지**(예: `v4_set_wiegand` vs `v4_Set_Wiegand`) — `*_lc`/`*_title`처럼 구분 가능한 키로 저장하고 `.answer.txt`를 키마다 남긴다.
+- [PLF-20260804-002] MediaServer **스토리지/대역폭 산정** expected에 `1대/일≈15GB`·`1.2배`·`4TB`가 있으면 답 원문에 이들 단위 사실을 **AND**로 요구한다. probe가 `15 OR 90`처럼 느슨하면 JSON pass만으로 합격 금지. capacity intent는 「미디어서버」표기 없는 `동시 녹화`/`스토리지`/`1.2배`/`3.24` 질문도 잡아야 한다. 최종 사이클은 반드시 recreate→Ollama→**pipe**→regression 순서.
+- [PLF-20260804-003] UG 절차 Q&A는 probe JSON `pass=10/10`만으로 C를 통과시키지 말고 **answer 원문 vs expected 필수 사실 AND**를 verifier/PL이 재계산한다. 타임존 **생성**은 「새 타임라인」절차와 분리해 **한 주간 일정·요일별 콤보박스**를 AND로 요구한다. 목록성 사실(인증로그 카테고리의 **단말기명** 등)은 키워드만 있고 「없다/명시되지 않음」 부정이면 FAIL. probe의 `A or B or C`·부정 문맥 keyword 통과 금지. **expected의 모든 필수 사실**을 probe/enforce에 누락 없이 매핑할 것(예: Q3 **타임존 선택**, Q7 **더블클릭** 시간대 생성).
 
 ## 실패 이력
+
+### PLF-20260804-003: Loop33/34 UG v2 — expected AND 미완전 probe·절차 사실 누락
+
+- 상태: 해결·예방 확인
+- 분류: 구현 / 검증 증거
+- 최초 발생: 2026-08-04
+- 최근 재발: 2026-08-04 Loop34 (1회차 REVISE 후 수정)
+- 재발 횟수: 2
+- 적용 범위: `_enforce_timezone_create_ui_procedure`, `enforce_authlog_search_categories`, `enforce_access_zone_ui_procedure`, `_enforce_timeline_create_ui_procedure`, `is_timezone_create_ui_intent`/`is_timeline_create_ui_intent`, `is_auto_sync_setting_intent`/`enforce_auto_sync_setting_procedure`, `33_*`/`34_probe_ug_v2.py` assertion, UG post answer 원문 재검증
+- 관련: PLF-20260803-005, PLF-20260804-002; expected `rag/data/eval/doc_qa/alpeta_user_guide_v2/expected_answers_10.md`
+
+#### 실패 내용
+
+- 작업 목표: UG 직접 질문 10개 expected 대조 후 불일치 파이프라인 수정 (Loop 33; Loop34 Q9 자동동기화 재pipe)
+- 실패한 수용 기준: Loop33 **C**; Loop34 1회차 **B** (10문항 expected AND — probe/compare 10/10과 answer 원문 불일치)
+- A·D·E·Q9(C)는 Loop34에서 충족
+- 근거 (Loop33):
+  - Q1: 한 주간 일정/콤보 대신 「새 타임라인」혼동; Q6: 단말기명 부정; probe OR·부정 미검출
+- 근거 (Loop34 재발):
+  - `34_post_pipe_ug_v2_q3_access_zone_add.answer.txt`(1회차): **타임존 선택** 없음
+  - `34_post_pipe_ug_v2_q7_timeline_create.answer.txt`(1회차): **더블클릭** 없음
+  - `34_probe_ug_v2.py` Q3/Q7 assertion 누락 → JSON 10/10 false pass
+
+#### 원인
+
+- 직접 원인: enforce/probe가 expected 필수 사실 일부만 AND로 잠금
+- 근본 원인: UG 절차 계약을 **probe JSON pass / 부분 키워드**로만 보고, expected **전체** 필수 사실을 answer 원문 AND로 고정하지 않음
+- 원인 확신도: 높음
+
+#### 해결
+
+- Loop33: timezone canonical 교체; authlog 6항+부정 제거; Q1/Q6 probe AND
+- Loop34: `enforce_access_zone_ui_procedure`에 **타임존 선택**; `_enforce_timeline_create_ui_procedure`에 **더블클릭**; probe `timezone_select`∧`double_click`; Q9 `is_auto_sync_setting_intent`/`enforce_auto_sync_setting_procedure`(수동경로 주답 교체)
+- 통과: Loop34 revise1 — Q3/Q7 answer 원문 AND; probe 10/10≡verifier; `34_post_regression_revise1.txt` 127/127 OK
+
+#### 재발 방지 확인
+
+- [x] Loop33 Q1: 한주간의 일정 AND 콤보박스 — 「새 타임라인」 0건
+- [x] Loop33 Q6: 6항 AND·단말기명 부정 없음
+- [x] Loop34 Q3: **타임존** 선택 AND (`34_post_pipe_ug_v2_q3_*.answer.txt` revise1)
+- [x] Loop34 Q7: **더블클릭** AND (`34_post_pipe_ug_v2_q7_*.answer.txt` revise1)
+- [x] `34_probe_ug_v2.py` `_assert_q3`/`_assert_q7` expected 전항
+- [x] revise1: recreate→ollama→10문항 pipe→regression; verifier answer AND 10/10
+
+#### 검증 이력
+
+- 2026-08-04 Loop33: verifier **REVISE** → 재작업 후 **PASS** (Q1/Q6)
+- 2026-08-04 Loop34: verifier **REVISE**(Q3·Q7) → revise1 후 verifier **PASS** (10/10 AND; Q9 자동동기화 주답; REG 127 OK)
+
+---
+
+### PLF-20260804-002: Loop32 MediaServer Q3 — 15GB 누락·OR probe·검증 순서 역전
+
+- 상태: 해결·예방 확인
+- 분류: 구현 / 검증 증거
+- 최초 발생: 2026-08-04
+- 최근 재발: 없음 (1회차 REVISE 후 수정)
+- 재발 횟수: 1
+- 적용 범위: `is_media_server_capacity_calc_intent`, `enforce_mediaserver_capacity_calc`, Loop32 probe assertion, artifact 실행 순서
+- 관련: PLF-20260802-002, PLF-20260803-005; expected `rag/data/eval/doc_qa/mediaserver_specs/expected_answers.md` Q3
+
+#### 실패 내용
+
+- 작업 목표: 핵심 문서 Q&A 대조 후 원본 불일치 RAG 수정 (Loop 32)
+- 실패한 수용 기준: **C**(post 필수 사실), **E**(recreate→pipe→regression 순서)
+- 근거:
+  - `32_post_pipe_mediaserver_specs_q3.answer.txt`: 90GB·2700GB·3240GB만 있고 **15GB·1.2배·4TB 없음**
+  - `32_post_fail_probe.py` / `32_post_pipe_mediaserver_specs_q3.json`: `has_15_or_90` OR로 pass
+  - 최종 사이클 타임스탬프: recreate2 → ollama → **regression → post pipe** (pipe가 regression 뒤)
+
+#### 원인
+
+- 직접 원인: (1) capacity intent가 `_MEDIA_SERVER_MARKERS` 의존으로 「동시 녹화 6대·30일…」미매칭 → expand/enforce 미발동 (2) probe OR assertion (3) 검증 순서 역전
+- 근본 원인: 스토리지 산정 계약을 **중간 합(90/3.24)**만으로 보고 문서 §5의 **단위 사실(15GB)·여유(1.2)·HDD(4TB)**를 answer 원문 AND로 고정하지 않음; PLF-002 순서를 최종 재실행에 미적용
+- 원인 확신도: 높음 (answer 원문 grep + probe 코드)
+
+#### 해결
+
+- capacity intent에 `동시 녹화`/`스토리지`/`1.2배`/`3.24` 등 약한 산정 마커 보완
+- `enforce_mediaserver_capacity_calc`에 15GB·1.2배·4TB 보강
+- probe를 `has_15gb` ∧ `has_324_or_3240` ∧ `has_1_2_factor`로 교체
+- recreate3→ollama→pipe→regression 재기록 (`32_revise_order.txt`)
+
+#### 재발 방지 확인
+
+- [x] `32_post_pipe_mediaserver_specs_q3.answer.txt`에 **15GB** AND **1.2배** AND **3.24TB** AND **4TB**
+- [x] probe assertion에 OR `15|90` 없음
+- [x] recreate3 ≤ ollama ≤ post pipe ≤ regression
+- [x] regression exit 0 (115 OK)
+
+#### 검증 이력
+
+- 검증 일자: 2026-08-04
+- 결과: verifier **REVISE**(1회차) → 재작업 후 verifier **PASS**
+- 근거: q3 원문 15GB·1.2·3.24·4TB; probe AND; `32_revise_order.txt` 순서; REG_EXIT=0
+
+---
+
+### PLF-20260804-001: Set Wiegand 루프 — root_cause↔baseline 불일치·artifact 키 대소문자 충돌
+
+- 상태: 해결·예방 확인
+- 분류: 검증 증거 / artifact 품질
+- 최초 발생: 2026-08-04
+- 최근 재발: 없음 (1회차 REVISE 후 수정)
+- 재발 횟수: 1
+- 적용 범위: `28_root_cause.md`, probe/baseline 출력 키, Windows 파일 대소문자
+- 관련: PLF-20260801-003, PLF-20260802-003; 기능 경로는 Set Wiegand+WiegandConfig로 상당 부분 충족
+
+#### 실패 내용
+
+- 작업 목표: hex/명령명 질의에 Set Wiegand + WiegandConfig 완결 + 일반 토큰 추출
+- 실패한 수용 기준: **A**(근본 원인 증거 정합), **B** 가산(Set Wiegand answer 원문 독립 재검증)
+- 근거:
+  - 1회차 `28_root_cause.md`가 set 질의를 `retrieval_miss_section`·p.25로 오서술
+  - 실측 baseline은 `generation_may_omit_config`, top p.65 Config 있음
+  - `v4_set_wiegand`/`v4_Set_Wiegand` 키 충돌로 Set answer 유실
+- C·D·E·필수 2질문 본문은 1회차에서도 상당 부분 충족
+
+#### 원인
+
+- 직접 원인: (1) root_cause에 27 가설 전사 (2) Windows case-insensitive 키 충돌
+- 근본 원인: 수용 A를 baseline과 교차 검증하지 않음; PLF-003 키를 대소문자만으로 늘림
+- 원인 확신도: 높음
+
+#### 해결
+
+- `28_root_cause.md`를 baseline `generation_may_omit_config`로 정합
+- probe 키를 `v4_set_wiegand_lc` / `v4_set_wiegand_title`로 분리 후 pipe 재저장
+- 통과: `28_post_pipe_v4_{hex_0x0041,set_wiegand_lc,set_wiegand_title}.answer.txt`
+
+#### 재발 방지 확인
+
+- [x] root_cause gap이 baseline diagnose/retrieval과 일치
+- [x] `*_lc` / `*_title` 키 분리 + 각 `.answer.txt` 존재
+- [x] 세 answer에 Set Wiegand + 0x0041 + WiegandConfig
+- [x] regression exit 0 (99/99)
+
+#### 검증 이력
+
+- 검증 일자: 2026-08-04
+- 결과: verifier **REVISE**(1회차) → 재작업 후 verifier **PASS**
+- 근거: root_cause 정합; case-safe 3 answer; REG_EXIT=0
+
+---
 
 ### PLF-20260803-005: v4 프로토콜 리스트업 — 스냅샷 누락·추정 문구로 완결성 미달
 
