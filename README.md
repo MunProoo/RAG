@@ -10,18 +10,15 @@
 | [CHANGELOG.md](CHANGELOG.md) | 변경 이력 (Unreleased 포함) |
 | [PL_FAILURE_LOG.md](PL_FAILURE_LOG.md) | PL 루프 실패·활성 예방 체크리스트 |
 
-## 최근 핵심 개선 (2026-08 요약)
+## 최근 핵심 개선 (요약)
 
-- **파일 역할 구분**: NSIS `.bat`(자동화) / `.nsi`(스크립트) / `.exe`(산출물). 설치 확인 폴더는 `D:\nsis\install`, device setup은 `D:\nsis\Alpeta\setup` 등으로 구분.
-- **API/Swagger**: `document_type=api`, FaceWT 등 CamelCase 보존, product 필터 완화. **한글 UI명↔경로 동의어**(출입그룹↔`/v1/accessGroups` 등)로 CamelCase 없이도 swagger 검색. API 주제는 관련 엔드포인트 카탈로그 완결(`faceWTInfo` **및** `/scan/facewt`).
-- **v4 프로토콜**: TOC/카탈로그 완결(출입그룹∧스냅샷), 위겐드/`0x0041`/`WiegandConfig` 동의어·필드 enforce.
-- **User Guide 절차**: 타임존·공휴일·출입구역·모니터링(녹/적 상태 아이콘)·일반설정 자동동기화 등 UI 의도·enforce. 수동 전송과 자동동기화 질문 분리. 문서별 Q&A: `rag/data/eval/doc_qa/`.
-- **후속 「표로」**: 최근 주제(MediaServer / FaceWT·스키마 / 자동빌드 / 모니터링) 유지, 교차 오염 금지.
-- **자동화 버전 빌드**: `build_install.bat` 하위 작업 포함 1~7단계 완결, 수동(MakeNSISW) 혼입 금지.
-- **평가**: 회귀 약 **137개** (`test_rag_regression.py`) + 골든 질문셋. 성공 = 출처 + 필수 키워드 전부(AND). 이상적 답·루프 근거: `rag/data/eval/artifacts/` (`ideal_*`, `*_root_cause.md`, `2x_*`~`36_*`).
-- **연동**: pipelines `http://pipelines:9099`. compose GPU Ollama(`http://ollama:11434`) 권장. qwen은 `think:false`, status는 `event.type=status`로 본문과 분리.
+- **하이브리드 검색**: 벡터(BGE-M3) + BM25 + RRF, 선택적 리랭크
+- **문서 메타데이터 필터**: `document_type`(protocol / user_guide / install / api) 등으로 검색 범위 제한
+- **후속 질문 문맥화**: 「표로」「정리해줘」 등 짧은 후속을 최근 주제에 묶고, 주제 교차 오염 방지
+- **평가**: `test_rag_regression.py` + `rag/data/eval/golden_questions.json` (성공 = 출처 + 필수 키워드)
+- **공개 데모 문서**: `rag/data/docs/sample_*.md` 만 저장소에 포함 (실문서는 로컬/비공개)
 
-상세·운영 주의는 위 가이드와 `PL_FAILURE_LOG.md`를 보세요. 비밀값·전체 로그는 문서에 넣지 않습니다.
+상세·운영 주의는 위 가이드와 `PL_FAILURE_LOG.md`를 보세요. 비밀값·사내 문서 원문·전체 로그는 문서에 넣지 않습니다.
 
 ## Retrieval and indexing defaults
 
@@ -97,8 +94,8 @@ docker compose run --rm indexer python /app/scripts/index_documents.py /app/docs
 
 ### 검색 정확도 변경 후 필수 적용 절차
 
-이번 인덱서는 파일명에서 `document_type`(`protocol`, `user_guide`, `install`, **`api`**)과 `product`(현재 `alpeta`)를 저장합니다. 질문에 “Alpeta 프로토콜”처럼 문서 종류가 있으면 **검색 전에** 이 메타데이터로 범위를 제한하므로, 관련 규칙을 바꿨다면 기존 DB를 초기화하여 재인덱싱해야 합니다.  
-파일명에 swagger/openapi/api가 있으면 `document_type=api`입니다. API 의도 검색에서는 product 미태그 문서가 배제되지 않도록 필터가 완화됩니다.
+이번 인덱서는 파일명에서 `document_type`(`protocol`, `user_guide`, `install`, **`api`**)과 `product`를 저장할 수 있습니다. 질문에 문서 종류가 있으면 **검색 전에** 이 메타데이터로 범위를 제한하므로, 관련 규칙을 바꿨다면 기존 DB를 초기화하여 재인덱싱해야 합니다.  
+파일명에 swagger/openapi/api가 있으면 `document_type=api`입니다. API 의도 검색에서는 product 미태그 문서가 배제되지 않도록 필터가 완화될 수 있습니다.
 
 ```bash
 docker compose build indexer
@@ -114,12 +111,19 @@ docker compose run --rm --no-deps --entrypoint python indexer /app/scripts/test_
 ```bash
 docker compose run --rm --no-deps --entrypoint python indexer \
   /app/scripts/swagger_yaml_to_md.py \
-  --input /app/docs/swagger_kr.yaml \
-  --output /app/docs/swagger_kr.md
+  --input /app/docs/your_openapi.yaml \
+  --output /app/docs/your_openapi.md
 docker compose run --rm indexer python /app/scripts/index_documents.py /app/docs --reset
 docker compose up -d --force-recreate pipelines
 ```
 
+재인덱싱 후 Open WebUI에서 샘플 문서로 아래를 확인하세요.
+
+```text
+VPN 서버 주소가 뭐야?
+```
+
+참조 출처에 `sample_employee_guide.md`가 나오고, 무관한 샘플 문서가 섞이면 안 됩니다.
 #### 파이프라인 코드만 변경한 경우
 
 재인덱싱 없이 recreate만 하면 됩니다.
@@ -128,18 +132,16 @@ docker compose up -d --force-recreate pipelines
 docker compose up -d --force-recreate pipelines
 ```
 
-품질 변경 후 권장 검증 순서: recreate → Ollama `/api/chat` readiness → pipe 원문 assertion → eval(basic/`--rerank`) → regression. 근거는 `PL_FAILURE_LOG.md` [PLF-20260802-002].
+품질 변경 후 권장 검증 순서: recreate → Ollama `/api/chat` readiness → pipe 원문 assertion → eval(basic/`--rerank`) → regression. 근거는 `PL_FAILURE_LOG.md` [PLF-GENERIC-005].
 
 ### 검색 품질 평가 (골든 질문셋)
 
-`rag/data/eval/golden_questions.json`에 실제 질문과 기대 출처/키워드를 적어 두면, 아래 명령으로 검색 적중률을 측정할 수 있습니다. 검색·인덱싱 로직을 바꿀 때마다 실행해 회귀를 조기에 잡고, **운영 중 실패한 질문을 계속 추가**하세요.
+`rag/data/eval/golden_questions.json`에 질문과 기대 출처/키워드를 적어 두면, 아래 명령으로 검색 적중률을 측정할 수 있습니다. 검색·인덱싱 로직을 바꿀 때마다 실행해 회귀를 조기에 잡고, **실패한 질문을 계속 추가**하세요.
 
-**평가 성공 조건**: 기대 출처 적중 **그리고** 해당 질문의 필수 키워드가 **모두** 검색 결과에 포함되어야 합니다. 출처만 맞고 키워드가 빠지면 실패입니다. [PLF-20260801-002]
+**평가 성공 조건**: 기대 출처 적중 **그리고** 해당 질문의 필수 키워드가 **모두** 검색 결과에 포함되어야 합니다. 출처만 맞고 키워드가 빠지면 실패입니다. [PLF-GENERIC-004]
 
-이상적 답변·문서별 예상 Q&A(대조용):
-
-- `rag/data/eval/artifacts/ideal_answer_*.md`, 루프별 `*_ideal_*.md` / `*_root_cause.md`
-- `rag/data/eval/doc_qa/<문서slug>/questions.md` + `expected_answers.md` (및 `alpeta_user_guide_v2/*_10.md`)
+공개 저장소 기준으로는 `rag/data/docs/sample_*.md`와 `golden_questions.json` 샘플을 사용하세요.  
+런타임 증거(`rag/data/eval/artifacts/`의 답 원문·probe 덤프)는 **커밋하지 마세요**.
 
 ```bash
 # 인덱싱이 끝난 상태에서 실행
@@ -148,14 +150,6 @@ docker compose run --rm --no-deps --entrypoint python indexer /app/scripts/eval_
 # 리랭커까지 포함해 평가
 docker compose run --rm --no-deps --entrypoint python indexer /app/scripts/eval_retrieval.py --rerank
 ```
-
-재인덱싱 후 Open WebUI에서 아래를 확인하세요.
-
-```text
-Alpeta 프로토콜의 Param3[0]과 Param3[1]을 설명해줘.
-```
-
-참조 출처에 `주장치_Protocol_v1.0.pdf`만 표시되어야 하며, `Alpeta User Guide.pdf`나 설치 패키지 매뉴얼이 섞이면 안 됩니다.
 
 인덱싱 결과는 로컬의 `rag/data/chroma_db/`에 저장되며, `pipelines` 서비스가 동일 폴더를 마운트하여 검색에 사용합니다.
 
@@ -204,14 +198,13 @@ Open WebUI 버전에 따라 “관리자→Pipelines” 메뉴가 없을 수 있
 
 ## RAG 파이프라인(`rag/pipelines/rag_pipeline.py`) 요약
 
-- **후속 질문 문맥화**: "그거"/"해당"뿐 아니라 「표로」「정리해줘」「표를 활용해서」「보기 쉽게」처럼 **주제 없이 재포맷만 요청**하면 최근 사용자 주제로 문맥화한 뒤 검색합니다. MediaServer 스펙·FaceWT/스키마·NSIS 자동빌드는 **주제별 가드**로 서로 덮어쓰지 않습니다. 이전 주제가 없으면 확인을 요청하고 무관 문서로 채우지 않습니다. 「미디어서버 스펙 알려줘」처럼 **주제가 이미 있는 짧은 단독 질문**은 후속으로 오인하지 않습니다(`CONTEXTUALIZE_FOLLOW_UP=true`, 규칙 문맥화 우선).
-- **기술 토큰·역할**: `.bat`/`.nsi`/`.exe`와 경로 역할(`D:\nsis\install` vs `D:\nsis\Alpeta\setup`)을 구분해 검색·답변에 반영합니다.
-- **API 스코프**: Swagger/FaceWT 등 API 질문은 `document_type=api` 중심으로 검색하고, User Guide·Protocol로 API를 대체하지 않습니다.
-- **목록·자동화 절차**: v4 전부 리스트 완결성, NSIS 자동화 버전 1~7단계 완결(수동 혼입 금지), User Guide 단말기 이중 방법·UI 표기 보존.
-- **질문 초점**: `…에 대해 설명`, `…를 소개` 등 패턴이 맞으면, 검색된 청크 중 **그 이름(또는 구)**이 본문에 포함된 것만 남겨 다른 인물·문서가 섞이는 것을 줄입니다.
-- **이미지**: 참고 청크에서 `![대체텍스트](URL)` 형태를 **실제로 찾았을 때만** 별도 블록을 붙이고, 답변 본문 **맨 위**에 두도록 유도합니다. 없을 때는 URL을 지어내지 않습니다.
-- **답변 톤**: "제공된 참고 문서에는 … 포함되어 있지 않습니다" 같은 **긴 면책·부정 문단**을 피하도록 지시합니다.
-- **qwen thinking**: Ollama 호출에 `think: false`를 유지합니다. 없으면 content가 비어 UI에 점만 보일 수 있습니다.
+- **후속 질문 문맥화**: 「표로」「정리해줘」처럼 주제 없이 재포맷만 요청하면 최근 사용자 주제로 문맥화한 뒤 검색합니다. 주제별 가드로 서로 덮어쓰지 않습니다. 이전 주제가 없으면 확인을 요청합니다 (`CONTEXTUALIZE_FOLLOW_UP`).
+- **기술 토큰·경로**: 파일 확장자·경로·CamelCase API 토큰을 보존해 검색·답변에 반영합니다.
+- **API 스코프**: API/Swagger 질문은 `document_type=api` 중심으로 검색하고, 가이드/프로토콜 문서로 API를 대체하지 않도록 범위를 나눕니다.
+- **질문 초점**: `…에 대해 설명` 등 패턴이 맞으면, 해당 이름/구가 들어간 청크만 남겨 다른 문서가 섞이는 것을 줄입니다.
+- **이미지**: 참고 청크에서 `![대체텍스트](URL)` 를 실제로 찾았을 때만 별도 블록을 붙입니다.
+- **답변 톤**: 긴 면책·부정 문단을 피하도록 지시합니다.
+- **qwen thinking**: Ollama 호출에 `think: false`를 유지합니다.
 
 ## 이미지(ImageServer) 사용
 
@@ -296,7 +289,7 @@ RAG_MJY/
 │   │   └── test_pipeline.py     # 로컬 테스트 스크립트(선택)
 │   └── data/
 │       ├── docs/                # 인덱싱할 문서
-│       ├── eval/                # 골든 + artifacts/ideal_answer_*.md
+│       ├── eval/                # golden_questions.json + artifacts/(gitignore)
 │       ├── chroma_db/           # ChromaDB 저장소(자동 생성)
 │       └── assets/              # ImageServer 정적 파일
 └── ImageServer/

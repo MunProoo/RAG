@@ -40,6 +40,11 @@ Desktop.ini
 *.temp
 .cache/
 
-# Indexed source documents (keep folder, ignore contents)
+# Indexed source documents (keep folder; only public sample docs are tracked)
 rag/data/docs/*
 !rag/data/docs/.gitkeep
+!rag/data/docs/sample_*.md
+
+# Runtime evaluation dumps (answers/logs may contain private content)
+rag/data/eval/artifacts/*
+!rag/data/eval/artifacts/.gitkeep
