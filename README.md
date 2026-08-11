@@ -17,6 +17,7 @@
 - **후속 질문 문맥화**: 「표로」「정리해줘」 등 짧은 후속을 최근 주제에 묶고, 주제 교차 오염 방지
 - **평가**: `test_rag_regression.py` + `rag/data/eval/golden_questions.json` (성공 = 출처 + 필수 키워드)
 - **공개 데모 문서**: `rag/data/docs/sample_*.md` 만 저장소에 포함 (실문서는 로컬/비공개)
+- **Ollama 컨테이너화**: 초기에는 Windows 호스트 Ollama를 썼으나, 지금은 Compose의 **GPU `ollama` 서비스**가 기본입니다 (`http://ollama:11434`)
 
 상세·운영 주의는 위 가이드와 `PL_FAILURE_LOG.md`를 보세요. 비밀값·사내 문서 원문·전체 로그는 문서에 넣지 않습니다.
 
@@ -31,29 +32,31 @@
 - PDF는 페이지 단위에 더해 `3.1`처럼 다단계 번호가 붙은 제목 줄에서 섹션을 나눠, 제목과 본문이 같은 청크에 남도록 합니다.
 - Swagger 변환(`scripts/swagger_yaml_to_md.py`)은 각 엔드포인트 섹션에 그 API가 참조하는 **스키마 필드 표를 함께 인라인**합니다(중첩 참조 2단계까지). API 상세와 스키마 정의가 원문에서 멀리 떨어져 있어도 한 청크로 같이 검색됩니다.
 
-이 프로젝트는 **Windows 호스트에서 실행 중인 Ollama**를 사용하면서, **Docker Compose로 Open WebUI + Pipelines 서버 + 인덱싱(indexer)**를 띄워
-사내 문서 기반 RAG 질의응답을 제공하는 파이프라인입니다.
+이 프로젝트는 **Docker Compose**로 Open WebUI + Pipelines + **Ollama(GPU 컨테이너)** + 인덱싱(indexer)을 띄워
+문서 기반 RAG 질의응답을 제공하는 파이프라인입니다.
+
+초기에는 Windows 호스트 Ollama(`host.docker.internal:11434`)를 썼지만, 호스트 CUDA/포트 이슈를 줄이기 위해
+지금은 compose의 **`ollama` 서비스**가 기본 LLM입니다. pipelines·open-webui는 `http://ollama:11434`로 붙습니다.
 
 ## 동작 구조
 
 ```
 클라이언트 질문 (Open WebUI)
         ↓
-[LLM 1] 질문 재작성 (검색 최적화)
+[Pipelines] 질문 재작성(선택) → 하이브리드 검색 → 컨텍스트 조립
         ↓
-[ChromaDB] 벡터 유사도 검색 (로컬 `rag/data/chroma_db`)
+[ChromaDB + BM25] 로컬 `rag/data/chroma_db`
         ↓
-컨텍스트 조합 (질문 + 검색 문서)
-        ↓
-[LLM 2] 최종 답변 생성 (스트리밍)
+[Ollama 컨테이너] 최종 답변 생성 (스트리밍, GPU)
         ↓
 Open WebUI에 응답 표시
 ```
 
 ## 전제 조건
 
-- **Windows 호스트에 Ollama가 실행 중**이어야 합니다. (기본: `http://localhost:11434`)
-- **Docker Desktop 실행 중**이어야 합니다. (`docker compose` 사용)
+- **Docker Desktop 실행 중** (`docker compose` 사용). GPU를 쓰려면 Docker GPU(WSL2/NVIDIA) 설정이 필요합니다.
+- **호스트에서 11434를 쓰는 Ollama 앱/서비스는 중지**하세요. compose `ollama`가 같은 포트를 사용합니다.
+- 모델 파일은 Windows `%USERPROFILE%\.ollama`를 컨테이너에 바인드하므로, 예전에 호스트에서 `pull`해 둔 모델을 그대로 재사용할 수 있습니다. **이 폴더는 삭제하지 마세요.**
 
 ## 빠른 시작 (권장 절차)
 
@@ -75,7 +78,17 @@ docker compose up -d
 기본 포트:
 - Open WebUI: `http://localhost:8080`
 - Pipelines(OpenAI 호환 API): `http://localhost:9099`
+- Ollama API: `http://localhost:11434` (컨테이너, 호스트에서도 접근 가능)
 - ImageServer(정적 이미지): `http://localhost:8090`
+
+모델이 아직 없다면 Ollama 컨테이너에서 pull 합니다. (`docker-compose` 기본 답변 모델 예: `qwen3.5:4b`)
+
+```bash
+docker compose exec ollama ollama pull qwen3.5:4b
+docker compose exec ollama ollama list
+# 준비 확인 (호스트에서)
+curl http://localhost:11434/api/tags
+```
 
 ### 3) 문서 인덱싱 (컨테이너에서 실행)
 
@@ -244,7 +257,7 @@ Open WebUI는 설정을 DB에 저장하는 경우가 많아, **예전에 켜 둔
 
 | 변수 | 기본값 | 설명 |
 |------|--------|------|
-| `OLLAMA_BASE_URL` | `http://ollama:11434` (`docker-compose` GPU 서비스) | compose `ollama` 컨테이너. 예전 호스트 전용 값은 `host.docker.internal:11434` |
+| `OLLAMA_BASE_URL` | `http://ollama:11434` | compose **`ollama` GPU 컨테이너**. (구방식 호스트 Ollama: `http://host.docker.internal:11434`) |
 | `REWRITE_MODEL` | `qwen3.5:4b` | 질문 재작성·문맥화용 모델 |
 | `ANSWER_MODEL` | `qwen3.5:4b` | 최종 답변용 모델 |
 | `CHROMA_PATH` | `/app/chroma_db` (컨테이너 기준) | ChromaDB 저장 경로 |
@@ -268,8 +281,8 @@ Open WebUI는 설정을 DB에 저장하는 경우가 많아, **예전에 켜 둔
 ## 파일 구조
 
 ```
-RAG_MJY/
-├── docker-compose.yml           # Open WebUI 스택 + pipelines + indexer + imageserver
+RAG_PipeLine/
+├── docker-compose.yml           # open-webui + postgres + redis + ollama(GPU) + pipelines + indexer + imageserver
 ├── README.md
 ├── RAG_PIPELINE_GUIDE.md        # 상세 가이드
 ├── RAG_PIPELINE_GUIDE.html
@@ -285,10 +298,10 @@ RAG_MJY/
 │   │   ├── index_documents.py   # 문서 인덱싱(ChromaDB + BM25)
 │   │   ├── swagger_yaml_to_md.py
 │   │   ├── eval_retrieval.py    # 골든 질문셋 검색 평가
-│   │   ├── test_rag_regression.py # 검색/스트림 회귀(~60)
+│   │   ├── test_rag_regression.py # 검색/스트림 회귀
 │   │   └── test_pipeline.py     # 로컬 테스트 스크립트(선택)
 │   └── data/
-│       ├── docs/                # 인덱싱할 문서
+│       ├── docs/                # 인덱싱할 문서 (공개: sample_*.md)
 │       ├── eval/                # golden_questions.json + artifacts/(gitignore)
 │       ├── chroma_db/           # ChromaDB 저장소(자동 생성)
 │       └── assets/              # ImageServer 정적 파일
@@ -307,6 +320,7 @@ RAG_MJY/
 - **답이 점만 보이거나 비어 보일 때**: qwen3.5는 `think:false` 없이 호출하면 content가 비는 경우가 있습니다.
 - **도우미가 목록에 없을 때**: OpenAI Base URL·DB `config`·chat 스키마를 확인하세요. [PLF-20260802-001]
 - **답변이 끊길 때**: pipelines 로그의 `[RAG] Ollama stream completed`에서 `reason=length`인지 확인하세요. `length`면 `OLLAMA_NUM_PREDICT` 또는 `OLLAMA_NUM_CTX`를 올리되, VRAM 사용량도 함께 확인하세요.
-- **Ollama 접근이 안 될 때**: 기본은 compose GPU 서비스 `http://ollama:11434`입니다. 호스트 Ollama만 쓸 때는 `host.docker.internal:11434`이며, 포트 충돌 시 호스트 Ollama를 중지하세요.
-- **로컬로 파이프라인만 테스트**: `rag/` 디렉터리에서 `python scripts/test_pipeline.py` (Ollama가 로컬에서 떠 있어야 함).
+- **Ollama 접근이 안 될 때**: 기본은 compose `ollama` (`http://ollama:11434`, 호스트에서는 `http://localhost:11434`)입니다. `docker compose ps`로 `ollama`가 Up인지 확인하고, 호스트 Ollama가 11434를 점유 중이면 **호스트 쪽을 중지**한 뒤 `docker compose up -d ollama` 하세요. 모델 디렉터리(`%USERPROFILE%\.ollama`)는 compose가 재사용하므로 **폴더 삭제 금지**.
+- **호스트 Ollama로 되돌리려면**(비권장): pipelines/open-webui의 `OLLAMA_*`를 `http://host.docker.internal:11434`로 바꾸고 compose `ollama` 서비스를 내리면 됩니다. 포트 충돌에 주의하세요.
+- **로컬로 파이프라인만 테스트**: `rag/` 디렉터리에서 `python scripts/test_pipeline.py` (호스트에서 `localhost:11434`로 compose Ollama에 닿을 수 있어야 함).
 - **PL 개발**: 작업 전 `PL_FAILURE_LOG.md` 예방 체크리스트를 수용 기준에 포함하고, 비밀값·토큰·전체 로그 덤프는 남기지 않습니다.
