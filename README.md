@@ -1,5 +1,22 @@
 # LLM → RAG → LLM Pipeline (Open WebUI + Ollama)
 
+사내 문서(Swagger·프로토콜·매뉴얼 등) 대상 Hybrid Retrieval(벡터 + BM25 + rerank) Q&A입니다.  
+Open WebUI에서 질문에 답할 때 **참조 출처**를 함께 표시합니다.
+
+## 데모 화면
+
+### MediaServer 스펙 질의 (표 형식 답변)
+
+질문: `미디어 서버 스펙 알려줘` → 출처 `MediaServer_Specs_New.md`
+
+![MediaServer 스펙 질의 데모](docs/images/RAG1.PNG)
+
+### Alpeta 사용자 가이드 질의 (절차 안내)
+
+질문: `alpeta에서 단말기 상태 어떻게 확인해?` → 출처 `Alpeta User Guide.pdf`
+
+![Alpeta 단말기 상태 확인 데모](docs/images/RAG2.PNG)
+
 ## 문서 가이드
 
 | 문서 | 대상 |
